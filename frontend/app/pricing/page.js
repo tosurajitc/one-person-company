@@ -308,7 +308,7 @@ export default function PricingPage() {
 
                   {/* CTA Button */}
                   <Link
-                    href={plan.buttonHref || (plan.monthlyPrice === 0 ? '/signup' : '/contact')}
+                    href={plan.buttonHref || (plan.monthlyPrice === 0 ? '/setup-wizard' : '/contact')}
                     className={`w-full inline-flex items-center justify-center px-6 py-4 rounded-xl font-bold transition-all duration-200 ${plan.buttonStyle}`}
                   >
                     {plan.buttonText}
@@ -368,7 +368,7 @@ export default function PricingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Link
-                href={siteConfig.cta?.primary?.href || '/signup'}
+                href={siteConfig.cta?.primary?.href || '/setup-wizard'}
                 className="bg-primary-600 hover:bg-primary-700 text-white px-10 py-4 rounded-xl font-bold text-lg flex items-center justify-center"
               >
                 {siteConfig.cta?.primary?.text}

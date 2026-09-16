@@ -1,110 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { 
-  MessageSquare, Users, Bot, AlertCircle, CheckCircle, Clock, 
+import {
+  MessageSquare, Users, Bot, AlertCircle, CheckCircle, Clock,
   Search, Filter, Eye, Reply, Archive, Trash2, Star, Flag,
   Phone, Mail, Globe, BarChart3, TrendingUp, FileText,
   Settings, Bell, RefreshCw, Download, Plus, ArrowRight,
   Headphones, HelpCircle, Send, Paperclip, Video, Calendar
 } from 'lucide-react'
-
-// Admin Layout Component (Reused from dashboard)
-function AdminLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [notifications, setNotifications] = useState(3)
-
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: BarChart3, current: false },
-    { name: 'User Management', href: '/admin/users', icon: Users, current: false },
-    { name: 'Content Management', href: '/admin/content', icon: FileText, current: false },
-    { name: 'AI Tools Admin', href: '/admin/ai-tools', icon: Bot, current: false },
-    { name: 'Business Intelligence', href: '/admin/analytics', icon: TrendingUp, current: false },
-    { name: 'System Settings', href: '/admin/settings', icon: Settings, current: false },
-    { name: 'Support Center', href: '/admin/support', icon: MessageSquare, current: true },
-  ]
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-6 py-4">
-          {/* Left - Logo & Title */}
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-gray-900 hover:text-primary-600 transition-colors"
-            >
-              <BarChart3 className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">OPC Genie Admin</h1>
-              <p className="text-sm text-gray-500">Support Center Management</p>
-            </div>
-          </div>
-
-          {/* Center - Search */}
-          <div className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search tickets, users, issues..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Right - Actions */}
-          <div className="flex items-center space-x-4">
-            <button className="relative text-gray-900 hover:text-primary-600 transition-colors">
-              <Bell className="w-5 h-5" />
-              {notifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-gray-900 text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {notifications}
-                </span>
-              )}
-            </button>
-            <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-sm">A</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r border-gray-200 min-h-screen`}>
-          <nav className="p-4 space-y-2">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-all ${
-                    item.current 
-                      ? 'bg-primary-50 text-primary-700 border border-primary-200' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {sidebarOpen && <span className="ml-3 font-medium">{item.name}</span>}
-                </Link>
-              )
-            })}
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  )
-}
+import AdminShell from '../../../components/AdminShell'
 
 // Support Metrics Component
 function SupportMetrics() {
@@ -489,19 +393,19 @@ export default function SupportCenter() {
 
   if (isLoading) {
     return (
-      <AdminLayout>
+      <AdminShell>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-900 font-medium">Loading Support Center...</p>
           </div>
         </div>
-      </AdminLayout>
+      </AdminShell>
     )
   }
 
   return (
-    <AdminLayout>
+    <AdminShell>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -538,6 +442,6 @@ export default function SupportCenter() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdminShell>
   )
 }

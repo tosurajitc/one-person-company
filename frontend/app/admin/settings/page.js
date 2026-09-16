@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
-import { 
+import {
   Settings, Users, BookOpen, Zap, TrendingUp, BarChart3,
   Save, RefreshCw, Upload, Download, Key, Globe, Shield,
   Mail, Database, Server, Code, Palette, Bell, Lock,
@@ -13,6 +12,7 @@ import {
   Plus, X, Type, Link as LinkIcon, Hash
 } from 'lucide-react'
 import siteConfig from '../../../site.config'
+import AdminShell from '../../../components/AdminShell'
 
 // ─────────────────────────────────────────────
 // Toast notification component
@@ -63,70 +63,6 @@ async function loadSettings() {
   })
   if (!res.ok) throw new Error('Failed to load settings')
   return res.json()
-}
-
-// ─────────────────────────────────────────────
-// Admin Layout
-// ─────────────────────────────────────────────
-function AdminLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: BarChart3, current: false },
-    { name: 'User Management', href: '/admin/users', icon: Users, current: false },
-    { name: 'Content Management', href: '/admin/content', icon: BookOpen, current: false },
-    { name: 'AI Tools Admin', href: '/admin/ai-tools', icon: Zap, current: false },
-    { name: 'Business Intelligence', href: '/admin/analytics', icon: TrendingUp, current: false },
-    { name: 'System Settings', href: '/admin/settings', icon: Settings, current: true },
-  ]
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-900 hover:text-primary-600 transition-colors">
-              <BarChart3 className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">OPC Genie Admin</h1>
-              <p className="text-sm text-gray-500">System Settings & Configuration</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-green-400 text-sm font-medium">System Healthy</span>
-            </div>
-            <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-sm">A</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r border-gray-200 min-h-screen`}>
-          <nav className="p-4 space-y-2">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link key={item.name} href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-all ${
-                    item.current ? 'bg-primary-50 text-primary-700 border border-primary-200' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {sidebarOpen && <span className="ml-3 font-medium">{item.name}</span>}
-                </Link>
-              )
-            })}
-          </nav>
-        </aside>
-        <main className="flex-1 p-6">{children}</main>
-      </div>
-    </div>
-  )
 }
 
 // ─────────────────────────────────────────────
@@ -1023,6 +959,478 @@ function FooterSettings({ allSettings, onToast }) {
 }
 
 // ─────────────────────────────────────────────
+// Marketing Page Settings
+// ─────────────────────────────────────────────
+function MarketingPageSettings({ allSettings, onToast }) {
+  const defaultMarketing = siteConfig.marketing_page || {
+    hero: {
+      headline: "Stop renting your business. Own it.",
+      subheadline: "Describe your business. Your AI Genie builds the site, writes the copy, and runs it — no monthly rent, no lock-in.",
+      cta_label: "Start free",
+      cta_href: "/setup-wizard",
+      show_live_demo: true,
+    },
+    problem_bullets: [
+      "Monthly SaaS rent that never ends",
+      "Platforms that own your customer data",
+      "Generic templates that need a developer",
+    ],
+    feature_grid: [
+      { title: "Build", before: "One month with a developer", after: "One prompt, live in minutes" },
+      { title: "Sell", before: "Stitching together checkout tools", after: "Offer page + payments in a day" },
+      { title: "Run", before: "Answering DMs at midnight", after: "AI Genie handles enquiries 24/7" },
+      { title: "Grow", before: "Guessing what's working", after: "Founder analytics + playbooks" },
+    ],
+    comparison_table: {
+      competitors: ["OPC Genie", "Graphy", "Kajabi", "Skool"],
+      rows: [
+        { label: "Pricing model", values: ["Flat license", "Monthly %", "Monthly $", "Monthly $"] },
+        { label: "You own the code", values: ["Yes", "No", "No", "No"] },
+        { label: "White-label", values: ["Day one", "Paid tier", "Paid tier", "No"] },
+      ],
+    },
+    testimonials: [],
+    lead_magnet: {
+      enabled: true,
+      resource_id: null,
+      headline: "Get the Solo Founder Launch Playbook",
+      cta_label: "Send me the playbook",
+    },
+    final_cta: {
+      headline: "Build your business today.",
+      cta_label: "Start free",
+    },
+  }
+
+  const [marketing, setMarketing] = useState(defaultMarketing)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (allSettings?.marketing_page) {
+      setMarketing({
+        ...defaultMarketing,
+        ...allSettings.marketing_page,
+        hero: { ...defaultMarketing.hero, ...(allSettings.marketing_page.hero || {}) },
+        lead_magnet: { ...defaultMarketing.lead_magnet, ...(allSettings.marketing_page.lead_magnet || {}) },
+        final_cta: { ...defaultMarketing.final_cta, ...(allSettings.marketing_page.final_cta || {}) },
+        comparison_table: {
+          competitors: allSettings.marketing_page.comparison_table?.competitors || defaultMarketing.comparison_table.competitors,
+          rows: allSettings.marketing_page.comparison_table?.rows || defaultMarketing.comparison_table.rows,
+        },
+        problem_bullets: allSettings.marketing_page.problem_bullets || defaultMarketing.problem_bullets,
+        feature_grid: allSettings.marketing_page.feature_grid || defaultMarketing.feature_grid,
+        testimonials: allSettings.marketing_page.testimonials || defaultMarketing.testimonials,
+      })
+    }
+  }, [allSettings])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      await saveSettings({ marketing_page: marketing })
+      onToast('Marketing page settings saved!', 'success')
+    } catch (e) {
+      onToast(e.message, 'error')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Helpers for nested structures
+  const updateHero = (key, val) => setMarketing(m => ({ ...m, hero: { ...m.hero, [key]: val } }))
+  const updateLeadMagnet = (key, val) => setMarketing(m => ({ ...m, lead_magnet: { ...m.lead_magnet, [key]: val } }))
+  const updateFinalCta = (key, val) => setMarketing(m => ({ ...m, final_cta: { ...m.final_cta, [key]: val } }))
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+        <div>
+          <h3 className="text-xl font-bold text-gray-900">Marketing Funnel Page</h3>
+          <p className="text-sm text-gray-500">Configure content and sales funnel elements for /marketing without redeploying.</p>
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <section className="space-y-4">
+        <h4 className="text-gray-900 font-semibold border-b border-gray-200 pb-2">Hero Section</h4>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Field label="Headline">
+            <input type="text" value={marketing.hero?.headline || ''} onChange={e => updateHero('headline', e.target.value)} className={inputCls} />
+          </Field>
+          <Field label="CTA Button Label">
+            <input type="text" value={marketing.hero?.cta_label || ''} onChange={e => updateHero('cta_label', e.target.value)} className={inputCls} />
+          </Field>
+          <Field label="CTA Destination Href">
+            <input type="text" value={marketing.hero?.cta_href || ''} onChange={e => updateHero('cta_href', e.target.value)} className={inputCls} />
+          </Field>
+          <div className="flex items-center pt-6">
+            <label className="flex items-center gap-2 text-gray-700 text-sm font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!marketing.hero?.show_live_demo}
+                onChange={e => updateHero('show_live_demo', e.target.checked)}
+                className="rounded text-primary-600 focus:ring-primary-500"
+              />
+              Show live AI Genie demo in Hero section
+            </label>
+          </div>
+        </div>
+        <Field label="Subheadline">
+          <textarea value={marketing.hero?.subheadline || ''} onChange={e => updateHero('subheadline', e.target.value)} rows={2} className={inputCls} />
+        </Field>
+      </section>
+
+      {/* Problem Bullets */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+          <h4 className="text-gray-900 font-semibold">Problem Bullets</h4>
+          <button
+            onClick={() => setMarketing(m => ({ ...m, problem_bullets: [...(m.problem_bullets || []), ''] }))}
+            className="text-primary-600 hover:text-primary-700 text-sm flex items-center font-medium"
+          >
+            <Plus className="w-4 h-4 mr-1" />Add Bullet
+          </button>
+        </div>
+        {(marketing.problem_bullets || []).map((bullet, idx) => (
+          <div key={idx} className="flex items-center gap-3">
+            <input
+              type="text"
+              value={bullet}
+              onChange={e => {
+                const updated = [...marketing.problem_bullets]
+                updated[idx] = e.target.value
+                setMarketing(m => ({ ...m, problem_bullets: updated }))
+              }}
+              className={inputCls}
+              placeholder={`Problem point #${idx + 1}`}
+            />
+            <button
+              onClick={() => {
+                const updated = marketing.problem_bullets.filter((_, i) => i !== idx)
+                setMarketing(m => ({ ...m, problem_bullets: updated }))
+              }}
+              className="text-red-400 hover:text-red-600 p-2"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </section>
+
+      {/* Feature Grid (Before / After) */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+          <h4 className="text-gray-900 font-semibold">Feature Grid (Before vs. After)</h4>
+          <button
+            onClick={() => setMarketing(m => ({
+              ...m,
+              feature_grid: [...(m.feature_grid || []), { title: 'New Feature', before: '', after: '' }]
+            }))}
+            className="text-primary-600 hover:text-primary-700 text-sm flex items-center font-medium"
+          >
+            <Plus className="w-4 h-4 mr-1" />Add Card
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(marketing.feature_grid || []).map((fg, idx) => (
+            <div key={idx} className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-3 relative">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 font-medium text-sm">Feature #{idx + 1}</span>
+                <button
+                  onClick={() => {
+                    const updated = marketing.feature_grid.filter((_, i) => i !== idx)
+                    setMarketing(m => ({ ...m, feature_grid: updated }))
+                  }}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <Field label="Title">
+                <input
+                  type="text"
+                  value={fg.title}
+                  onChange={e => {
+                    const updated = [...marketing.feature_grid]
+                    updated[idx] = { ...updated[idx], title: e.target.value }
+                    setMarketing(m => ({ ...m, feature_grid: updated }))
+                  }}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Before (The Old Way)">
+                <input
+                  type="text"
+                  value={fg.before}
+                  onChange={e => {
+                    const updated = [...marketing.feature_grid]
+                    updated[idx] = { ...updated[idx], before: e.target.value }
+                    setMarketing(m => ({ ...m, feature_grid: updated }))
+                  }}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="After (With OPC Genie)">
+                <input
+                  type="text"
+                  value={fg.after}
+                  onChange={e => {
+                    const updated = [...marketing.feature_grid]
+                    updated[idx] = { ...updated[idx], after: e.target.value }
+                    setMarketing(m => ({ ...m, feature_grid: updated }))
+                  }}
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Comparison Table */}
+      <section className="space-y-4">
+        <h4 className="text-gray-900 font-semibold border-b border-gray-200 pb-2">Comparison Table</h4>
+        <div className="space-y-3">
+          <Field label="Competitor Headers (comma separated, first is primary e.g. OPC Genie)">
+            <input
+              type="text"
+              value={(marketing.comparison_table?.competitors || []).join(', ')}
+              onChange={e => {
+                const list = e.target.value.split(',').map(s => s.trim())
+                setMarketing(m => ({
+                  ...m,
+                  comparison_table: {
+                    ...(m.comparison_table || {}),
+                    competitors: list,
+                  }
+                }))
+              }}
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-800 font-medium text-sm">Comparison Rows</span>
+            <button
+              onClick={() => {
+                const compCount = marketing.comparison_table?.competitors?.length || 4
+                const newRow = { label: 'New Feature', values: Array(compCount).fill('-') }
+                setMarketing(m => ({
+                  ...m,
+                  comparison_table: {
+                    ...(m.comparison_table || {}),
+                    rows: [...(m.comparison_table?.rows || []), newRow],
+                  }
+                }))
+              }}
+              className="text-primary-600 hover:text-primary-700 text-sm flex items-center font-medium"
+            >
+              <Plus className="w-4 h-4 mr-1" />Add Row
+            </button>
+          </div>
+
+          {(marketing.comparison_table?.rows || []).map((row, rIdx) => (
+            <div key={rIdx} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 font-medium text-sm">Row #{rIdx + 1}</span>
+                <button
+                  onClick={() => {
+                    const updatedRows = marketing.comparison_table.rows.filter((_, i) => i !== rIdx)
+                    setMarketing(m => ({
+                      ...m,
+                      comparison_table: { ...m.comparison_table, rows: updatedRows }
+                    }))
+                  }}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="md:col-span-1">
+                  <Field label="Feature / Label">
+                    <input
+                      type="text"
+                      value={row.label}
+                      onChange={e => {
+                        const updatedRows = [...marketing.comparison_table.rows]
+                        updatedRows[rIdx] = { ...updatedRows[rIdx], label: e.target.value }
+                        setMarketing(m => ({
+                          ...m,
+                          comparison_table: { ...m.comparison_table, rows: updatedRows }
+                        }))
+                      }}
+                      className={inputCls}
+                    />
+                  </Field>
+                </div>
+                <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {(marketing.comparison_table?.competitors || []).map((comp, cIdx) => (
+                    <Field key={cIdx} label={comp}>
+                      <input
+                        type="text"
+                        value={row.values?.[cIdx] || ''}
+                        onChange={e => {
+                          const updatedRows = [...marketing.comparison_table.rows]
+                          const newVals = [...(updatedRows[rIdx].values || [])]
+                          newVals[cIdx] = e.target.value
+                          updatedRows[rIdx] = { ...updatedRows[rIdx], values: newVals }
+                          setMarketing(m => ({
+                            ...m,
+                            comparison_table: { ...m.comparison_table, rows: updatedRows }
+                          }))
+                        }}
+                        className={inputCls}
+                      />
+                    </Field>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+          <div>
+            <h4 className="text-gray-900 font-semibold">Testimonials</h4>
+            <p className="text-xs text-gray-500">If empty, this section will automatically not be rendered on the landing page.</p>
+          </div>
+          <button
+            onClick={() => setMarketing(m => ({
+              ...m,
+              testimonials: [...(m.testimonials || []), { name: '', role: '', content: '', rating: 5 }]
+            }))}
+            className="text-primary-600 hover:text-primary-700 text-sm flex items-center font-medium"
+          >
+            <Plus className="w-4 h-4 mr-1" />Add Testimonial
+          </button>
+        </div>
+        {(marketing.testimonials || []).length === 0 ? (
+          <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl text-center">
+            No testimonials added. The testimonials section will be hidden on /marketing.
+          </div>
+        ) : (
+          (marketing.testimonials || []).map((t, i) => (
+            <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 text-sm font-medium">Testimonial #{i + 1}</span>
+                <button
+                  onClick={() => setMarketing(m => ({ ...m, testimonials: m.testimonials.filter((_, idx) => idx !== i) }))}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                <Field label="Name">
+                  <input
+                    type="text"
+                    value={t.name}
+                    onChange={e => setMarketing(m => ({
+                      ...m,
+                      testimonials: m.testimonials.map((item, idx) => idx === i ? { ...item, name: e.target.value } : item)
+                    }))}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Role / Company">
+                  <input
+                    type="text"
+                    value={t.role}
+                    onChange={e => setMarketing(m => ({
+                      ...m,
+                      testimonials: m.testimonials.map((item, idx) => idx === i ? { ...item, role: e.target.value } : item)
+                    }))}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Rating (1-5)">
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={t.rating}
+                    onChange={e => setMarketing(m => ({
+                      ...m,
+                      testimonials: m.testimonials.map((item, idx) => idx === i ? { ...item, rating: parseInt(e.target.value) || 5 } : item)
+                    }))}
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+              <Field label="Content">
+                <textarea
+                  value={t.content}
+                  onChange={e => setMarketing(m => ({
+                    ...m,
+                    testimonials: m.testimonials.map((item, idx) => idx === i ? { ...item, content: e.target.value } : item)
+                  }))}
+                  rows={2}
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+          ))
+        )}
+      </section>
+
+      {/* Lead Magnet */}
+      <section className="space-y-4">
+        <h4 className="text-gray-900 font-semibold border-b border-gray-200 pb-2">Lead Magnet Section</h4>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Field label="Headline">
+            <input type="text" value={marketing.lead_magnet?.headline || ''} onChange={e => updateLeadMagnet('headline', e.target.value)} className={inputCls} />
+          </Field>
+          <Field label="CTA Button Label">
+            <input type="text" value={marketing.lead_magnet?.cta_label || ''} onChange={e => updateLeadMagnet('cta_label', e.target.value)} className={inputCls} />
+          </Field>
+          <Field label="Connected Resource ID (Optional)">
+            <input
+              type="number"
+              placeholder="e.g. 1 (from Resources library)"
+              value={marketing.lead_magnet?.resource_id ?? ''}
+              onChange={e => updateLeadMagnet('resource_id', e.target.value ? parseInt(e.target.value) : null)}
+              className={inputCls}
+            />
+          </Field>
+          <div className="flex items-center pt-6">
+            <label className="flex items-center gap-2 text-gray-700 text-sm font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!marketing.lead_magnet?.enabled}
+                onChange={e => updateLeadMagnet('enabled', e.target.checked)}
+                className="rounded text-primary-600 focus:ring-primary-500"
+              />
+              Enable Lead Magnet Section
+            </label>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="space-y-4">
+        <h4 className="text-gray-900 font-semibold border-b border-gray-200 pb-2">Final CTA Section</h4>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Field label="Headline">
+            <input type="text" value={marketing.final_cta?.headline || ''} onChange={e => updateFinalCta('headline', e.target.value)} className={inputCls} />
+          </Field>
+          <Field label="CTA Button Label">
+            <input type="text" value={marketing.final_cta?.cta_label || ''} onChange={e => updateFinalCta('cta_label', e.target.value)} className={inputCls} />
+          </Field>
+        </div>
+      </section>
+
+      <SaveBar isSaving={isSaving} onSave={handleSave} />
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
 // Pages Management
 // ─────────────────────────────────────────────
 function PagesManagement({ onToast }) {
@@ -1306,283 +1714,28 @@ function ResourcesManagement({ onToast }) {
 // ─────────────────────────────────────────────
 // Community Management
 // ─────────────────────────────────────────────
-function CommunityManagement({ onToast }) {
-  const [activeSection, setActiveSection] = useState('settings')
-  const [settings, setSettings] = useState(null)
-  const [threads, setThreads] = useState([])
-  const [members, setMembers] = useState([])
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [editingEvent, setEditingEvent] = useState(null)
-  const [editingThread, setEditingThread] = useState(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const emptyEvent = { title: '', description: '', event_type: 'webinar', status: 'upcoming', host_name: '', meeting_url: '', scheduled_at: '', duration_minutes: 60, max_participants: null, tags: [], is_featured: false }
-  const emptyThread = { title: '', body: '', author_name: '', category: '', tags: [], status: 'open', is_featured: false }
-  const [eventForm, setEventForm] = useState(emptyEvent)
-  const [threadForm, setThreadForm] = useState(emptyThread)
-
-  const token = () => localStorage.getItem('auth_token') || localStorage.getItem('token') || ''
-
-  useEffect(() => {
-    fetch('/api/community/settings').then(r => r.json()).then(setSettings).catch(()=>{})
-    fetch('/api/community/threads').then(r => r.json()).then(setThreads).catch(()=>{})
-    fetch('/api/community/events').then(r => r.json()).then(setEvents).catch(()=>{})
-    fetch('/api/community/members', { headers: { Authorization: `Bearer ${token()}` } }).then(r => r.ok?r.json():[]).then(setMembers).catch(()=>{})
-  }, [])
-
-  const saveCommSettings = async () => {
-    setIsSaving(true)
-    try {
-      const res = await fetch('/api/community/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` }, body: JSON.stringify(settings) })
-      if (!res.ok) throw new Error('Failed')
-      onToast('Community settings saved!', 'success')
-    } catch(e) { onToast(e.message,'error') }
-    finally { setIsSaving(false) }
-  }
-
-  const saveEvent = async () => {
-    setIsSaving(true)
-    try {
-      const isNew = editingEvent === 'new'
-      const url = isNew ? '/api/community/events' : `/api/community/events/${editingEvent.id}`
-      const res = await fetch(url, { method: isNew?'POST':'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` }, body: JSON.stringify(eventForm) })
-      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail||'Save failed') }
-      onToast(`Event ${isNew?'created':'updated'}!`,'success')
-      setEditingEvent(null)
-      fetch('/api/community/events').then(r=>r.json()).then(setEvents).catch(()=>{})
-    } catch(e) { onToast(e.message,'error') }
-    finally { setIsSaving(false) }
-  }
-
-  const deleteEvent = async (id) => {
-    if (!confirm('Delete event?')) return
-    try {
-      await fetch(`/api/community/events/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
-      onToast('Event deleted','success')
-      fetch('/api/community/events').then(r=>r.json()).then(setEvents).catch(()=>{})
-    } catch(e) { onToast(e.message,'error') }
-  }
-
-  const saveThread = async () => {
-    setIsSaving(true)
-    try {
-      const isNew = editingThread === 'new'
-      const url = isNew ? '/api/community/threads' : `/api/community/threads/${editingThread.id}`
-      const res = await fetch(url, { method: isNew?'POST':'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` }, body: JSON.stringify(threadForm) })
-      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail||'Save failed') }
-      onToast(`Thread ${isNew?'created':'updated'}!`,'success')
-      setEditingThread(null)
-      fetch('/api/community/threads').then(r=>r.json()).then(setThreads).catch(()=>{})
-    } catch(e) { onToast(e.message,'error') }
-    finally { setIsSaving(false) }
-  }
-
-  const deleteThread = async (id) => {
-    if (!confirm('Delete thread?')) return
-    try {
-      await fetch(`/api/community/threads/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } })
-      onToast('Thread deleted','success')
-      fetch('/api/community/threads').then(r=>r.json()).then(setThreads).catch(()=>{})
-    } catch(e) { onToast(e.message,'error') }
-  }
-
-  const updateMember = async (id, payload) => {
-    try {
-      await fetch(`/api/community/members/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` }, body: JSON.stringify(payload) })
-      onToast('Member updated','success')
-      fetch('/api/community/members', { headers: { Authorization: `Bearer ${token()}` } }).then(r=>r.ok?r.json():[]).then(setMembers).catch(()=>{})
-    } catch(e) { onToast(e.message,'error') }
-  }
-
-  const sectionTabs = [
-    { id: 'settings', label: 'Settings' },
-    { id: 'threads', label: `Threads (${threads.length})` },
-    { id: 'events', label: `Events (${events.length})` },
-    { id: 'members', label: `Members (${members.length})` },
-  ]
-
+function CommunityManagement() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h3 className="text-xl font-bold text-gray-900">Community Management</h3>
-      <div className="flex gap-2 flex-wrap">
-        {sectionTabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveSection(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection===tab.id?'bg-primary-600 text-gray-900':'bg-gray-100 text-gray-500 hover:bg-gray-100'}`}>{tab.label}</button>
-        ))}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 max-w-lg">
+        <p className="text-sm font-semibold text-blue-800 mb-1">Community has moved</p>
+        <p className="text-sm text-blue-700 mb-4">
+          Community is now per-founder and managed from dedicated pages.
+          This settings tab no longer applies.
+        </p>
+        <div className="flex flex-col gap-2">
+          <a href="/admin/communities" className="inline-flex items-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg w-fit">
+            View all communities →
+          </a>
+          <a href="/admin/community-templates" className="inline-flex items-center text-sm font-semibold text-blue-700 hover:text-blue-900 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 w-fit">
+            Manage category templates →
+          </a>
+        </div>
       </div>
-
-      {/* Community Settings */}
-      {activeSection === 'settings' && settings && (
-        <div className="space-y-4">
-          <Field label="Welcome Message"><textarea value={settings.welcome_message||''} onChange={e => setSettings({...settings, welcome_message: e.target.value})} rows={3} className={inputCls} /></Field>
-          <Field label="Community Rules (one per line)">
-            <textarea value={(settings.rules||[]).join('\n')} onChange={e => setSettings({...settings, rules: e.target.value.split('\n').map(r=>r.trim()).filter(Boolean)})} rows={5} className={inputCls} placeholder="Be respectful&#10;No spam&#10;Stay on topic" />
-          </Field>
-          <Field label="Forum Categories (comma separated)">
-            <input type="text" value={(settings.categories||[]).join(', ')} onChange={e => setSettings({...settings, categories: e.target.value.split(',').map(c=>c.trim()).filter(Boolean)})} className={inputCls} placeholder="General, Projects, Career, Events" />
-          </Field>
-          <h5 className="text-gray-900 font-medium mt-4">Feature Toggles</h5>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {['threads','events','members','challenges'].map(feat => (
-              <label key={feat} className="flex items-center gap-2 text-gray-500 text-sm cursor-pointer bg-gray-50 rounded-lg px-3 py-2">
-                <input type="checkbox" checked={!!(settings.features_enabled||{})[feat]} onChange={e => setSettings({...settings, features_enabled: {...(settings.features_enabled||{}), [feat]: e.target.checked}})} className="rounded" />
-                {feat.charAt(0).toUpperCase()+feat.slice(1)}
-              </label>
-            ))}
-          </div>
-          <h5 className="text-gray-900 font-medium mt-4">Stats Display Overrides (leave blank to use real counts)</h5>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {['weekly_active_members','countries','total_discussions'].map(k => (
-              <Field key={k} label={k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}>
-                <input type="text" value={(settings.stats_override||{})[k]||''} onChange={e => setSettings({...settings, stats_override: {...(settings.stats_override||{}), [k]: e.target.value}})} className={inputCls} placeholder="e.g. 500+" />
-              </Field>
-            ))}
-          </div>
-          <SaveBar isSaving={isSaving} onSave={saveCommSettings} />
-        </div>
-      )}
-
-      {/* Threads Management */}
-      {activeSection === 'threads' && (
-        <div className="space-y-4">
-          {editingThread !== null ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-gray-900 font-medium">{editingThread==='new'?'New Thread':'Edit Thread'}</h4>
-                <button onClick={()=>setEditingThread(null)} className="text-gray-400 hover:text-gray-900 text-sm"><X className="w-4 h-4" /></button>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Field label="Title *"><input type="text" value={threadForm.title} onChange={e=>setThreadForm({...threadForm,title:e.target.value})} className={inputCls} /></Field>
-                <Field label="Category"><input type="text" value={threadForm.category||''} onChange={e=>setThreadForm({...threadForm,category:e.target.value})} className={inputCls} placeholder="General, Projects..." /></Field>
-                <Field label="Author Name"><input type="text" value={threadForm.author_name||''} onChange={e=>setThreadForm({...threadForm,author_name:e.target.value})} className={inputCls} /></Field>
-                <Field label="Status">
-                  <select value={threadForm.status} onChange={e=>setThreadForm({...threadForm,status:e.target.value})} className={inputCls}>
-                    {['open','closed','pinned','archived'].map(s=><option key={s} value={s}>{s}</option>)}
-                  </select>
-                </Field>
-              </div>
-              <Field label="Body"><textarea value={threadForm.body||''} onChange={e=>setThreadForm({...threadForm,body:e.target.value})} rows={5} className={inputCls} /></Field>
-              <label className="flex items-center gap-2 text-gray-500 text-sm cursor-pointer"><input type="checkbox" checked={threadForm.is_featured} onChange={e=>setThreadForm({...threadForm,is_featured:e.target.checked})} className="rounded" /> Featured Thread</label>
-              <SaveBar isSaving={isSaving} onSave={saveThread} />
-            </div>
-          ) : (
-            <>
-              <button onClick={() => { setThreadForm(emptyThread); setEditingThread('new') }} className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-gray-900 rounded-lg text-sm font-medium">
-                <Plus className="w-4 h-4 mr-2" />New Thread
-              </button>
-              {threads.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">No threads yet.</div>
-              ) : (
-                <div className="space-y-2">
-                  {threads.map(t => (
-                    <div key={t.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-                      <div>
-                        <div className="text-gray-900 font-medium">{t.title}</div>
-                        <div className="text-gray-400 text-sm">{t.category} • {t.status} • {t.reply_count} replies</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setThreadForm({...t}); setEditingThread(t) }} className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm">Edit</button>
-                        <button onClick={() => deleteThread(t.id)} className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm">Delete</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Events Management */}
-      {activeSection === 'events' && (
-        <div className="space-y-4">
-          {editingEvent !== null ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-gray-900 font-medium">{editingEvent==='new'?'New Event':'Edit Event'}</h4>
-                <button onClick={()=>setEditingEvent(null)} className="text-gray-400 hover:text-gray-900"><X className="w-4 h-4" /></button>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Field label="Title *"><input type="text" value={eventForm.title} onChange={e=>setEventForm({...eventForm,title:e.target.value})} className={inputCls} /></Field>
-                <Field label="Host Name"><input type="text" value={eventForm.host_name||''} onChange={e=>setEventForm({...eventForm,host_name:e.target.value})} className={inputCls} /></Field>
-                <Field label="Event Type">
-                  <select value={eventForm.event_type} onChange={e=>setEventForm({...eventForm,event_type:e.target.value})} className={inputCls}>
-                    {['webinar','hackathon','qa_session','workshop','meetup','other'].map(t=><option key={t} value={t}>{t}</option>)}
-                  </select>
-                </Field>
-                <Field label="Status">
-                  <select value={eventForm.status} onChange={e=>setEventForm({...eventForm,status:e.target.value})} className={inputCls}>
-                    {['upcoming','live','completed','cancelled'].map(s=><option key={s} value={s}>{s}</option>)}
-                  </select>
-                </Field>
-                <Field label="Meeting URL (YouTube/Zoom/Meet)"><input type="url" value={eventForm.meeting_url||''} onChange={e=>setEventForm({...eventForm,meeting_url:e.target.value})} className={inputCls} /></Field>
-                <Field label="Scheduled At (ISO datetime)"><input type="datetime-local" value={eventForm.scheduled_at?.slice?.(0,16)||''} onChange={e=>setEventForm({...eventForm,scheduled_at:e.target.value})} className={inputCls} /></Field>
-                <Field label="Duration (minutes)"><input type="number" value={eventForm.duration_minutes} onChange={e=>setEventForm({...eventForm,duration_minutes:parseInt(e.target.value)||60})} className={inputCls} /></Field>
-                <Field label="Max Participants"><input type="number" value={eventForm.max_participants||''} onChange={e=>setEventForm({...eventForm,max_participants:e.target.value?parseInt(e.target.value):null})} placeholder="Leave blank = unlimited" className={inputCls} /></Field>
-              </div>
-              <Field label="Description"><textarea value={eventForm.description||''} onChange={e=>setEventForm({...eventForm,description:e.target.value})} rows={3} className={inputCls} /></Field>
-              <label className="flex items-center gap-2 text-gray-500 text-sm cursor-pointer"><input type="checkbox" checked={eventForm.is_featured} onChange={e=>setEventForm({...eventForm,is_featured:e.target.checked})} className="rounded" /> Featured Event</label>
-              <SaveBar isSaving={isSaving} onSave={saveEvent} />
-            </div>
-          ) : (
-            <>
-              <button onClick={() => { setEventForm(emptyEvent); setEditingEvent('new') }} className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-gray-900 rounded-lg text-sm font-medium">
-                <Plus className="w-4 h-4 mr-2" />New Event
-              </button>
-              {events.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">No events yet.</div>
-              ) : (
-                <div className="space-y-2">
-                  {events.map(ev => (
-                    <div key={ev.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-                      <div>
-                        <div className="text-gray-900 font-medium">{ev.title}</div>
-                        <div className="text-gray-400 text-sm">{ev.event_type} • {ev.status} • {ev.host_name}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setEventForm({...ev}); setEditingEvent(ev) }} className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm">Edit</button>
-                        <button onClick={() => deleteEvent(ev.id)} className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm">Delete</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Members Management */}
-      {activeSection === 'members' && (
-        <div className="space-y-4">
-          {members.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">No community members yet. Members are created when users join the community.</div>
-          ) : (
-            <div className="space-y-2">
-              {members.map(m => (
-                <div key={m.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-                  <div>
-                    <div className="text-gray-900 font-medium">{m.display_name || `User #${m.user_id}`}</div>
-                    <div className="text-gray-400 text-sm">{m.role} • {m.is_banned ? '🚫 Banned' : m.is_active ? 'Active' : 'Inactive'} • Rep: {m.reputation}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <select value={m.role} onChange={e => updateMember(m.id, { role: e.target.value })} className="bg-gray-100 border border-gray-200 text-gray-900 rounded-lg px-2 py-1.5 text-sm">
-                      {['member','moderator','expert','admin'].map(r=><option key={r} value={r}>{r}</option>)}
-                    </select>
-                    <button onClick={() => updateMember(m.id, { is_banned: !m.is_banned })} className={`px-3 py-1.5 rounded-lg text-sm ${m.is_banned?'bg-green-500/20 text-green-400 hover:bg-green-500/30':'bg-red-500/20 text-red-400 hover:bg-red-500/30'}`}>
-                      {m.is_banned ? 'Unban' : 'Ban'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
-
-
 // ─────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────
@@ -1603,6 +1756,7 @@ export default function SystemSettings() {
     { id: 'general',   name: 'General',          icon: Settings },
     { id: 'security',  name: 'Security',          icon: Shield },
     { id: 'email',     name: 'Email',             icon: Mail },
+    { id: 'marketing', name: 'Marketing Page',    icon: TrendingUp },
     { id: 'content',   name: 'Site Content',      icon: Globe },
     { id: 'homepage',  name: 'Homepage Sections', icon: Image },
     { id: 'footer',    name: 'Footer',            icon: FileText },
@@ -1618,12 +1772,13 @@ export default function SystemSettings() {
       case 'general':   return <GeneralSettings      allSettings={allSettings} onToast={showToast} />
       case 'security':  return <SecuritySettings     allSettings={allSettings} onToast={showToast} />
       case 'email':     return <EmailConfiguration   allSettings={allSettings} onToast={showToast} />
+      case 'marketing': return <MarketingPageSettings allSettings={allSettings} onToast={showToast} />
       case 'content':   return <SiteContentSettings  allSettings={allSettings} onToast={showToast} />
       case 'homepage':  return <HomepageSectionsSettings allSettings={allSettings} onToast={showToast} />
       case 'footer':    return <FooterSettings       allSettings={allSettings} onToast={showToast} />
       case 'pages':     return <PagesManagement      onToast={showToast} />
       case 'resources': return <ResourcesManagement  onToast={showToast} />
-      case 'community': return <CommunityManagement  onToast={showToast} />
+      case 'community': return <CommunityManagement />
       case 'pricing':   return <PricingSettings      allSettings={allSettings} onToast={showToast} />
       case 'system':    return <SystemInformation />
       default:          return <GeneralSettings      allSettings={allSettings} onToast={showToast} />
@@ -1631,7 +1786,7 @@ export default function SystemSettings() {
   }
 
   return (
-    <AdminLayout>
+    <AdminShell>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -1669,6 +1824,6 @@ export default function SystemSettings() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdminShell>
   )
 }

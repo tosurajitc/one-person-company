@@ -15,6 +15,13 @@ class UserLoginRequest(BaseModel):
     model_config = {"json_schema_extra": {"example": {"email": "admin", "password": "password"}}}
 
 
+class UserSignupRequest(BaseModel):
+    """Used by POST /api/auth/signup — plain email + password registration, no OAuth required."""
+    email: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=1, max_length=255)
+
+
 class UserRegisterRequest(BaseModel):
     """
     Used by POST /api/auth/register.

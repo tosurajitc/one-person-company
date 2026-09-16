@@ -23,18 +23,19 @@ const ADMIN_PUBLIC_ROUTES = [
 const PUBLIC_ROUTES = [
   '/',
   '/login',
-  '/signup',
+  '/signout',
   '/contact',
   '/resources',
   '/pricing',
   '/about',
   '/admin/login',
+  '/setup-wizard',
+  '/get_started',
 ]
 
 // Routes that authenticated users shouldn't access (redirect to dashboard)
 const AUTH_REDIRECT_ROUTES = [
   '/login',
-  '/signup',
 ]
 
 export function middleware(request) {

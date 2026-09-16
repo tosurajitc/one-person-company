@@ -67,8 +67,8 @@ const siteConfig = {
     subheadline:  'Describe your business. Your Genie builds the site, writes the copy, and runs sales & support — so you can launch and own a real company, solo.',
     highlightWord: 'AI Genie',   // word(s) shown in pink/accent colour
     cta: {
-      primary:   { text: 'Build My Business Free',    href: '/signup' },
-      secondary: { text: 'See Your Genie in Action',  href: '/solutions' },
+      primary:   { text: 'Build My Business Free',    href: '/setup-wizard' },
+      secondary: { text: 'See Your Genie in Action',  href: '/platform/ai-website-builder' },
     },
   },
 
@@ -145,21 +145,14 @@ const siteConfig = {
       title:       'AI Website Builder',
       description: 'Describe your business and your Genie builds a complete, branded website — no design skills needed',
       preview:     'Live site in under 10 minutes',
-      link:        '/platform/skillgraph-engine',
+      link:        '/platform/ai-website-builder',
       status:      'Available',
-    },
-    {
-      title:       'AI Genie Assistant',
-      description: 'Your always-on business advisor — handles customer queries, writes content, and gives strategic advice',
-      preview:     'Powered by advanced AI models',
-      link:        '/platform/industry-simulator',
-      status:      'Live Demo',
     },
     {
       title:       'Offers & Payments',
       description: 'Create service packages, digital products, and payment links in minutes — sell anything solo',
       preview:     'Connect your payment gateway',
-      link:        '/platform/peer-mentor-matching',
+      link:        '/platform/offers-payments',
       status:      'Available',
     },
     {
@@ -173,7 +166,7 @@ const siteConfig = {
       title:       'Content Studio',
       description: 'Generate blog posts, social captions, email sequences, and pitch decks with one prompt',
       preview:     'Publish across all channels',
-      link:        '/platform/content-co-creation',
+      link:        '/platform/content-studio',
       status:      'Coming Soon',
     },
     {
@@ -215,7 +208,7 @@ const siteConfig = {
   cta: {
     headline:    'Your Business. Built by Your Genie.',
     subheadline: "Stop juggling tools. Describe what you do — your Genie handles the rest.",
-    primary:   { text: 'Build My Business Free', href: '/signup' },
+    primary:   { text: 'Build My Business Free', href: '/setup-wizard' },
     secondary: { text: 'Book a Live Demo',        href: '/contact' },
     badges: [
       'No credit card required',
@@ -240,7 +233,7 @@ const siteConfig = {
         monthlyPrice: 0,
         badge:        'Free Forever',
         buttonText:   'Start Free',
-        buttonHref:   '/signup',
+        buttonHref:   '/setup-wizard',
         target:       'Solo founders just starting out',
         features: [
           'AI-generated website (1 site)',
@@ -263,7 +256,7 @@ const siteConfig = {
         monthlyPrice: 999,
         badge:        'Most Popular',
         buttonText:   'Start 7-Day Free Trial',
-        buttonHref:   '/signup',
+        buttonHref:   '/setup-wizard',
         target:       'Active solo founders & freelancers',
         features: [
           'Everything in Launch',
@@ -320,10 +313,9 @@ const siteConfig = {
   // ─────────────────────────────────────────────────────────
   footerLinks: {
     platform: [
-      { name: 'AI Website Builder', href: '/platform/skillgraph-engine' },
-      { name: 'AI Genie Assistant', href: '/platform/industry-simulator' },
-      { name: 'Offers & Payments',  href: '/platform/peer-mentor-matching' },
-      { name: 'Content Studio',     href: '/platform/content-co-creation' },
+      { name: 'AI Website Builder', href: '/platform/ai-website-builder' },
+      { name: 'Offers & Payments',  href: '/platform/offers-payments' },
+      { name: 'Content Studio',     href: '/platform/content-studio' },
       { name: 'Analytics',          href: '/dashboard' },
       { name: 'Community',          href: '/community' },
     ],
@@ -353,6 +345,49 @@ const siteConfig = {
     searchPlaceholder: 'Search playbooks, templates, checklists...',
     emptyStateTitle: 'No playbooks found',
     emptyStateDescription: 'No playbooks match the selected filters or search query yet.',
+  },
+
+  // ─────────────────────────────────────────────────────────
+  // 15. MARKETING PAGE STRUCTURAL DEFAULTS
+  // ─────────────────────────────────────────────────────────
+  marketing_page: {
+    hero: {
+      headline: 'Stop renting your business. Own it.',
+      subheadline: 'Describe your business. Your AI Genie builds the site, writes the copy, and runs it — no monthly rent, no lock-in.',
+      cta_label: 'Start free',
+      cta_href: '/setup-wizard',
+      show_live_demo: true,
+    },
+    problem_bullets: [
+      'Monthly SaaS rent that never ends',
+      'Platforms that own your customer data',
+      'Generic templates that need a developer',
+    ],
+    feature_grid: [
+      { title: 'Build', before: 'One month with a developer', after: 'One prompt, live in minutes' },
+      { title: 'Sell', before: 'Stitching together checkout tools', after: 'Offer page + payments in a day' },
+      { title: 'Run', before: 'Answering DMs at midnight', after: 'AI Genie handles enquiries 24/7' },
+      { title: 'Grow', before: 'Guessing what\'s working', after: 'Founder analytics + playbooks' },
+    ],
+    comparison_table: {
+      competitors: ['OPC Genie', 'Graphy', 'Kajabi', 'Skool'],
+      rows: [
+        { label: 'Pricing model', values: ['Flat license', 'Monthly %', 'Monthly $', 'Monthly $'] },
+        { label: 'You own the code', values: ['Yes', 'No', 'No', 'No'] },
+        { label: 'White-label', values: ['Day one', 'Paid tier', 'Paid tier', 'No'] },
+      ],
+    },
+    testimonials: [],
+    lead_magnet: {
+      enabled: true,
+      resource_id: null,
+      headline: 'Get the Solo Founder Launch Playbook',
+      cta_label: 'Send me the playbook',
+    },
+    final_cta: {
+      headline: 'Build your business today.',
+      cta_label: 'Start free',
+    },
   },
 
 }

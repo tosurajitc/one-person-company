@@ -13,7 +13,13 @@ import {
 export default function DashboardPage() {
   const siteConfig = useSiteConfig()
   const [greeting, setGreeting] = useState('')
-  const [user, setUser]         = useState(null)
+  const [user, setUser]         = useState(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem('user_data')
+      return raw ? JSON.parse(raw) : null
+    } catch (_) { return null }
+  })
   const [stats, setStats]       = useState(null)
   const [activities, setActivities] = useState([])
   const [loading, setLoading]   = useState(true)
@@ -21,14 +27,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const h = new Date().getHours()
     setGreeting(h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening')
-  }, [])
-
-  // Load user from localStorage (set by login)
-  useEffect(() => {
-    const raw = localStorage.getItem('user_data')
-    if (raw) {
-      try { setUser(JSON.parse(raw)) } catch (_) {}
-    }
   }, [])
 
   // Fetch dashboard stats from API
@@ -160,7 +158,7 @@ export default function DashboardPage() {
               <h3 className="text-lg font-bold mb-2">{siteConfig.cta?.headline}</h3>
               <p className="text-gray-400 text-sm mb-5 leading-relaxed">{siteConfig.cta?.subheadline}</p>
               <Link
-                href={siteConfig.cta?.primary?.href || '/signup'}
+                href={siteConfig.cta?.primary?.href || '/setup-wizard'}
                 className="flex items-center justify-between w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
               >
                 {siteConfig.cta?.primary?.text}
@@ -179,11 +177,11 @@ export default function DashboardPage() {
               <h3 className="font-bold text-gray-900 text-sm mb-4">Quick Links</h3>
               <div className="space-y-2">
                 {[
-                  { label: 'AI Genie Assistant',  href: '/platform/ai-genie',  icon: MessageSquare },
-                  { label: 'Offers & Payments',   href: '/platform/offers',    icon: FileText },
-                  { label: 'Founder Community',   href: '/community',          icon: Users },
-                  { label: 'Playbooks',           href: '/resources',          icon: Globe },
-                  { label: 'Account Settings',    href: '/profile',            icon: Settings },
+                  { label: 'AI Genie Assistant',  href: '/platform/ai-genie',       icon: MessageSquare },
+                  { label: 'Offers & Payments',   href: '/platform/offers',         icon: FileText },
+                  { label: 'My Community',        href: '/dashboard/community',     icon: Users },
+                  { label: 'Playbooks',           href: '/resources',               icon: Globe },
+                  { label: 'Account Settings',    href: '/profile',                 icon: Settings },
                 ].map((item, i) => {
                   const Icon = item.icon
                   return (

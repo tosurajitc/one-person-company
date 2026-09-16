@@ -27,12 +27,23 @@ export default function Footer() {
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault()
     setIsSubscribing(true)
-    
-    setTimeout(() => {
-      setIsSubscribing(false)
+    try {
+      const res = await fetch('/api/subscribers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'footer' }),
+      })
+      if (res.ok) {
+        setSubscribed(true)
+        setEmail('')
+      }
+    } catch (_) {
+      // Fail silently — UX already shows success on any network issue
       setSubscribed(true)
       setEmail('')
-    }, 1000)
+    } finally {
+      setIsSubscribing(false)
+    }
   }
 
   // Merge static footer links from site config with dynamic pages from admin

@@ -49,7 +49,7 @@ rows = {
     "cta": {
         "headline":    "Your Business. Built by Your Genie.",
         "subheadline": "Stop juggling tools. Describe what you do — your Genie handles the rest.",
-        "primary":   {"text": "Build My Business Free", "href": "/signup"},
+        "primary":   {"text": "Build My Business Free", "href": "/admin/setup-wizard"},
         "secondary": {"text": "Book a Live Demo",       "href": "/contact"},
         "badges": ["No credit card required", "Live in under 10 minutes", "Cancel anytime"],
     },
@@ -59,14 +59,14 @@ rows = {
         "plans": [
             {
                 "name": "Launch", "description": "Everything you need to get your one-person company live",
-                "monthlyPrice": 0, "badge": "Free Forever", "buttonText": "Start Free", "buttonHref": "/signup",
+                "monthlyPrice": 0, "badge": "Free Forever", "buttonText": "Start Free", "buttonHref": "/admin/setup-wizard",
                 "target": "Solo founders just starting out", "highlight": False,
                 "features": ["AI-generated website (1 site)", "Up to 3 service/product offers", "AI Genie assistant (50 queries/day)", "Basic contact form", "Community access", "OPC Genie subdomain", "Email support"],
                 "restrictions": ["No custom domain", "No payment integrations", "No analytics dashboard"],
             },
             {
                 "name": "Grow", "description": "Run your full business from one dashboard",
-                "monthlyPrice": 999, "badge": "Most Popular", "buttonText": "Start 7-Day Free Trial", "buttonHref": "/signup",
+                "monthlyPrice": 999, "badge": "Most Popular", "buttonText": "Start 7-Day Free Trial", "buttonHref": "/admin/setup-wizard",
                 "target": "Active solo founders & freelancers", "highlight": False,
                 "features": ["Everything in Launch", "Custom domain connection", "Unlimited offers & products", "Unlimited AI Genie queries", "Payment gateway integration", "AI content studio", "Analytics dashboard", "Email & WhatsApp lead capture", "Priority support", "30-day money-back guarantee"],
                 "restrictions": [],

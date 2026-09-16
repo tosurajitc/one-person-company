@@ -12,7 +12,7 @@ import {
   Award, Globe, Shield, Search, Sparkles, User, Mail,
   Lock, Building, Calendar, Code, Database, TrendingUp,
   MessageSquare, BookOpen, Layers, Hexagon, Package,
-  Activity, PieChart, Workflow, Monitor, AlertCircle
+  Activity, PieChart, Workflow, Monitor, AlertCircle, FileText
 } from 'lucide-react'
 
 // Interactive Dashboard Preview Component
@@ -31,21 +31,21 @@ function DashboardPreview() {
       title: "AI Genie in Action",
       description: "Your Genie handles customer questions, writes content, and gives business advice",
       icon: MessageSquare,
-      color: "from-gray-700 to-gray-800",
+      color: "from-primary-700 to-primary-800",
       stats: ["24/7 Support", "Your Voice", "Zero Training"]
     },
     {
       title: "Offers & Revenue",
       description: "Create service packages, digital products, and payment links in minutes",
       icon: TrendingUp,
-      color: "from-gray-600 to-gray-700",
+      color: "from-primary-500 to-primary-600",
       stats: ["Instant Payments", "No Inventory", "Recurring Plans"]
     },
     {
       title: "Founder Community",
       description: "Connect with fellow OPC founders — share wins, get feedback, find collaborators",
       icon: Users,
-      color: "from-gray-800 to-gray-900",
+      color: "from-primary-800 to-primary-900",
       stats: ["Private Network", "Real Founders", "Weekly Events"]
     }
   ]
@@ -58,14 +58,14 @@ function DashboardPreview() {
   }, [])
   
   return (
-    <div className="bg-gradient-to-br from-violet-900/20 to-blue-900/20 rounded-3xl p-8 backdrop-blur-sm border border-white/10 mt-12">
+    <div className="bg-primary-50 rounded-3xl p-8 border border-primary-100 mt-12">
       <div className="flex items-center mb-8">
         <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mr-4">
           <Monitor className="w-7 h-7 text-white" />
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-white">Your OPC Genie Dashboard</h3>
-          <p className="text-gray-300 text-lg">Everything you need to run your business solo</p>
+          <h3 className="text-2xl font-bold text-gray-900">Your OPC Genie Dashboard</h3>
+          <p className="text-gray-500 text-lg">Everything you need to run your business solo</p>
         </div>
       </div>
       
@@ -108,9 +108,9 @@ function DashboardPreview() {
             key={index}
             onClick={() => setActiveView(index)}
             className={`w-3 h-3 rounded-full transition-all duration-200 ${
-              activeView === index 
-                ? 'bg-white scale-125' 
-                : 'bg-white/30 hover:bg-white/50'
+              activeView === index
+                ? 'bg-primary-600 scale-125'
+                : 'bg-primary-200 hover:bg-primary-400'
             }`}
           />
         ))}
@@ -126,22 +126,22 @@ function DashboardPreview() {
         ].map((feature, index) => {
           const Icon = feature.icon
           return (
-            <div key={index} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 text-center hover:bg-white/10 transition-all">
-              <Icon className="w-6 h-6 text-primary-400 mx-auto mb-2" />
-              <div className="text-lg font-bold text-white">{feature.title}</div>
-              <div className="text-gray-400 text-sm">{feature.subtitle}</div>
+            <div key={index} className="bg-white rounded-xl p-4 border border-primary-100 text-center hover:border-primary-300 hover:shadow-sm transition-all">
+              <Icon className="w-6 h-6 text-primary-600 mx-auto mb-2" />
+              <div className="text-lg font-bold text-gray-900">{feature.title}</div>
+              <div className="text-gray-500 text-sm">{feature.subtitle}</div>
             </div>
           )
         })}
       </div>
 
       {/* Welcome Back Message */}
-      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-        <div className="flex items-center text-gray-300 mb-3">
+      <div className="bg-white rounded-xl p-6 border border-primary-100">
+        <div className="flex items-center text-primary-700 mb-3">
           <Lightbulb className="w-5 h-5 mr-2" />
           <span className="font-semibold">Ready to build your business?</span>
         </div>
-        <p className="text-gray-400 leading-relaxed">
+        <p className="text-gray-500 leading-relaxed">
           Your dashboard is ready. Sign in to manage your website, view your Genie's activity, and track your business growth.
         </p>
       </div>
@@ -156,9 +156,12 @@ function LoginForm() {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [legacyLogin, setLegacyLogin] = useState(false)
+  const [mode, setMode] = useState('login') // 'login' | 'register'
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
+    fullName: '',
     rememberMe: false
   })
   const router = useRouter()
@@ -244,28 +247,94 @@ function LoginForm() {
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
   }
 
+  const handleSignupSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.fullName,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const detail = Array.isArray(data.detail)
+          ? data.detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+          : (data.detail ?? `Registration failed (${res.status})`)
+        throw new Error(String(detail))
+      }
+      if (data.access_token) {
+        localStorage.setItem('auth_token', data.access_token)
+        localStorage.setItem('user_role', data.user?.role ?? '')
+        localStorage.setItem('user_data', JSON.stringify(data.user ?? {}))
+        document.cookie = `token=${data.access_token}; path=/; SameSite=Lax`
+        window.dispatchEvent(new Event('authchange'))
+      }
+      router.push('/dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleLegacySubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
-    
-    // Basic validation
-    const newErrors = {}
-    if (!formData.email) newErrors.email = 'Email is required'
-    if (!formData.password) newErrors.password = 'Password is required'
-    
-    if (Object.keys(newErrors).length > 0) {
+
+    if (!formData.email || !formData.password) {
       setError('Please fill in all required fields')
       setIsLoading(false)
       return
     }
-    
-    // Simulate legacy login API call
-    setTimeout(() => {
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        const detail = Array.isArray(data.detail)
+          ? data.detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+          : (data.detail ?? `Login failed (${res.status})`)
+        throw new Error(String(detail))
+      }
+
+      const data = await res.json()
+
+      if (data.access_token) {
+        localStorage.setItem('auth_token', data.access_token)
+        localStorage.setItem('user_role', data.user?.role ?? '')
+        localStorage.setItem('user_data', JSON.stringify(data.user ?? {}))
+        document.cookie = `token=${data.access_token}; path=/; SameSite=Lax`
+        // Notify same-tab listeners (e.g. Header) that auth state changed.
+        window.dispatchEvent(new Event('authchange'))
+      }
+
+      // Redirect: admins go to /admin, everyone else to /dashboard
+      const role = data.user?.role ?? ''
+      const next = new URLSearchParams(window.location.search).get('next')
+      router.push(next || (role === 'admin' || role === 'super_admin' ? '/admin' : '/dashboard'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
       setIsLoading(false)
-      console.log('Legacy login successful, redirecting to dashboard...')
-      router.push('/dashboard')
-    }, 1500)
+    }
   }
   
   const handleInputChange = (e) => {
@@ -295,12 +364,32 @@ function LoginForm() {
   return (
     <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 max-w-md w-full">
       {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <LogIn className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back!</h2>
-        <p className="text-gray-600">Sign in to continue building your one-person company</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          {mode === 'register' ? 'Create your account' : 'Welcome Back!'}
+        </h2>
+        <p className="text-gray-600">
+          {mode === 'register' ? 'Start building your one-person company today' : 'Sign in to continue building your one-person company'}
+        </p>
+      </div>
+
+      {/* Mode Toggle */}
+      <div className="flex rounded-xl border border-gray-200 p-1 mb-6">
+        <button
+          onClick={() => { setMode('login'); setError(''); setLegacyLogin(false) }}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'login' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:text-gray-900'}`}
+        >
+          Sign In
+        </button>
+        <button
+          onClick={() => { setMode('register'); setError(''); setLegacyLogin(false) }}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'register' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:text-gray-900'}`}
+        >
+          Register
+        </button>
       </div>
 
       {/* Error Message */}
@@ -313,7 +402,80 @@ function LoginForm() {
         </div>
       )}
 
-      {!legacyLogin ? (
+      {mode === 'register' ? (
+        /* ── Register Form ── */
+        <form onSubmit={handleSignupSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+            <input
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleInputChange}
+              placeholder="Jane Doe"
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="your.email@example.com"
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="At least 6 characters"
+                required
+                minLength={6}
+                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              placeholder="Repeat your password"
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>Create Account <ArrowRight className="w-4 h-4 ml-2" /></>
+            )}
+          </button>
+        </form>
+      ) : !legacyLogin ? (
         <>
           {/* OAuth Login Options */}
           <div className="space-y-3 mb-6">
@@ -387,7 +549,7 @@ function LoginForm() {
                 onChange={handleInputChange}
                 placeholder="your.email@example.com"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             
@@ -403,7 +565,7 @@ function LoginForm() {
                   onChange={handleInputChange}
                   placeholder="Enter your password"
                   required
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 <button
                   type="button"
@@ -422,11 +584,11 @@ function LoginForm() {
                   name="rememberMe"
                   checked={formData.rememberMe}
                   onChange={handleInputChange}
-                  className="h-4 w-4 text-violet-600 focus:ring-violet-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <span className="ml-2 text-sm text-gray-700">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-violet-600 hover:text-violet-700">
+              <Link href="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">
                 Forgot password?
               </Link>
             </div>
@@ -434,7 +596,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white py-3 rounded-lg font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -450,7 +612,7 @@ function LoginForm() {
           <div className="mt-6 text-center">
             <button
               onClick={() => setLegacyLogin(false)}
-              className="text-violet-600 hover:text-violet-700 text-sm transition-colors"
+              className="text-primary-600 hover:text-primary-700 text-sm transition-colors"
             >
               ← Back to OAuth Login
             </button>
@@ -465,7 +627,7 @@ function LoginForm() {
         </p>
         <Link 
           href="/admin/login"
-          className="inline-flex items-center text-violet-600 hover:text-violet-700 text-sm font-medium transition-colors"
+          className="inline-flex items-center text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
         >
           <Lock className="w-4 h-4 mr-2" />
           Admin Login
@@ -571,40 +733,39 @@ export default function LoginPage() {
   ]
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-900 via-slate-900 to-blue-900 flex mt-12">
-      {/* Left Side - Full Size Platform Showcase */}
-      <div className="flex-1 p-8 lg:p-16 flex flex-col justify-center">
+    <div className="min-h-screen bg-white flex mt-12">
+      {/* Left Side - Platform Showcase */}
+      <div className="flex-1 bg-primary-50 border-r border-primary-100 p-8 lg:p-16 flex flex-col justify-center">
         <div className="max-w-4xl">
           {/* Header */}
           <div className="mb-12">
             <div className="flex items-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-blue-600 rounded-2xl flex items-center justify-center mr-6">
+              <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mr-6">
                 <LogIn className="w-9 h-9 text-white" />
               </div>
               <div>
-                <h1 className="text-5xl lg:text-6xl font-black text-white leading-tight">
+                <h1 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight">
                   Welcome Back
                 </h1>
-                <p className="text-violet-200 text-xl lg:text-2xl mt-3">
-                  Continue your AI mastery journey
+                <p className="text-primary-600 text-xl lg:text-2xl mt-3 font-medium">
+                  Continue building your one-person company
                 </p>
               </div>
             </div>
-            <p className="text-xl lg:text-2xl text-gray-300 leading-relaxed max-w-3xl">
-              Your personalized dashboard is waiting with new course recommendations, 
-              progress updates, and messages from mentors. Pick up where you left off!
+            <p className="text-xl lg:text-2xl text-gray-500 leading-relaxed max-w-3xl">
+              Your dashboard is waiting. Sign in to manage your website, view your Genie's activity, and track your business growth.
             </p>
           </div>
 
-          {/* Learning Stats */}
+          {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {learningStats.map((stat, index) => {
               const Icon = stat.icon
               return (
-                <div key={index} className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 text-center hover:bg-white/10 transition-all duration-300">
-                  <Icon className="w-8 h-8 text-violet-400 mx-auto mb-3" />
-                  <div className="text-3xl font-black text-white mb-2">{stat.number}</div>
-                  <div className="text-violet-200 text-sm">{stat.label}</div>
+                <div key={index} className="bg-white rounded-2xl p-6 border border-primary-100 text-center hover:border-primary-300 hover:shadow-sm transition-all duration-300">
+                  <Icon className="w-8 h-8 text-primary-600 mx-auto mb-3" />
+                  <div className="text-3xl font-black text-gray-900 mb-2">{stat.number}</div>
+                  <div className="text-gray-500 text-sm">{stat.label}</div>
                 </div>
               )
             })}
@@ -618,59 +779,59 @@ export default function LoginPage() {
             {platformBenefits.map((benefit, index) => {
               const Icon = benefit.icon
               return (
-                <div key={index} className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+                <div key={index} className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-primary-200 hover:shadow-sm transition-all duration-300 group">
                   <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-blue-600 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center mr-4 group-hover:bg-primary-700 transition-colors">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <h3 className="text-white font-bold text-lg">{benefit.title}</h3>
+                    <h3 className="text-gray-900 font-bold text-lg">{benefit.title}</h3>
                   </div>
-                  <p className="text-gray-300 leading-relaxed">{benefit.description}</p>
+                  <p className="text-gray-500 leading-relaxed">{benefit.description}</p>
                 </div>
               )
             })}
           </div>
 
-          {/* Current Learners Testimonial */}
-          <div className="mt-12 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-2xl p-8 border border-emerald-500/20">
+          {/* Founder Testimonials */}
+          <div className="mt-12 bg-white rounded-2xl p-8 border border-gray-200">
             <div className="flex items-center mb-6">
               <Star className="w-6 h-6 text-yellow-400 mr-3" />
-              <h3 className="text-2xl font-bold text-white">What Our Learners Say</h3>
+              <h3 className="text-2xl font-bold text-gray-900">What Founders Say</h3>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-emerald-400 rounded-full mr-3"></div>
-                  <p className="text-emerald-200 font-medium">"Landed my dream AI job at Google within 4 months"</p>
+                  <div className="w-3 h-3 bg-primary-600 rounded-full mr-3 flex-shrink-0"></div>
+                  <p className="text-gray-700 font-medium">"Launched my consulting site and got clients in 48 hours"</p>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-emerald-400 rounded-full mr-3"></div>
-                  <p className="text-emerald-200 font-medium">"The AI assistant helped me debug code instantly"</p>
+                  <div className="w-3 h-3 bg-primary-600 rounded-full mr-3 flex-shrink-0"></div>
+                  <p className="text-gray-700 font-medium">"The AI Genie wrote better copy than I ever could"</p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-emerald-400 rounded-full mr-3"></div>
-                  <p className="text-emerald-200 font-medium">"Best investment in my career - got 60% salary increase"</p>
+                  <div className="w-3 h-3 bg-primary-600 rounded-full mr-3 flex-shrink-0"></div>
+                  <p className="text-gray-700 font-medium">"Replaced three tools with just OPC Genie"</p>
                 </div>
                 <div className="flex items-center">
-                  <div className="w-3 h-3 bg-emerald-400 rounded-full mr-3"></div>
-                  <p className="text-emerald-200 font-medium">"Mentorship program connected me with industry experts"</p>
+                  <div className="w-3 h-3 bg-primary-600 rounded-full mr-3 flex-shrink-0"></div>
+                  <p className="text-gray-700 font-medium">"Setup felt like talking to a very smart business partner"</p>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Navigation Dots */}
-          <FeatureNavigation 
-            activeFeature={activeFeature} 
-            setActiveFeature={setActiveFeature} 
+          <FeatureNavigation
+            activeFeature={activeFeature}
+            setActiveFeature={setActiveFeature}
           />
         </div>
       </div>
       
       {/* Right Side - Login Panel */}
-      <div className="w-full lg:w-[28rem] xl:w-[32rem] bg-gray-50 flex items-start justify-center p-8 pt-16 overflow-y-auto">
+      <div className="w-full lg:w-[28rem] xl:w-[32rem] bg-white flex items-start justify-center p-8 pt-16 overflow-y-auto border-l border-gray-100">
         <LoginForm />
       </div>
     </div>

@@ -3,15 +3,18 @@ Site Settings API Routes
 GET  /api/settings         — returns all settings as a JSON object (admin only)
 PUT  /api/settings         — saves the full or partial settings object (admin only)
 GET  /api/settings/public  — returns safe public subset (no auth required)
+POST /api/settings/setup   — saves full wizard payload for the current user
+GET  /api/settings/mine    — returns the current user's saved site settings
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Any, Dict
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_admin_user
+from app.core.dependencies import get_current_admin_user, get_current_user
 from app.models.user import User
 from app.models.site_settings import SiteSetting
+from app.models.user_site_settings import UserSiteSettings
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -88,8 +91,8 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
         "subheadline": "Describe your business. Your Genie builds the site, writes the copy, and runs sales & support — so you can launch and own a real company, solo.",
         "highlightWord": "AI Genie",
         "cta": {
-            "primary": {"text": "Build My Business Free", "href": "/signup"},
-            "secondary": {"text": "See Your Genie in Action", "href": "/solutions"},
+            "primary": {"text": "Build My Business Free", "href": "/setup-wizard"},
+            "secondary": {"text": "See Your Genie in Action", "href": "/platform/ai-website-builder"},
         },
     },
     "stats": [
@@ -158,7 +161,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "cta": {
         "headline": "Your Business. Built by Your Genie.",
         "subheadline": "Stop juggling tools. Describe what you do — your Genie handles the rest.",
-        "primary": {"text": "Build My Business Free", "href": "/signup"},
+        "primary": {"text": "Build My Business Free", "href": "/setup-wizard"},
         "secondary": {"text": "Book a Live Demo", "href": "/contact"},
         "badges": [
             "No credit card required",
@@ -176,7 +179,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
             "monthlyPrice": 0,
             "badge": "Free Forever",
             "buttonText": "Start Free",
-            "buttonHref": "/signup",
+            "buttonHref": "/setup-wizard",
             "target": "Solo founders just starting out",
             "features": [
                 "AI-generated website (1 site)",
@@ -195,7 +198,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
             "monthlyPrice": 999,
             "badge": "Most Popular",
             "buttonText": "Start 7-Day Free Trial",
-            "buttonHref": "/signup",
+            "buttonHref": "/setup-wizard",
             "target": "Active solo founders & freelancers",
             "features": [
                 "Everything in Launch",
@@ -261,13 +264,52 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
         {"id": "money", "name": "Money & Payments"},
         {"id": "templates", "name": "Templates"},
     ],
+    "marketing_page": {
+        "hero": {
+            "headline": "Stop renting your business. Own it.",
+            "subheadline": "Describe your business. Your AI Genie builds the site, writes the copy, and runs it — no monthly rent, no lock-in.",
+            "cta_label": "Start free",
+            "cta_href": "/setup-wizard",
+            "show_live_demo": True,
+        },
+        "problem_bullets": [
+            "Monthly SaaS rent that never ends",
+            "Platforms that own your customer data",
+            "Generic templates that need a developer",
+        ],
+        "feature_grid": [
+            {"title": "Build", "before": "One month with a developer", "after": "One prompt, live in minutes"},
+            {"title": "Sell", "before": "Stitching together checkout tools", "after": "Offer page + payments in a day"},
+            {"title": "Run", "before": "Answering DMs at midnight", "after": "AI Genie handles enquiries 24/7"},
+            {"title": "Grow", "before": "Guessing what's working", "after": "Founder analytics + playbooks"},
+        ],
+        "comparison_table": {
+            "competitors": ["OPC Genie", "Graphy", "Kajabi", "Skool"],
+            "rows": [
+                {"label": "Pricing model", "values": ["Flat license", "Monthly %", "Monthly $", "Monthly $"]},
+                {"label": "You own the code", "values": ["Yes", "No", "No", "No"]},
+                {"label": "White-label", "values": ["Day one", "Paid tier", "Paid tier", "No"]},
+            ],
+        },
+        "testimonials": [],
+        "lead_magnet": {
+            "enabled": True,
+            "resource_id": None,
+            "headline": "Get the Solo Founder Launch Playbook",
+            "cta_label": "Send me the playbook",
+        },
+        "final_cta": {
+            "headline": "Build your business today.",
+            "cta_label": "Start free",
+        },
+    },
 }
 
 # Public keys that are safe to expose without authentication
 PUBLIC_KEYS = {
     "brand", "contact", "social", "seo", "hero", "stats", "trustedBy", "cta", "pricing",
     "whyDifferent", "valueProps", "features", "testimonials", "footerLinks",
-    "ecosystemSection", "socialProofSection", "resourcesPage", "playbook_categories",
+    "ecosystemSection", "socialProofSection", "resourcesPage", "playbook_categories", "marketing_page",
 }
 
 
@@ -369,3 +411,62 @@ async def update_settings(
             detail=f"Failed to save settings: {str(e)}",
         )
     return {"success": True, "message": "Settings saved successfully."}
+
+
+# ---------------------------------------------------------------------------
+# User-scoped setup wizard routes
+# ---------------------------------------------------------------------------
+
+def _upsert_user_setting(db: Session, user_id: int, key: str, value: Any) -> None:
+    """Insert or update a single user_site_settings row."""
+    row = (
+        db.query(UserSiteSettings)
+        .filter(UserSiteSettings.user_id == user_id, UserSiteSettings.key == key)
+        .first()
+    )
+    if row:
+        row.value = value
+    else:
+        db.add(UserSiteSettings(user_id=user_id, key=key, value=value))
+
+
+@router.post("/setup", status_code=status.HTTP_200_OK)
+async def save_user_setup(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Saves the full Setup Wizard payload for the authenticated user.
+    Each top-level key in the payload becomes one row in user_site_settings.
+    Existing rows for this user are overwritten; other keys are untouched.
+    """
+    for key, value in payload.items():
+        _upsert_user_setting(db, current_user.id, key, value)
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save setup: {str(e)}",
+        )
+    return {"success": True, "message": "Setup saved successfully."}
+
+
+@router.get("/mine")
+async def get_user_settings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Returns all site settings saved by the current user via the Setup Wizard.
+    Falls back to the global defaults for any key not yet saved by this user.
+    """
+    rows = (
+        db.query(UserSiteSettings)
+        .filter(UserSiteSettings.user_id == current_user.id)
+        .all()
+    )
+    result = {row.key: row.value for row in rows}
+    return result

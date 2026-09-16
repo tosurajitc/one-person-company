@@ -28,6 +28,12 @@ from app.models.community import (  # noqa: F401, E402
 from app.models.offer import Offer  # noqa: F401, E402
 from app.models.content_asset import ContentAsset  # noqa: F401, E402
 
+# New models
+from app.models.chat import ChatMessage  # noqa: F401, E402
+from app.models.subscription import UserSubscription, Payment  # noqa: F401, E402
+from app.models.lead import Lead  # noqa: F401, E402
+from app.api.routes.fb_agent_routes import FbAgentState  # noqa: F401, E402
+
 target_metadata = Base.metadata
 
 # ---------------------------------------------------------------------------

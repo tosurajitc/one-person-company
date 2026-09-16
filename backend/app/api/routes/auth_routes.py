@@ -13,9 +13,11 @@ from app.core.auth import AuthService, SecurityService, AuthenticationError
 from app.core.oauth import OAuthClient, OAuthConfig
 from app.core.config import settings
 from app.models.user import User, UserRole, OAuthProvider
+from app.models.lead import Lead
 from app.schemas.user_schemas import (
     UserLoginRequest,
     UserRegisterRequest,
+    UserSignupRequest,
     UserResponse,
     TokenResponse,
     OAuthCallbackRequest,
@@ -101,6 +103,66 @@ async def register(payload: UserRegisterRequest, response: Response, db: Session
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Link any leads previously captured with this email
+    db.query(Lead).filter(
+        Lead.email == payload.email.strip().lower(),
+        Lead.converted_to_user_id.is_(None)
+    ).update({"converted_to_user_id": user.id}, synchronize_session=False)
+    db.commit()
+
+    token = AuthService.create_user_token(user)
+
+    response.set_cookie(
+        key="token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+    return TokenResponse(
+        access_token=token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user),
+    )
+
+
+# ─────────────────────────────────────────────
+# POST /api/auth/signup  (email + password — self-service registration)
+# ─────────────────────────────────────────────
+@router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def signup(payload: UserSignupRequest, response: Response, db: Session = Depends(get_db)):
+    """Register a new user with email and password (no OAuth required)."""
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists",
+        )
+
+    user = User(
+        email=payload.email,
+        full_name=payload.full_name,
+        password_hash=_hash_pw(payload.password),
+        is_active=True,
+        email_verified=False,
+        role=UserRole.USER,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    # Link any leads previously captured with this email (non-fatal if table missing)
+    try:
+        db.query(Lead).filter(
+            Lead.email == payload.email.strip().lower(),
+            Lead.converted_to_user_id.is_(None)
+        ).update({"converted_to_user_id": user.id}, synchronize_session=False)
+        db.commit()
+    except Exception:
+        db.rollback()
 
     token = AuthService.create_user_token(user)
 
@@ -259,10 +321,22 @@ async def oauth_callback(
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        # Link any leads previously captured with this email
+        db.query(Lead).filter(
+            Lead.email == user_info["email"].strip().lower(),
+            Lead.converted_to_user_id.is_(None)
+        ).update({"converted_to_user_id": user.id}, synchronize_session=False)
+        db.commit()
     else:
         # Update avatar if changed
         if user_info.get("avatar_url"):
             user.avatar_url = user_info["avatar_url"]
+        # Also ensure unconverted leads for existing user are attributed
+        db.query(Lead).filter(
+            Lead.email == user.email.strip().lower(),
+            Lead.converted_to_user_id.is_(None)
+        ).update({"converted_to_user_id": user.id}, synchronize_session=False)
         db.commit()
 
     token = AuthService.create_user_token(user)

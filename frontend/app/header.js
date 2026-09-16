@@ -52,19 +52,28 @@ export default function Header() {
 
     checkUserAuth()
     
-    // Listen for auth changes
+    // Listen for auth changes — 'storage' fires from other tabs,
+    // 'authchange' is dispatched from this tab after login/logout.
     window.addEventListener('storage', checkUserAuth)
-    return () => window.removeEventListener('storage', checkUserAuth)
+    window.addEventListener('authchange', checkUserAuth)
+    return () => {
+      window.removeEventListener('storage', checkUserAuth)
+      window.removeEventListener('authchange', checkUserAuth)
+    }
   }, [])
 
   const handleSignOut = () => {
+    // Clear localStorage immediately so the UI updates
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_role')
     localStorage.removeItem('user_data')
+    window.dispatchEvent(new Event('authchange'))
     setUser(null)
     setIsProfileOpen(false)
-    // Redirect to home or login page
-    window.location.href = '/'
+    // Navigate to /signout — a server-side route handler that clears
+    // the token cookie before redirecting to /login, so the middleware
+    // cannot redirect /login back to /dashboard.
+    window.location.href = '/signout'
   }
 
   // Role checks
@@ -132,7 +141,7 @@ export default function Header() {
               {/* Platform Dropdown Menu */}
               <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="py-2">
-                    <Link href="/platform/skillgraph-engine" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                    <Link href="/platform/ai-website-builder" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                       <div className="flex items-center">
                         <Globe className="w-5 h-5 mr-3 text-blue-500" />
                         <div>
@@ -141,16 +150,7 @@ export default function Header() {
                         </div>
                       </div>
                     </Link>
-                    <Link href="/platform/industry-simulator" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                      <div className="flex items-center">
-                        <MessageSquare className="w-5 h-5 mr-3 text-green-500" />
-                        <div>
-                          <div className="font-medium">AI Genie Assistant</div>
-                          <div className="text-xs text-gray-500">Your always-on business advisor</div>
-                        </div>
-                      </div>
-                    </Link>
-                    <Link href="/platform/peer-mentor-matching" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                    <Link href="/platform/offers-payments" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                       <div className="flex items-center">
                         <FileText className="w-5 h-5 mr-3 text-purple-500" />
                         <div>
@@ -159,21 +159,12 @@ export default function Header() {
                         </div>
                       </div>
                     </Link>
-                    <Link href="/platform/content-co-creation" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                    <Link href="/platform/content-studio" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                       <div className="flex items-center">
                         <PenTool className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="font-medium">Content Studio</div>
                           <div className="text-xs text-gray-500">AI-generated copy, posts & emails</div>
-                        </div>
-                      </div>
-                    </Link>
-                    <Link href="/community" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                      <div className="flex items-center">
-                        <Users className="w-5 h-5 mr-3 text-cyan-500" />
-                        <div>
-                          <div className="font-medium">Founder Community</div>
-                          <div className="text-xs text-gray-500">Private network of solo founders</div>
                         </div>
                       </div>
                     </Link>
@@ -190,12 +181,6 @@ export default function Header() {
               </div>
             </div>
             
-            <Link
-              href="/community"
-              className="px-3 py-2 text-sm font-medium transition-colors text-gray-700 hover:text-blue-600"
-            >
-              Community
-            </Link>
             <Link
               href="/pricing"
               className="px-3 py-2 text-sm font-medium transition-colors text-gray-700 hover:text-blue-600"
@@ -398,7 +383,7 @@ export default function Header() {
 
                 {/* Start Trial Button */}
                 <Link
-                  href="/signup"
+                  href="/setup-wizard"
                   className="flex items-center bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors duration-200"
                 >
                   <Zap className="w-4 h-4 mr-2" />
@@ -494,7 +479,7 @@ export default function Header() {
               {!isLoggedIn && (
                 <div className="pb-4 border-b border-gray-200 space-y-3">
                   <Link
-                    href="/signup"
+                    href="/setup-wizard"
                     className="flex items-center justify-center w-full py-3 px-4 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -517,41 +502,27 @@ export default function Header() {
                 <div className="py-1">
                   <p className="py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">Features</p>
                   <Link
-                    href="/platform/skillgraph-engine"
+                    href="/platform/ai-website-builder"
                     className="block py-2 pl-2 text-gray-600 hover:text-blue-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     AI Website Builder
                   </Link>
                   <Link
-                    href="/platform/industry-simulator"
-                    className="block py-2 pl-2 text-gray-600 hover:text-blue-600 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    AI Genie Assistant
-                  </Link>
-                  <Link
-                    href="/platform/peer-mentor-matching"
+                    href="/platform/offers-payments"
                     className="block py-2 pl-2 text-gray-600 hover:text-blue-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Offers &amp; Payments
                   </Link>
                   <Link
-                    href="/platform/content-co-creation"
+                    href="/platform/content-studio"
                     className="block py-2 pl-2 text-gray-600 hover:text-blue-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Content Studio
                   </Link>
                 </div>
-                <Link
-                  href="/community"
-                  className="block py-2 text-gray-600 hover:text-blue-600 transition-colors font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Community
-                </Link>
                 <Link
                   href="/pricing"
                   className="block py-2 text-gray-600 hover:text-blue-600 transition-colors font-medium"

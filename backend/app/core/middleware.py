@@ -34,6 +34,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/api/auth/me",
         "/api/contact",
         "/api/db-status",
+        "/api/chat",
+        "/api/payments/webhook",          # Razorpay + Stripe webhook receivers
+        "/api/content/offers/public",     # public offer landing page lookup
     ]
     
     # Admin-only paths

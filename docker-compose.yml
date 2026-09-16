@@ -1,33 +1,46 @@
 version: "3.9"
 
-# ─────────────────────────────────────────────────────────────
-# AI Services Platform — Docker Compose
-# Usage:
-#   1. cd backend && copy .env.example .env  (then fill in values)
+# ─────────────────────────────────────────────────────────────────────────────
+# OPC Genie — Docker Compose
+#
+# Quick start
+#   1. cp backend/.env.example backend/.env   (fill in real values)
 #   2. docker compose up --build
-# ─────────────────────────────────────────────────────────────
+#
+# Services
+#   db        PostgreSQL 16
+#   backend   FastAPI (uvicorn) — runs alembic migrations on start
+#   frontend  Next.js 14 (standalone)
+#   nginx     Reverse proxy — :80 → frontend, /api/* → backend
+#
+# Ports exposed to the host
+#   80    nginx (public entry point — use this for everything)
+#   8000  backend (direct, useful for API debugging — remove in production)
+#   5432  postgres (direct, useful for psql — remove in production)
+# ─────────────────────────────────────────────────────────────────────────────
 
 services:
 
-  # ── PostgreSQL ──────────────────────────────────────────────
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-ai_services_platform}
-      POSTGRES_USER: ${DB_USER:-ai_user}
+      POSTGRES_DB:       ${DB_NAME:-ai_services_platform}
+      POSTGRES_USER:     ${DB_USER:-opc_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changethis}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ai_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-opc_user} -d ${DB_NAME:-ai_services_platform}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
-  # ── FastAPI Backend ─────────────────────────────────────────
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -36,26 +49,67 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      # Override DB host to use the compose service name
       DB_HOST: db
-      DB_PORT: 5432
+      DB_PORT: "5432"
+      # Tell the app where the frontend lives (used for OAuth redirect URLs etc.)
+      FRONTEND_URL: http://localhost
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  # ── Next.js Frontend ────────────────────────────────────────
+  # ── Next.js Frontend ────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # During build, the frontend calls backend via the docker network name.
+        # At runtime (browser), requests go through nginx on localhost.
+        NEXT_PUBLIC_API_URL: http://backend:8000
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8000
+      NODE_ENV: production
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
+  # ── nginx Reverse Proxy ─────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# ─────────────────────────────────────────────────────────────────────────────
 volumes:
   postgres_data:
+    driver: local

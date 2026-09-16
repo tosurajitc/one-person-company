@@ -1,15 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',  // enables minimal Docker image via .next/standalone
   images: {
     domains: ['api.placeholder.com', 'images.unsplash.com'],
     unoptimized: false,
   },
   async redirects() {
     return [
-      { source: '/platform/ai-genie', destination: '/platform/industry-simulator', permanent: false },
-      { source: '/platform/website-builder', destination: '/platform/skillgraph-engine', permanent: false },
-      { source: '/platform/offers', destination: '/platform/peer-mentor-matching', permanent: false },
-      { source: '/platform/content-studio', destination: '/platform/content-co-creation', permanent: false },
+      { source: '/platform/ai-genie',          destination: '/platform/ai-website-builder', permanent: true },
+      { source: '/platform/ai-genie-assistant', destination: '/platform/ai-website-builder', permanent: true },
+      { source: '/platform/website-builder',    destination: '/platform/ai-website-builder', permanent: true },
+      { source: '/platform/offers',             destination: '/platform/offers-payments',    permanent: true },
+      { source: '/platform/industry-simulator', destination: '/platform/ai-website-builder', permanent: true },
+      { source: '/platform/skillgraph-engine',  destination: '/platform/ai-website-builder', permanent: true },
+      { source: '/platform/peer-mentor-matching', destination: '/platform/offers-payments',  permanent: true },
+      { source: '/platform/content-co-creation',  destination: '/platform/content-studio',   permanent: true },
     ]
   },
   async rewrites() {

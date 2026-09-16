@@ -9,77 +9,7 @@ import {
   ChevronDown, ArrowUpDown, MoreVertical, Check, X, AlertCircle,
   Image, Music, Code, PenTool, Layers, Target, RefreshCw, CheckCircle
 } from 'lucide-react'
-
-// Admin Layout Component (Reused)
-function AdminLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: BarChart3, current: false },
-    { name: 'User Management', href: '/admin/users', icon: Users, current: false },
-    { name: 'Content Management', href: '/admin/content', icon: BookOpen, current: true },
-    { name: 'AI Tools Admin', href: '/admin/ai-tools', icon: Zap, current: false },
-    { name: 'Business Intelligence', href: '/admin/analytics', icon: TrendingUp, current: false },
-    { name: 'System Settings', href: '/admin/settings', icon: Settings, current: false },
-  ]
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-gray-900 hover:text-primary-600 transition-colors"
-            >
-              <BarChart3 className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">OPC Genie Admin</h1>
-              <p className="text-sm text-gray-500">Content Management System</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-sm">A</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r border-gray-200 min-h-screen`}>
-          <nav className="p-4 space-y-2">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-all ${
-                    item.current 
-                      ? 'bg-primary-50 text-primary-700 border border-primary-200' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {sidebarOpen && <span className="ml-3 font-medium">{item.name}</span>}
-                </Link>
-              )
-            })}
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  )
-}
+import AdminShell from '../../../components/AdminShell'
 
 // Content Stats Component
 function ContentStats() {
@@ -329,15 +259,25 @@ function CourseManagement() {
               </div>
 
               <div className="p-6">
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">{course.title}</h3>
+                <div className="mb-3">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors">{course.title}</h3>
+                    {course.price != null
+                      ? <span className="shrink-0 text-sm font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">{course.currency} {Number(course.price).toLocaleString()}</span>
+                      : <span className="shrink-0 text-sm font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-lg">Free</span>
+                    }
+                  </div>
                   <p className="text-gray-400 text-sm">by {course.instructor}</p>
-                  <p className="text-gray-500 text-xs">{course.category}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {course.offer_type && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">{course.offer_type.replace('_', ' ')}</span>}
+                    {course.category && <span className="text-xs text-gray-400">{course.category}</span>}
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-4 text-sm text-gray-400 mb-4">
+                <div className="flex items-center space-x-4 text-sm text-gray-400 mb-3">
                   {course.duration && <div className="flex items-center"><Clock className="w-4 h-4 mr-1" />{course.duration}</div>}
                   {course.lessons_count > 0 && <div className="flex items-center"><BookOpen className="w-4 h-4 mr-1" />{course.lessons_count} items</div>}
+                  {course.slug && <div className="flex items-center text-xs text-gray-300 font-mono truncate max-w-[120px]">/offer/{course.slug}</div>}
                 </div>
 
                 {course.description && <p className="text-gray-400 text-sm mb-4 line-clamp-2">{course.description}</p>}
@@ -364,17 +304,44 @@ function CourseManagement() {
 // ─────────────────────────────────────────────
 function CourseModal({ course, getToken, onClose, onSaved, onError }) {
   const inputCls = 'w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-primary-500 focus:outline-none'
+
+  const OFFER_TYPES = [
+    { value: 'service',         label: 'Service' },
+    { value: 'coaching',        label: 'Coaching / Consulting' },
+    { value: 'course',          label: 'Course / Workshop' },
+    { value: 'digital_product', label: 'Digital Product' },
+    { value: 'video',           label: 'Video / Film' },
+    { value: 'audio',           label: 'Audio / Podcast' },
+    { value: 'book',            label: 'Book / eBook' },
+    { value: 'community',       label: 'Community / Membership' },
+    { value: 'event',           label: 'Event / Webinar' },
+    { value: 'physical',        label: 'Physical Product' },
+    { value: 'bundle',          label: 'Bundle / Package' },
+    { value: 'other',           label: 'Other' },
+  ]
+  const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD']
+
   const [form, setForm] = useState({
     title: course?.title || '',
     instructor: course?.instructor || '',
+    offer_type: course?.offer_type || 'service',
     category: course?.category || '',
     status: course?.status || 'Draft',
     description: course?.description || '',
+    price: course?.price ?? '',
+    currency: course?.currency || 'INR',
+    slug: course?.slug || '',
     duration: course?.duration || '',
     lessons_count: course?.lessons_count ?? 0,
     thumbnail_url: course?.thumbnail_url || '',
   })
   const [isSaving, setIsSaving] = useState(false)
+
+  // Auto-generate slug from title when creating a new offer
+  const handleTitleChange = (val) => {
+    const slugified = val.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '')
+    setForm(f => ({ ...f, title: val, ...(course ? {} : { slug: slugified }) }))
+  }
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.instructor.trim()) { onError('Title and Creator are required.'); return }
@@ -382,10 +349,15 @@ function CourseModal({ course, getToken, onClose, onSaved, onError }) {
     try {
       const url = course ? `/api/content/offers/${course.id}` : '/api/content/offers'
       const method = course ? 'PUT' : 'POST'
+      const payload = {
+        ...form,
+        price: form.price === '' ? null : parseFloat(form.price),
+        lessons_count: parseInt(form.lessons_count) || 0,
+      }
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Save failed') }
       onSaved()
@@ -396,54 +368,96 @@ function CourseModal({ course, getToken, onClose, onSaved, onError }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-gray-900 border border-gray-200 rounded-2xl p-6 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-2xl space-y-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-bold text-gray-900">{course ? 'Edit Offer' : 'New Offer'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-900"><X className="w-5 h-5" /></button>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Title *</label>
-          <input type="text" value={form.title} onChange={e => setForm({...form, title: e.target.value})} className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Creator *</label>
-          <input type="text" value={form.instructor} onChange={e => setForm({...form, instructor: e.target.value})} className={inputCls} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
+
+        {/* Row 1: Title + Offer Type */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Category</label>
-            <input type="text" value={form.category} onChange={e => setForm({...form, category: e.target.value})} className={inputCls} />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <input type="text" value={form.title} onChange={e => handleTitleChange(e.target.value)} placeholder="e.g. 1-on-1 Brand Strategy Session" className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Status</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Offer Type *</label>
+            <select value={form.offer_type} onChange={e => setForm({...form, offer_type: e.target.value})} className={inputCls}>
+              {OFFER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 2: Creator + Category */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Creator / Provider *</label>
+            <input type="text" value={form.instructor} onChange={e => setForm({...form, instructor: e.target.value})} placeholder="Your name or brand" className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <input type="text" value={form.category} onChange={e => setForm({...form, category: e.target.value})} placeholder="e.g. Design, Marketing, Finance" className={inputCls} />
+          </div>
+        </div>
+
+        {/* Row 3: Price + Currency + Status */}
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+            <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm({...form, price: e.target.value})} placeholder="0 = Free" className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <select value={form.currency} onChange={e => setForm({...form, currency: e.target.value})} className={inputCls}>
+              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className={inputCls}>
               {['Draft','Published','Review','Archived'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+
+        {/* Row 4: Slug + Duration */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Duration</label>
-              <input type="text" placeholder="e.g. 3 hours" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} className={inputCls} />
+            <label className="block text-sm font-medium text-gray-700 mb-1">URL Slug</label>
+            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+              <span className="px-3 py-2 bg-gray-50 text-gray-400 text-sm border-r border-gray-300 whitespace-nowrap">/offer/</span>
+              <input type="text" value={form.slug} onChange={e => setForm({...form, slug: e.target.value})} placeholder="my-offer-name" className="flex-1 px-3 py-2 text-sm text-gray-900 outline-none bg-white" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-2">Number of Items</label>
-              <input type="number" value={form.lessons_count} onChange={e => setForm({...form, lessons_count: parseInt(e.target.value)||0})} className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+            <input type="text" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} placeholder="e.g. 60 min session, 4-week program" className={inputCls} />
           </div>
         </div>
+
+        {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Description</label>
-          <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} className={inputCls} />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} placeholder="What does the buyer get? What problem does this solve?" className={inputCls} />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Thumbnail URL</label>
-          <input type="url" value={form.thumbnail_url} onChange={e => setForm({...form, thumbnail_url: e.target.value})} className={inputCls} />
+
+        {/* Thumbnail + Items count */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL</label>
+            <input type="url" value={form.thumbnail_url} onChange={e => setForm({...form, thumbnail_url: e.target.value})} placeholder="https://..." className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Number of Items / Modules</label>
+            <input type="number" min="0" value={form.lessons_count} onChange={e => setForm({...form, lessons_count: e.target.value})} className={inputCls} />
+          </div>
         </div>
-        <div className="flex justify-end space-x-3 pt-2">
+
+        <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200">
           <button onClick={onClose} className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-primary-600 text-gray-900 rounded-lg transition-all disabled:opacity-50 flex items-center">
+          <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all disabled:opacity-50 flex items-center">
             {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" /> : null}
-            {course ? 'Update' : 'Create'}
+            {course ? 'Update Offer' : 'Create Offer'}
           </button>
         </div>
       </div>
@@ -864,7 +878,7 @@ export default function ContentManagement() {
   }
 
   return (
-    <AdminLayout>
+    <AdminShell>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -896,6 +910,6 @@ export default function ContentManagement() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdminShell>
   )
 }

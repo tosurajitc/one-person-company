@@ -21,22 +21,22 @@ function ProfileLayout({ children }) {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 transition-colors">
+              <Link href="/dashboard" className="text-primary-600 hover:text-primary-700 transition-colors text-sm font-medium">
                 ← Back to Dashboard
               </Link>
-              <div>
-                <h1 className="text-xl font-bold text-white">Profile Settings</h1>
-                <p className="text-sm text-gray-300">Manage your account preferences</p>
+              <div className="border-l border-gray-200 pl-4">
+                <h1 className="text-lg font-bold text-gray-900">Profile Settings</h1>
+                <p className="text-xs text-gray-500">Manage your account preferences</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">SC</span>
               </div>
             </div>
@@ -104,30 +104,35 @@ export default function ProfileSettings() {
     }, 1000)
   }
 
+  const inputClass = "w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+  const cardClass = "bg-gray-50 rounded-2xl p-6 border border-gray-100"
+  const cardTitleClass = "text-lg font-bold text-gray-900 mb-4"
+  const labelClass = "block text-sm font-medium text-gray-700 mb-2"
+
   const renderGeneral = () => (
     <div className="space-y-6">
       {/* Profile Picture */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Profile Picture</h3>
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Profile Picture</h3>
         <div className="flex items-center space-x-6">
           <div className="relative">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <div className="w-24 h-24 bg-primary-600 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-2xl">SC</span>
             </div>
-            <button className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+            <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors">
               <Camera className="w-4 h-4 text-white" />
             </button>
           </div>
           <div>
-            <h4 className="text-white font-medium">Upload new picture</h4>
-            <p className="text-gray-400 text-sm mb-3">JPG, PNG or GIF. Max size 5MB.</p>
+            <h4 className="text-gray-900 font-medium">Upload new picture</h4>
+            <p className="text-gray-500 text-sm mb-3">JPG, PNG or GIF. Max size 5MB.</p>
             <div className="flex space-x-3">
-              <button className="bg-blue-500/20 text-blue-400 px-4 py-2 rounded-lg hover:bg-blue-500/30 transition-colors border border-blue-500/30">
-                <Upload className="w-4 h-4 inline mr-2" />
+              <button className="flex items-center px-4 py-2 rounded-lg border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors text-sm">
+                <Upload className="w-4 h-4 mr-2" />
                 Upload
               </button>
-              <button className="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors border border-red-500/30">
-                <Trash2 className="w-4 h-4 inline mr-2" />
+              <button className="flex items-center px-4 py-2 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm">
+                <Trash2 className="w-4 h-4 mr-2" />
                 Remove
               </button>
             </div>
@@ -136,95 +141,95 @@ export default function ProfileSettings() {
       </div>
 
       {/* Personal Information */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Personal Information</h3>
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Personal Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+            <label className={labelClass}>First Name</label>
             <input
               type="text"
               value={profile.firstName}
               onChange={(e) => setProfile({...profile, firstName: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+            <label className={labelClass}>Last Name</label>
             <input
               type="text"
               value={profile.lastName}
               onChange={(e) => setProfile({...profile, lastName: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+            <label className={labelClass}>Email</label>
             <input
               type="email"
               value={profile.email}
               onChange={(e) => setProfile({...profile, email: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+            <label className={labelClass}>Phone</label>
             <input
               type="tel"
               value={profile.phone}
               onChange={(e) => setProfile({...profile, phone: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
+            <label className={labelClass}>Location</label>
             <input
               type="text"
               value={profile.location}
               onChange={(e) => setProfile({...profile, location: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+            <label className={labelClass}>Bio</label>
             <textarea
               value={profile.bio}
               onChange={(e) => setProfile({...profile, bio: e.target.value})}
               rows="3"
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
         </div>
       </div>
 
       {/* Professional Information */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Professional Information</h3>
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Professional Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Company</label>
+            <label className={labelClass}>Company</label>
             <input
               type="text"
               value={profile.company}
               onChange={(e) => setProfile({...profile, company: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Position</label>
+            <label className={labelClass}>Position</label>
             <input
               type="text"
               value={profile.position}
               onChange={(e) => setProfile({...profile, position: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Website</label>
+            <label className={labelClass}>Website</label>
             <input
               type="url"
               value={profile.website}
               onChange={(e) => setProfile({...profile, website: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
         </div>
@@ -234,14 +239,14 @@ export default function ProfileSettings() {
 
   const renderNotifications = () => (
     <div className="space-y-6">
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Email Notifications</h3>
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Email Notifications</h3>
         <div className="space-y-4">
           {Object.entries(notifications).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between">
+            <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
               <div>
-                <h4 className="text-white font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                <p className="text-gray-400 text-sm">Get notified about important updates</p>
+                <h4 className="text-gray-900 font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
+                <p className="text-gray-500 text-sm">Get notified about important updates</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -250,7 +255,7 @@ export default function ProfileSettings() {
                   onChange={(e) => setNotifications({...notifications, [key]: e.target.checked})}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
               </label>
             </div>
           ))}
@@ -261,27 +266,27 @@ export default function ProfileSettings() {
 
   const renderPrivacy = () => (
     <div className="space-y-6">
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Privacy Settings</h3>
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Privacy Settings</h3>
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Profile Visibility</label>
-            <select 
+            <label className={labelClass}>Profile Visibility</label>
+            <select
               value={privacy.profileVisibility}
               onChange={(e) => setPrivacy({...privacy, profileVisibility: e.target.value})}
-              className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
             >
-              <option value="public" className="bg-gray-800">Public</option>
-              <option value="private" className="bg-gray-800">Private</option>
-              <option value="friends" className="bg-gray-800">Friends Only</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+              <option value="friends">Friends Only</option>
             </select>
           </div>
-          
+
           {Object.entries(privacy).slice(1).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between">
+            <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
               <div>
-                <h4 className="text-white font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
-                <p className="text-gray-400 text-sm">Control who can see this information</p>
+                <h4 className="text-gray-900 font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</h4>
+                <p className="text-gray-500 text-sm">Control who can see this information</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -290,7 +295,7 @@ export default function ProfileSettings() {
                   onChange={(e) => setPrivacy({...privacy, [key]: e.target.checked})}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
               </label>
             </div>
           ))}
@@ -301,42 +306,42 @@ export default function ProfileSettings() {
 
   const renderSecurity = () => (
     <div className="space-y-6">
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Password & Security</h3>
-        <div className="space-y-4">
-          <button className="w-full bg-blue-500/20 text-blue-400 py-3 rounded-lg hover:bg-blue-500/30 transition-colors border border-blue-500/30 flex items-center justify-center">
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Password & Security</h3>
+        <div className="space-y-3">
+          <button className="w-full flex items-center justify-center px-4 py-3 rounded-lg border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors font-medium">
             <Key className="w-4 h-4 mr-2" />
             Change Password
           </button>
-          <button className="w-full bg-green-500/20 text-green-400 py-3 rounded-lg hover:bg-green-500/30 transition-colors border border-green-500/30 flex items-center justify-center">
+          <button className="w-full flex items-center justify-center px-4 py-3 rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors font-medium">
             <Shield className="w-4 h-4 mr-2" />
             Enable Two-Factor Authentication
           </button>
         </div>
       </div>
 
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Active Sessions</h3>
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Active Sessions</h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200">
             <div className="flex items-center space-x-3">
-              <Monitor className="w-5 h-5 text-blue-400" />
+              <Monitor className="w-5 h-5 text-primary-600" />
               <div>
-                <p className="text-white font-medium">Current Session</p>
-                <p className="text-gray-400 text-sm">Chrome on macOS • San Francisco, CA</p>
+                <p className="text-gray-900 font-medium">Current Session</p>
+                <p className="text-gray-500 text-sm">Chrome on macOS • San Francisco, CA</p>
               </div>
             </div>
-            <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded-full text-xs border border-green-500/30">Active</span>
+            <span className="bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs border border-green-200 font-medium">Active</span>
           </div>
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200">
             <div className="flex items-center space-x-3">
-              <Smartphone className="w-5 h-5 text-purple-400" />
+              <Smartphone className="w-5 h-5 text-gray-400" />
               <div>
-                <p className="text-white font-medium">Mobile App</p>
-                <p className="text-gray-400 text-sm">iOS App • 2 days ago</p>
+                <p className="text-gray-900 font-medium">Mobile App</p>
+                <p className="text-gray-500 text-sm">iOS App • 2 days ago</p>
               </div>
             </div>
-            <button className="text-red-400 hover:text-red-300 text-sm">Revoke</button>
+            <button className="text-red-500 hover:text-red-600 text-sm font-medium">Revoke</button>
           </div>
         </div>
       </div>
@@ -345,30 +350,30 @@ export default function ProfileSettings() {
 
   const renderBilling = () => (
     <div className="space-y-6">
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Current Plan</h3>
-        <div className="flex items-center justify-between p-4 bg-blue-500/20 rounded-lg border border-blue-500/30">
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Current Plan</h3>
+        <div className="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-200">
           <div>
-            <h4 className="text-white font-bold">Premium Plan</h4>
-            <p className="text-blue-300">$29/month • Renews on Feb 15, 2025</p>
+            <h4 className="text-gray-900 font-bold">Premium Plan</h4>
+            <p className="text-primary-600 text-sm">$29/month • Renews on Feb 15, 2025</p>
           </div>
-          <button className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors">
+          <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
             Manage Plan
           </button>
         </div>
       </div>
 
-      <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="text-lg font-bold text-white mb-4">Payment Method</h3>
-        <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+      <div className={cardClass}>
+        <h3 className={cardTitleClass}>Payment Method</h3>
+        <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
           <div className="flex items-center space-x-3">
-            <CreditCard className="w-5 h-5 text-blue-400" />
+            <CreditCard className="w-5 h-5 text-primary-600" />
             <div>
-              <p className="text-white font-medium">•••• •••• •••• 4242</p>
-              <p className="text-gray-400 text-sm">Expires 12/27</p>
+              <p className="text-gray-900 font-medium">•••• •••• •••• 4242</p>
+              <p className="text-gray-500 text-sm">Expires 12/27</p>
             </div>
           </div>
-          <button className="text-blue-400 hover:text-blue-300 text-sm">Update</button>
+          <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">Update</button>
         </div>
       </div>
     </div>
@@ -390,21 +395,21 @@ export default function ProfileSettings() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6">
-            <div className="space-y-2">
+          <div className="bg-gray-50 rounded-2xl border border-gray-100 p-4">
+            <div className="space-y-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center px-4 py-3 rounded-lg transition-all ${
+                    className={`w-full flex items-center px-4 py-3 rounded-xl transition-all text-sm font-medium ${
                       activeTab === tab.id
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                        ? 'bg-primary-600 text-white'
+                        : 'text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm'
                     }`}
                   >
-                    <Icon className="w-5 h-5 mr-3" />
+                    <Icon className="w-4 h-4 mr-3 flex-shrink-0" />
                     {tab.name}
                   </button>
                 )
@@ -416,16 +421,16 @@ export default function ProfileSettings() {
         {/* Main Content */}
         <div className="lg:col-span-3">
           {renderTabContent()}
-          
+
           {/* Save Button */}
           <div className="mt-8 flex justify-end space-x-3">
-            <button className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-lg font-medium transition-colors border border-white/20">
+            <button className="px-6 py-3 rounded-lg font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={isLoading}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all disabled:opacity-50 flex items-center"
+              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center"
             >
               {isLoading ? (
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />

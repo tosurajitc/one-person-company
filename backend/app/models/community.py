@@ -1,11 +1,12 @@
 """
-Community data models.
-Designed for expandability — covers forum threads, posts, members, events,
-badges, and community-wide settings.
+Community data models — tenant-scoped (Skool-style).
+
+Every thread, post, member, event, and settings row is scoped to a single
+community_id.  No cross-community queries are possible at the model layer.
 """
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime,
-    ForeignKey, Enum as SAEnum
+    ForeignKey, Enum as SAEnum, UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
@@ -16,6 +17,12 @@ from app.core.database import Base
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
+
+class CommunityStatus(str, enum.Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
 
 class ThreadStatus(str, enum.Enum):
     OPEN = "open"
@@ -48,19 +55,85 @@ class EventStatus(str, enum.Enum):
 
 
 # ---------------------------------------------------------------------------
-# Models
+# Community  (the tenant root — created alongside a backing Offer)
+# ---------------------------------------------------------------------------
+
+class Community(Base):
+    """One community per founder (or multiple).  Always backed by an Offer row."""
+    __tablename__ = "communities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    offer_id = Column(Integer, ForeignKey("offers.id", ondelete="CASCADE"), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(255), nullable=False)          # unique per owner
+    description = Column(Text, nullable=True)
+    category_template = Column(String(100), nullable=True)  # seeded from admin template, if any
+    status = Column(SAEnum(CommunityStatus, name="community_status"), default=CommunityStatus.DRAFT, nullable=False)
+    branding = Column(JSONB, nullable=True)              # logo/color overrides
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "slug", name="uq_community_owner_slug"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "owner_id": self.owner_id,
+            "offer_id": self.offer_id,
+            "name": self.name,
+            "slug": self.slug,
+            "description": self.description,
+            "category_template": self.category_template,
+            "status": self.status.value if self.status else None,
+            "branding": self.branding or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# CommunitySettings  (1:1 per Community)
+# ---------------------------------------------------------------------------
+
+class CommunitySettings(Base):
+    __tablename__ = "community_settings"
+
+    id = Column(Integer, primary_key=True)
+    community_id = Column(Integer, ForeignKey("communities.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    welcome_message = Column(Text, nullable=True, default="Welcome to the community!")
+    rules = Column(JSONB, default=list)
+    categories = Column(JSONB, default=list)
+    features_enabled = Column(JSONB, default=dict)      # {"threads":true,"events":true,...}
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "community_id": self.community_id,
+            "welcome_message": self.welcome_message,
+            "rules": self.rules or [],
+            "categories": self.categories or [],
+            "features_enabled": self.features_enabled or {},
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# CommunityThread  (scoped to community)
 # ---------------------------------------------------------------------------
 
 class CommunityThread(Base):
-    """A top-level discussion thread / forum post."""
+    """A top-level discussion thread inside a community."""
     __tablename__ = "community_threads"
 
     id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     body = Column(Text, nullable=True)
     author_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    author_name = Column(String(200), nullable=True)    # denormalised for display
-    category = Column(String(100), nullable=True, index=True)   # e.g. "general", "projects"
+    author_name = Column(String(200), nullable=True)
+    category = Column(String(100), nullable=True, index=True)
     tags = Column(JSONB, default=list)
     status = Column(SAEnum(ThreadStatus, name="thread_status"), default=ThreadStatus.OPEN, nullable=False)
     view_count = Column(Integer, default=0)
@@ -73,6 +146,7 @@ class CommunityThread(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "community_id": self.community_id,
             "title": self.title,
             "body": self.body,
             "author_id": self.author_id,
@@ -89,8 +163,11 @@ class CommunityThread(Base):
         }
 
 
+# ---------------------------------------------------------------------------
+# CommunityPost  (reply inside a thread; scoped implicitly via thread)
+# ---------------------------------------------------------------------------
+
 class CommunityPost(Base):
-    """A reply/post inside a CommunityThread."""
     __tablename__ = "community_posts"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -119,27 +196,38 @@ class CommunityPost(Base):
         }
 
 
+# ---------------------------------------------------------------------------
+# CommunityMember  (scoped to community; unique per (community, user))
+# ---------------------------------------------------------------------------
+
 class CommunityMember(Base):
-    """Extended community profile per user."""
     __tablename__ = "community_members"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    joined_via_payment_id = Column(Integer, ForeignKey("payments.id", ondelete="SET NULL"), nullable=True)  # null = free join
     display_name = Column(String(200), nullable=True)
     bio = Column(Text, nullable=True)
     avatar_url = Column(String(1000), nullable=True)
     role = Column(SAEnum(MemberRole, name="member_role"), default=MemberRole.MEMBER, nullable=False)
-    badges = Column(JSONB, default=list)             # ["Gold Badge", "NLP Expert", …]
+    badges = Column(JSONB, default=list)
     reputation = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     is_banned = Column(Boolean, default=False)
     joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_active_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
+    __table_args__ = (
+        UniqueConstraint("community_id", "user_id", name="uq_member_per_community"),
+    )
+
     def to_dict(self):
         return {
             "id": self.id,
+            "community_id": self.community_id,
             "user_id": self.user_id,
+            "joined_via_payment_id": self.joined_via_payment_id,
             "display_name": self.display_name,
             "bio": self.bio,
             "avatar_url": self.avatar_url,
@@ -153,17 +241,21 @@ class CommunityMember(Base):
         }
 
 
+# ---------------------------------------------------------------------------
+# CommunityEvent  (scoped to community)
+# ---------------------------------------------------------------------------
+
 class CommunityEvent(Base):
-    """Live events, webinars, hackathons, Q&As managed from admin."""
     __tablename__ = "community_events"
 
     id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
     event_type = Column(SAEnum(EventType, name="event_type"), default=EventType.WEBINAR, nullable=False)
     status = Column(SAEnum(EventStatus, name="event_status"), default=EventStatus.UPCOMING, nullable=False)
     host_name = Column(String(200), nullable=True)
-    meeting_url = Column(String(1000), nullable=True)      # Zoom/Meet/YouTube link
+    meeting_url = Column(String(1000), nullable=True)
     scheduled_at = Column(DateTime(timezone=True), nullable=True)
     duration_minutes = Column(Integer, default=60)
     max_participants = Column(Integer, nullable=True)
@@ -177,6 +269,7 @@ class CommunityEvent(Base):
     def to_dict(self):
         return {
             "id": self.id,
+            "community_id": self.community_id,
             "title": self.title,
             "description": self.description,
             "event_type": self.event_type,
@@ -195,25 +288,29 @@ class CommunityEvent(Base):
         }
 
 
-class CommunitySettings(Base):
-    """Admin-controlled community-wide settings (single row, key='community')."""
-    __tablename__ = "community_settings"
+# ---------------------------------------------------------------------------
+# CommunityTemplate  (platform admin — reusable category presets)
+# ---------------------------------------------------------------------------
 
-    id = Column(Integer, primary_key=True)
-    welcome_message = Column(Text, nullable=True, default="Welcome to the community!")
-    rules = Column(JSONB, default=list)              # list of rule strings
-    categories = Column(JSONB, default=list)         # forum categories
-    features_enabled = Column(JSONB, default=dict)   # {"threads":true,"events":true,...}
-    stats_override = Column(JSONB, default=dict)     # admin can override displayed stats
+class CommunityTemplate(Base):
+    """Platform admin manages these; founders pick one at community creation time."""
+    __tablename__ = "community_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)      # e.g. "Coaching", "Course/Cohort"
+    description = Column(Text, nullable=True)
+    categories = Column(JSONB, nullable=False, default=list)     # default category list
+    feature_flags = Column(JSONB, nullable=True, default=dict)   # default feature flags
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     def to_dict(self):
         return {
             "id": self.id,
-            "welcome_message": self.welcome_message,
-            "rules": self.rules or [],
+            "name": self.name,
+            "description": self.description,
             "categories": self.categories or [],
-            "features_enabled": self.features_enabled or {},
-            "stats_override": self.stats_override or {},
+            "feature_flags": self.feature_flags or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

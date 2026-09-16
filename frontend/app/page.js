@@ -75,7 +75,7 @@ function HeroSection() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
               <Link
-                href={siteConfig.hero.cta.primary.href || '/signup'}
+                href={siteConfig.hero.cta.primary.href || '/setup-wizard'}
                 className="btn-primary text-white px-10 py-4 rounded-xl font-bold text-lg flex items-center justify-center group"
               >
                 {siteConfig.hero.cta.primary.text}
@@ -331,7 +331,7 @@ function CTASection() {
         
         <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12 mt-32">
           <Link
-            href={siteConfig.cta.primary.href || '/signup'}
+            href={siteConfig.cta.primary.href || '/setup-wizard'}
             className="btn-primary text-white px-12 py-6 rounded-2xl font-bold text-xl shadow-2xl"
           >
             {siteConfig.cta.primary.text}

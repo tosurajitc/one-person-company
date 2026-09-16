@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { 
+import {
   TrendingUp, DollarSign, Users, BookOpen, BarChart3, Settings,
   Calendar, Download, Filter, RefreshCw, ArrowUpDown, ChevronDown,
   Target, Award, Globe, Clock, Activity, Zap, Building, Star,
@@ -10,77 +9,7 @@ import {
   CheckCircle, TrendingDown, ArrowUp, ArrowDown, Percent,
   FileText, Mail, Phone, MapPin, ExternalLink, Search
 } from 'lucide-react'
-
-// Admin Layout Component (Reused)
-function AdminLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: BarChart3, current: false },
-    { name: 'User Management', href: '/admin/users', icon: Users, current: false },
-    { name: 'Content Management', href: '/admin/content', icon: BookOpen, current: false },
-    { name: 'AI Tools Admin', href: '/admin/ai-tools', icon: Zap, current: false },
-    { name: 'Business Intelligence', href: '/admin/analytics', icon: TrendingUp, current: true },
-    { name: 'System Settings', href: '/admin/settings', icon: Settings, current: false },
-  ]
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-gray-900 hover:text-primary-600 transition-colors"
-            >
-              <BarChart3 className="w-6 h-6" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">OPC Genie Admin</h1>
-              <p className="text-sm text-gray-500">Business Intelligence Dashboard</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-sm">A</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r border-gray-200 min-h-screen`}>
-          <nav className="p-4 space-y-2">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg transition-all ${
-                    item.current 
-                      ? 'bg-primary-50 text-primary-700 border border-primary-200' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {sidebarOpen && <span className="ml-3 font-medium">{item.name}</span>}
-                </Link>
-              )
-            })}
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  )
-}
+import AdminShell from '../../../components/AdminShell'
 
 // Key Metrics Overview
 function KeyMetricsOverview() {
@@ -584,7 +513,7 @@ export default function BusinessIntelligence() {
   }
 
   return (
-    <AdminLayout>
+    <AdminShell>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -631,6 +560,6 @@ export default function BusinessIntelligence() {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </AdminShell>
   )
 }

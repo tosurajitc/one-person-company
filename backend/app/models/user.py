@@ -22,6 +22,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
+    username = Column(String(100), unique=True, index=True, nullable=True)   # URL-safe handle, e.g. "jane-doe"
     avatar_url = Column(String(500), nullable=True)
     
     # Role management

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from .api.routes import contact_routes, auth_routes, settings_routes, content_routes, page_routes, resource_routes, community_routes
+from .api.routes import contact_routes, auth_routes, settings_routes, content_routes, page_routes, resource_routes, community_routes, chat_routes, payment_routes, lead_routes, subscriber_routes, agent_session_routes, fb_agent_routes
 from .core.config import settings
 from app.core.database import test_db_connection
 from app.db import init_db
@@ -42,6 +42,14 @@ app.include_router(content_routes.router, prefix="/api", tags=["content"])
 app.include_router(page_routes.router, prefix="/api", tags=["pages"])
 app.include_router(resource_routes.router, prefix="/api", tags=["resources"])
 app.include_router(community_routes.router, prefix="/api", tags=["community"])
+# Note: the old /api/community singleton prefix is gone — all routes are now
+# tenant-scoped under /api/communities, /api/community/{id}/..., etc.
+app.include_router(chat_routes.router, prefix="/api", tags=["chat"])
+app.include_router(payment_routes.router, prefix="/api", tags=["payments"])
+app.include_router(lead_routes.router, prefix="/api", tags=["leads"])
+app.include_router(subscriber_routes.router, prefix="/api", tags=["subscribers"])
+app.include_router(agent_session_routes.router, prefix="/api/agent-session", tags=["agent-session"])
+app.include_router(fb_agent_routes.router, prefix="/api", tags=["fb-agent"])
 
 
 

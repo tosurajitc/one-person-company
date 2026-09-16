@@ -3,7 +3,18 @@ from .page import Page
 from .offer import Offer, OfferStatus, OfferType
 from .content_asset import ContentAsset
 from .resource import Resource
-from .community import CommunityThread, CommunityPost, CommunityMember, CommunityEvent, CommunitySettings
+from .community import (
+    Community, CommunityStatus,
+    CommunityThread, CommunityPost, CommunityMember,
+    CommunityEvent, CommunitySettings, CommunityTemplate,
+    ThreadStatus, MemberRole, EventType, EventStatus,
+)
+from .chat import ChatMessage, ChatRole
+from .subscription import UserSubscription, Payment, PlanTier, BillingCycle, SubscriptionStatus, PaymentGateway, PaymentStatus, PaymentPurpose
+from .lead import Lead
+from .newsletter_subscriber import NewsletterSubscriber
+from .user_site_settings import UserSiteSettings
+from .agent_session import AgentSession, AgentSessionMessage, SessionStatus, AgentSessionMessageRole
 
 __all__ = [
     "User", "UserRole", "OAuthProvider",
@@ -11,5 +22,18 @@ __all__ = [
     "Offer", "OfferStatus", "OfferType",
     "ContentAsset",
     "Resource",
-    "CommunityThread", "CommunityPost", "CommunityMember", "CommunityEvent", "CommunitySettings",
+    "Community", "CommunityStatus",
+    "CommunityThread", "CommunityPost", "CommunityMember",
+    "CommunityEvent", "CommunitySettings", "CommunityTemplate",
+    "ThreadStatus", "MemberRole", "EventType", "EventStatus",
+    "ChatMessage", "ChatRole",
+    "UserSubscription", "Payment", "PlanTier", "BillingCycle", "SubscriptionStatus",
+    "PaymentGateway", "PaymentStatus", "PaymentPurpose",
+    "Lead",
+    "NewsletterSubscriber",
+    "UserSiteSettings",
+    "AgentSession",
+    "AgentSessionMessage",
+    "SessionStatus",
+    "AgentSessionMessageRole",
 ]

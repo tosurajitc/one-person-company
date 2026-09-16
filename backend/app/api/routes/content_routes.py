@@ -26,10 +26,13 @@ router = APIRouter(prefix="/content", tags=["content"])
 class OfferCreate(BaseModel):
     title: str
     instructor: str
+    slug: Optional[str] = None
     category: Optional[str] = None
     status: OfferStatus = OfferStatus.DRAFT
     offer_type: OfferType = OfferType.COURSE
     description: Optional[str] = None
+    price: Optional[float] = None
+    currency: str = "INR"
     duration: Optional[str] = None
     lessons_count: int = 0
     thumbnail_url: Optional[str] = None
@@ -38,10 +41,13 @@ class OfferCreate(BaseModel):
 class OfferUpdate(BaseModel):
     title: Optional[str] = None
     instructor: Optional[str] = None
+    slug: Optional[str] = None
     category: Optional[str] = None
     status: Optional[OfferStatus] = None
     offer_type: Optional[OfferType] = None
     description: Optional[str] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
     duration: Optional[str] = None
     lessons_count: Optional[int] = None
     thumbnail_url: Optional[str] = None
@@ -68,13 +74,20 @@ async def create_offer(
     current_user: User = Depends(get_current_admin_user),
 ):
     """Create a new offer."""
+    import re
+    auto_slug = payload.slug or re.sub(r"[^\w\s-]", "", payload.title.lower())
+    auto_slug = re.sub(r"[\s_-]+", "-", auto_slug).strip("-")
     offer = Offer(
         title=payload.title,
+        slug=auto_slug,
         instructor=payload.instructor,
+        creator_id=current_user.id,
         category=payload.category,
         status=payload.status,
         offer_type=payload.offer_type,
         description=payload.description,
+        price=payload.price,
+        currency=payload.currency,
         duration=payload.duration,
         lessons_count=payload.lessons_count,
         thumbnail_url=payload.thumbnail_url,
@@ -154,3 +167,41 @@ async def delete_offer(
             detail=f"Failed to delete offer: {str(e)}",
         )
     return {"success": True, "message": "Offer deleted successfully."}
+
+
+# ---------------------------------------------------------------------------
+# Public endpoint: GET /api/offers/public/{username}/{slug}
+# ---------------------------------------------------------------------------
+
+@router.get("/offers/public/{username}/{slug}")
+async def get_public_offer(
+    username: str,
+    slug: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Return a published offer by creator username + slug.
+    No authentication required — used by the public offer landing page.
+    """
+    from app.models.user import User as UserModel
+    creator = db.query(UserModel).filter(UserModel.username == username).first()
+    if not creator:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Founder not found")
+
+    offer = db.query(Offer).filter(
+        Offer.creator_id == creator.id,
+        Offer.slug == slug,
+        Offer.status == OfferStatus.PUBLISHED,
+    ).first()
+    if not offer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found or not published")
+
+    return {
+        **offer.to_dict(),
+        "creator": {
+            "id": creator.id,
+            "username": creator.username,
+            "full_name": creator.full_name,
+            "avatar_url": creator.avatar_url,
+        },
+    }
