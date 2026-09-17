@@ -248,8 +248,12 @@ function FeaturesShowcase() {
                 
                 {isAvailable ? (
                   <Link href={feature.link} className="inline-flex items-center text-white bg-white bg-opacity-10 hover:bg-opacity-20 px-6 py-3 rounded-xl font-medium transition-all border border-white border-opacity-20">
-                    {feature.status === 'Live Demo' ? 'Try Now' : 'Learn More'} 
+                    {feature.status === 'Live Demo' ? 'Try Now' : 'Learn More'}
                     <ChevronRight className="w-4 h-4 ml-2" />
+                  </Link>
+                ) : feature.link ? (
+                  <Link href={feature.link} className="inline-flex items-center text-gray-400 hover:text-gray-200 px-6 py-3 rounded-xl font-medium border border-gray-600 hover:border-gray-400 transition-all">
+                    Coming Soon <ChevronRight className="w-4 h-4 ml-2" />
                   </Link>
                 ) : (
                   <button className="inline-flex items-center text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-medium border border-gray-600">

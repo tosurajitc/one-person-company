@@ -114,10 +114,10 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     ],
     "features": [
         {"title": "AI Website Builder", "description": "Describe your business and your Genie builds a complete, branded website — no design skills needed", "preview": "Live site in under 10 minutes", "link": "/platform/skillgraph-engine", "status": "Available"},
-        {"title": "AI Genie Assistant", "description": "Your always-on business advisor — handles customer queries, writes content, and gives strategic advice", "preview": "Powered by advanced AI models", "link": "/platform/industry-simulator", "status": "Live Demo"},
+        {"title": "AI Genie Assistant", "description": "Your always-on business advisor — handles customer queries, writes content, and gives strategic advice", "preview": "Powered by advanced AI models", "link": "/platform/content-studio", "status": "Live Demo"},
         {"title": "Offers & Payments", "description": "Create service packages, digital products, and payment links in minutes — sell anything solo", "preview": "Connect your payment gateway", "link": "/platform/peer-mentor-matching", "status": "Available"},
-        {"title": "Founder Community", "description": "Connect with fellow OPC founders, share wins, get feedback, and find collaborators", "preview": "Private, moderated founder network", "link": "/community", "status": "Available"},
-        {"title": "Content Studio", "description": "Generate blog posts, social captions, email sequences, and pitch decks with one prompt", "preview": "Publish across all channels", "link": "/platform/content-co-creation", "status": "Coming Soon"},
+        {"title": "Founder Community", "description": "Connect with fellow OPC founders, share wins, get feedback, and find collaborators", "preview": "Private, moderated founder network", "link": "/community", "status": "Coming Soon"},
+        {"title": "Content Studio", "description": "Generate blog posts, social captions, email sequences, and pitch decks with one prompt", "preview": "Publish across all channels", "link": "/platform/content-studio", "status": "Coming Soon"},
         {"title": "Business Analytics", "description": "Track revenue, visitor behaviour, and customer activity — clear insights, no data science degree needed", "preview": "Simple dashboard, real numbers", "link": "/dashboard", "status": "Available"},
     ],
     "testimonials": [
@@ -417,7 +417,14 @@ async def update_settings(
 # User-scoped setup wizard routes
 # ---------------------------------------------------------------------------
 
-def _upsert_user_setting(db: Session, user_id: int, key: str, value: Any) -> None:
+# Schema 2.0 wizard keys — any payload containing one of these is tagged v2.
+_V2_KEYS = frozenset({
+    "start", "identity", "positioning", "offers", "proof",
+    "frontDoor", "knowledge", "brand", "agents", "payments", "channels", "site",
+})
+
+
+def _upsert_user_setting(db: Session, user_id: int, key: str, value: Any, schema_version: str = "1.0") -> None:
     """Insert or update a single user_site_settings row."""
     row = (
         db.query(UserSiteSettings)
@@ -426,8 +433,9 @@ def _upsert_user_setting(db: Session, user_id: int, key: str, value: Any) -> Non
     )
     if row:
         row.value = value
+        row.schema_version = schema_version
     else:
-        db.add(UserSiteSettings(user_id=user_id, key=key, value=value))
+        db.add(UserSiteSettings(user_id=user_id, key=key, value=value, schema_version=schema_version))
 
 
 @router.post("/setup", status_code=status.HTTP_200_OK)
@@ -440,9 +448,11 @@ async def save_user_setup(
     Saves the full Setup Wizard payload for the authenticated user.
     Each top-level key in the payload becomes one row in user_site_settings.
     Existing rows for this user are overwritten; other keys are untouched.
+    Detects schema 2.0 payloads by presence of v2-specific keys and tags rows accordingly.
     """
+    schema_version = "2.0" if _V2_KEYS.intersection(payload.keys()) else "1.0"
     for key, value in payload.items():
-        _upsert_user_setting(db, current_user.id, key, value)
+        _upsert_user_setting(db, current_user.id, key, value, schema_version)
     try:
         db.commit()
     except Exception as e:

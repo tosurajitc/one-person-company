@@ -1,81 +1,168 @@
-/ai-services-website/
+one-person-company/
 ├── frontend/
-│   ├── public/
-│   │   ├── images/
-│   │   │   ├── logo.svg
-│   │   │   ├── hero-bg.svg
-│   │   │   ├── services/
-│   │   │   ├── portfolio/
-│   │   │   └── team/
-│   │   └── videos/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── layout/
-│   │   │   ├── ui/
-│   │   │   ├── sections/
-│   │   │   ├── forms/
-│   │   │   └── chat/         # New for GROQ integration
-│   │   ├── pages/
-│   │   ├── styles/
-│   │   ├── lib/
-│   │   │   ├── api.js        # Frontend API handlers
-│   │   │   └── groq.js       # GROQ API integration
-│   │   └── data/
+│   ├── app/
+│   │   ├── page.js                          # Home page (hero, features grid, testimonials, CTA)
+│   │   ├── layout.js                        # Root layout + SEO metadata
+│   │   ├── globals.css                      # Global styles
+│   │   ├── providers.js                     # React context providers wrapper
+│   │   ├── header.js                        # Global nav header (config-driven, auth-aware)
+│   │   ├── footer.js                        # Global footer (config-driven)
+│   │   ├── [username]/                      # Per-founder public routes
+│   │   │   ├── [offer-slug]/                # Public offer landing page
+│   │   │   │   ├── layout.js
+│   │   │   │   └── page.js
+│   │   │   └── community/
+│   │   │       └── [slug]/                  # Public community landing page
+│   │   │           ├── layout.js
+│   │   │           └── page.js
+│   │   ├── admin/                           # Platform admin (admin/super_admin role only)
+│   │   │   ├── layout.js                    # Admin layout (uses AdminShell)
+│   │   │   ├── page.js                      # Admin overview dashboard
+│   │   │   ├── login/                       # Admin email+password sign-in
+│   │   │   ├── leads/                       # Leads & sales funnel management
+│   │   │   ├── subscribers/                 # Newsletter subscriber list
+│   │   │   ├── users/                       # User management
+│   │   │   ├── content/                     # Offer management
+│   │   │   ├── communities/                 # Read-only oversight of all founder communities
+│   │   │   ├── community-templates/         # Category preset CRUD
+│   │   │   ├── analytics/                   # Business intelligence
+│   │   │   ├── ai-tools/                    # AI Genie admin & monitoring
+│   │   │   ├── settings/                    # Live site settings editor
+│   │   │   └── support/                     # Contact form / support queue
+│   │   ├── community/
+│   │   │   └── page.js                      # Redirects to /get_started (global forum removed)
+│   │   ├── contact/
+│   │   │   └── page.js                      # Contact form
+│   │   ├── dashboard/
+│   │   │   ├── page.js                      # Authenticated founder dashboard
+│   │   │   └── community/
+│   │   │       └── page.js                  # Founder community management
+│   │   ├── get_started/
+│   │   │   └── page.js                      # Onboarding funnel entry
+│   │   ├── login/
+│   │   │   └── page.js                      # Public login (OAuth + email/password)
+│   │   ├── marketing/
+│   │   │   └── page.js                      # High-converting sales funnel landing page
+│   │   ├── platform/
+│   │   │   ├── ai-website-builder/
+│   │   │   │   └── page.js                  # AI Website Builder feature page
+│   │   │   ├── content-studio/
+│   │   │   │   └── page.js                  # Specialist Content Studio (20 agents, 5 categories)
+│   │   │   └── offers-payments/
+│   │   │       └── page.js                  # Offers & Payments feature page
+│   │   ├── pricing/
+│   │   │   └── page.js                      # Pricing plans + FAQ
+│   │   ├── profile/
+│   │   │   └── page.js                      # User profile management
+│   │   ├── resources/
+│   │   │   └── page.js                      # Founder playbooks & guides
+│   │   ├── setup-wizard/
+│   │   │   └── page.js                      # 12-step business setup wizard
+│   │   └── signout/
+│   │       └── page.js                      # Sign-out handler
+│   ├── components/
+│   │   ├── AdminShell.js                    # Shared admin sidebar + header
+│   │   └── ChatDemoWidget.js                # Interactive AI Genie chat widget
+│   ├── context/
+│   │   └── AuthContext.js                   # Global auth state (localStorage + token cookie)
+│   ├── hooks/
+│   │   ├── useAuth.js                       # Auth state hook
+│   │   └── useSiteConfig.js                 # Config hook: static defaults → DB override
+│   ├── .eslintrc.json
 │   ├── .gitignore
+│   ├── Dockerfile                           # 3-stage Node 20 build (standalone output)
+│   ├── middleware.js                        # JWT cookie check — protects /dashboard, /admin
+│   ├── next.config.js                       # API proxy + platform URL redirects
 │   ├── package.json
 │   ├── postcss.config.js
-│   ├── tailwind.config.js
-│   └── next.config.js
+│   ├── site.config.js                       # Static brand/copy/feature defaults (fallback)
+│   └── tailwind.config.js
+│
 ├── backend/
 │   ├── app/
+│   │   ├── main.py                          # FastAPI app, middleware, startup seed events
 │   │   ├── api/
-│   │   │   ├── __init__.py
-│   │   │   ├── routes/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── contact.py
-│   │   │   │   ├── projects.py
-│   │   │   │   ├── services.py
-│   │   │   │   ├── chat.py       # New for GROQ integration
-│   │   │   │   └── auth.py
-│   │   │   └── dependencies.py
+│   │   │   ├── dependencies.py
+│   │   │   └── routes/
+│   │   │       ├── auth_routes.py           # Login, register, OAuth, me, verify, logout
+│   │   │       ├── chat_routes.py           # POST /api/chat — AI Genie (Groq-backed)
+│   │   │       ├── agent_session_routes.py  # Specialist agent live sessions + per-min billing
+│   │   │       ├── genie_routes.py          # POST /api/genie/draft-site (wizard AI prefill)
+│   │   │       ├── site_build_routes.py     # POST /api/sites/build (wizard → site generation)
+│   │   │       ├── community_routes.py      # Full tenant-scoped community API (25 routes)
+│   │   │       ├── content_routes.py        # /api/content/offers CRUD + public offer lookup
+│   │   │       ├── payment_routes.py        # Razorpay + Stripe orders, verify, webhooks
+│   │   │       ├── lead_routes.py           # POST /api/leads, GET list, funnel stats
+│   │   │       ├── subscriber_routes.py     # Newsletter subscribe (public) + admin CRUD
+│   │   │       ├── resource_routes.py       # /api/resources (playbooks)
+│   │   │       ├── page_routes.py           # /api/pages (CMS pages)
+│   │   │       ├── settings_routes.py       # /api/settings/public + admin CRUD + setup wizard
+│   │   │       ├── contact_routes.py        # /api/contact
+│   │   │       └── fb_agent_routes.py       # POST /api/agent/fb-marketing/chat (Claude Sonnet)
 │   │   ├── core/
-│   │   │   ├── __init__.py
-│   │   │   ├── config.py
-│   │   │   └── security.py
-│   │   ├── db/
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py
-│   │   │   ├── session.py
-│   │   │   └── init_db.py
+│   │   │   ├── auth.py                      # JWT helpers, password hashing
+│   │   │   ├── config.py                    # Settings (DB, Razorpay, Stripe, Groq, Anthropic)
+│   │   │   ├── database.py                  # Engine, SessionLocal, Base, get_db
+│   │   │   ├── dependencies.py              # get_current_user, get_current_admin_user
+│   │   │   ├── middleware.py
+│   │   │   └── oauth.py                     # OAuth token exchange helpers
 │   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── contact.py
-│   │   │   ├── project.py
-│   │   │   ├── service.py
-│   │   │   ├── chat.py          # New for chat history
-│   │   │   └── user.py
+│   │   │   ├── user.py                      # User, UserRole, OAuthProvider
+│   │   │   ├── lead.py                      # Lead — email capture & funnel tracking
+│   │   │   ├── newsletter_subscriber.py     # NewsletterSubscriber
+│   │   │   ├── offer.py                     # Offer (offer_type includes "community")
+│   │   │   ├── chat.py                      # ChatMessage — session history
+│   │   │   ├── agent_session.py             # AgentSession + AgentSessionMessage
+│   │   │   ├── subscription.py              # UserSubscription + Payment
+│   │   │   ├── community.py                 # Community, CommunitySettings, Thread, Post,
+│   │   │   │                               #   Member, Event, CommunityTemplate
+│   │   │   ├── content_asset.py             # ContentAsset (media assets)
+│   │   │   ├── resource.py                  # Resource (playbooks/guides)
+│   │   │   ├── site_settings.py             # SiteSetting (JSONB key-value store)
+│   │   │   ├── user_site_settings.py        # UserSiteSettings (per-founder wizard config)
+│   │   │   ├── page.py                      # CMS Page model
+│   │   │   └── contact.py                   # ContactSubmission
 │   │   ├── schemas/
-│   │   │   ├── __init__.py
-│   │   │   ├── contact.py
-│   │   │   ├── project.py
-│   │   │   ├── service.py
-│   │   │   ├── chat.py          # New for chat schemas
-│   │   │   └── user.py
-│   │   ├── services/
-│   │   │   ├── __init__.py
-│   │   │   ├── email.py
-│   │   │   ├── file_storage.py
-│   │   │   └── groq_service.py  # New for GROQ API integration
-│   │   └── main.py
+│   │   │   ├── contact_schemas.py
+│   │   │   └── user_schemas.py
+│   │   ├── services/                        # Business logic layer
+│   │   └── db/
+│   │       ├── base.py
+│   │       ├── init_db.py                   # DB init + seed super-admin
+│   │       ├── seed_playbooks.py            # Playbook seed data
+│   │       └── session.py
 │   ├── alembic/
-│   │   └── ... (migration files)
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   ├── conftest.py
-│   │   └── test_api/
-│   ├── .env
-│   ├── requirements.txt
+│   │   ├── env.py
+│   │   ├── script.py.mako
+│   │   └── versions/
+│   │       ├── aabc0f0a2cfd_*.py            # Rename Course→Offer, Resource→ContentAsset
+│   │       ├── f7e3dc7821f6_*.py            # chat_messages, user_subscriptions, payments
+│   │       ├── b9e4dc8910ab_*.py            # leads table
+│   │       ├── c3a1e9f02b4d_*.py            # Community tenant rearchitecture
+│   │       ├── a1b2c3d4e5f6_*.py            # newsletter_subscribers table
+│   │       ├── a3f9b1c2d4e5_*.py            # fb_agent_states table
+│   │       ├── d4e5f6a7b8c9_*.py            # user_site_settings table
+│   │       ├── e5f6a7b8c9d0_*.py            # extend offer_type enum
+│   │       └── f1a2b3c4d5e6_*.py            # schema_version on user_site_settings
+│   ├── Dockerfile/
+│   │   └── Dockerfile                       # Python 3.12 slim; alembic then uvicorn
 │   ├── alembic.ini
-│   └── Dockerfile
-├── docker-compose.yml        # For local development with both services
+│   ├── config.py
+│   ├── push_config.py                       # Utility: push site.config.js defaults to DB
+│   ├── requirements.txt
+│   └── tests/
+│       ├── conftest.py
+│       └── test_api/
+│
+├── nginx/
+│   └── nginx.conf                           # /api/* → backend:8000, /* → frontend:3000
+│
+├── .bob/                                    # Bob AI assistant config
+├── .gitignore
+├── AGENTS.md
+├── docker-compose.yml                       # 4 services: db, backend, frontend, nginx
+├── folder_structure.txt                     # This file
+├── frontend-log.txt
+├── note.txt
+├── package.json
 └── README.md

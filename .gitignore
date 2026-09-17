@@ -33,3 +33,5 @@ frontend-log.txt
 
 # Bob AI assistant
 .bob/
+
+*.dump

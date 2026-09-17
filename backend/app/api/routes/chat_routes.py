@@ -256,44 +256,62 @@ async def chat(
 
 PREFILL_MODEL = "groq/compound-mini"
 
+# ---------------------------------------------------------------------------
+# Schema 2.0 prefill instruction + skeletons
+# The model must return partial wizard state shaped like DEFAULT_STATE in the
+# setup wizard (nested domain groups: identity, positioning, offers, proof…).
+# Two skeletons keep each Groq call within token limits.
+# ---------------------------------------------------------------------------
+
 _PREFILL_INSTRUCTION = (
-    "Fill every empty string in this JSON with short content (max 10 words) for the described business. "
-    "Return ONLY minified single-line JSON (no newlines, no spaces after colons/commas). "
-    "Keep numbers, booleans, fixed hrefs unchanged. "
-    "featuresText: pipe-separated features e.g. feat1|feat2|feat3. "
-    "monthlyPrice/price: integers. currency: INR for India. ASCII only.\n"
+    "Fill every empty string in this JSON with concise content (max 12 words) that fits the described business. "
+    "Return ONLY minified single-line JSON — no markdown fences, no newlines, no spaces after colons or commas. "
+    "Keep all numbers, booleans, and fixed hrefs exactly as-is. "
+    "deliverables: newline-separated list. priceInr/priceUsd: integers or empty string. ASCII only.\n"
 )
 
-# Skeleton A — brand, hero, stats, valueProps, features, CTA, footer (~30 keys)
+# Skeleton A — identity, positioning, proof, frontDoor, knowledge, brand, channels
 _SKELETON_A = (
-    '{"brandName":"","tagline":"","description":"","siteName":"","siteDescription":"","location":"",'
-    '"heroBadge":"","heroHeadline":"","heroSubheadline":"","heroHighlightWord":"",'
-    '"heroPrimaryText":"","heroPrimaryHref":"/setup-wizard",'
-    '"heroSecondaryText":"","heroSecondaryHref":"/platform/ai-genie-assistant",'
-    '"stats":[{"number":"","label":""},{"number":"","label":""},{"number":"","label":""},{"number":"","label":""}],'
-    '"trustedBy":"","whyDifferentTitle":"","whyDifferentSubtitle":"",'
-    '"valueProps":[{"title":"","description":"","highlight":""},{"title":"","description":"","highlight":""},{"title":"","description":"","highlight":""}],'
-    '"features":[{"title":"","description":"","preview":"","link":"/","status":"Available"},{"title":"","description":"","preview":"","link":"/","status":"Available"},{"title":"","description":"","preview":"","link":"/","status":"Coming Soon"}],'
-    '"ctaHeadline":"","ctaSubheadline":"","ctaPrimaryText":"","ctaSecondaryText":"",'
-    '"badge0":"","badge1":"","badge2":"",'
-    '"footerPlatform":[{"name":"","href":""},{"name":"","href":""},{"name":"","href":""}],'
-    '"footerResources":[{"name":"Blog","href":"/blog"},{"name":"Contact","href":"/contact"},{"name":"Help","href":"/help"}],'
-    '"footerCompany":[{"name":"About","href":"/about"},{"name":"Privacy","href":"/privacy"},{"name":"Terms","href":"/terms"}]}'
+    '{"identity":{"brandName":"","tagline":"","city":"","country":"","timezone":"Asia/Kolkata",'
+    '"ownerName":"","ownerRole":"","email":"","whatsapp":"","photoUrl":"","logoUrl":""},'
+    '"positioning":{"buyer":"","problem":"","outcome":"","timeframe":"","fear":"",'
+    '"alreadyTried":"","credibility":"","forWho":["","",""],"notFor":["",""],'
+    '"nicheScore":{"pain":3,"budget":3,"reach":3,"repeat":3,"cred":3}},'
+    '"proof":{"yearsExperience":"","clientsServed":"","credentials":[""],'
+    '"results":[{"number":"","label":""},{"number":"","label":""}],'
+    '"caseStudies":[],'
+    '"testimonials":[]},'
+    '"frontDoor":{"primaryCta":"book_call","bookingUrl":"","ctaLabel":"","invitation":"",'
+    '"responseTime":"Within 1 business day","workingHours":"",'
+    '"channels":{"form":true,"whatsapp":true,"email":true,"booking":true},'
+    '"formQuestions":["What does your business do?","What problem do you want solved?","When do you need it done?"]},'
+    '"knowledge":{"process":[{"title":"Short call","detail":""},{"title":"Fixed proposal","detail":""},'
+    '{"title":"Delivery","detail":""},{"title":"Walkthrough","detail":""}],'
+    '"included":[""],"notIncluded":[""],"refundPolicy":"","toolsUsed":"","faqs":[]},'
+    '"brand":{"style":"minimal","tone":"plain","primaryColor":"#2563eb","referenceSite":"","avoidWords":""},'
+    '"channels":{"social":{"linkedin":"","instagram":"","facebook":"","youtube":"","x":"","googleBusiness":""},'
+    '"mainPlatform":"linkedin","cadence":"weekly","newsletter":false,'
+    '"contentTopics":["","",""],"publishedWork":[]}}'
 )
 
-# Skeleton B — pricing, offers, marketing (~16 keys)
+# Skeleton B — start, offers, agents, payments, site
 _SKELETON_B = (
-    '{"currency":"",'
-    '"plans":[{"name":"","description":"","badge":"","monthlyPrice":0,"buttonText":"","buttonHref":"/setup-wizard","target":"","highlight":false,"featuresText":"f1|f2|f3","restrictionsText":""},'
-    '{"name":"","description":"","badge":"Most Popular","monthlyPrice":0,"buttonText":"","buttonHref":"/setup-wizard","target":"","highlight":true,"featuresText":"f1|f2|f3|f4","restrictionsText":""},'
-    '{"name":"","description":"","badge":"Premium","monthlyPrice":0,"buttonText":"","buttonHref":"/contact","target":"","highlight":false,"featuresText":"f1|f2|f3|f4|f5","restrictionsText":""}],'
-    '"faqs":[{"question":"","answer":""},{"question":"","answer":""}],'
-    '"offers":[{"title":"","offer_type":"coaching","description":"","price":0,"currency":"","duration":"","slug":""},{"title":"","offer_type":"service","description":"","price":0,"currency":"","duration":"","slug":""}],'
-    '"mktHeadline":"","mktSubheadline":"","mktCtaLabel":"","mktCtaHref":"/setup-wizard","mktShowDemo":true,'
-    '"mktBullets":["","",""],'
-    '"mktFeatureGrid":[{"title":"Build","before":"","after":""},{"title":"Sell","before":"","after":""},{"title":"Deliver","before":"","after":""},{"title":"Grow","before":"","after":""}],'
-    '"mktLeadMagnetEnabled":true,"mktLeadMagnetHeadline":"","mktLeadMagnetCta":"",'
-    '"mktFinalCtaHeadline":"","mktFinalCtaLabel":""}'
+    '{"start":{"description":"","businessType":"consulting","market":"india","language":"en"},'
+    '"offers":{"tiers":['
+    '{"tier":"front_door","name":"","summary":"","deliverables":"","duration":"","priceInr":"","priceUsd":""},'
+    '{"tier":"core","name":"","summary":"","deliverables":"","duration":"","priceInr":"","priceUsd":""},'
+    '{"tier":"recurring","name":"","summary":"","deliverables":"","duration":"","priceInr":"","priceUsd":""}],'
+    '"product":{"enabled":false,"name":"","summary":"","link":"","priceInr":"","priceUsd":""},'
+    '"mostBought":"core","paymentTerms":"50_50","revisionRounds":"2","priceDisplay":"show"},'
+    '"agents":{"enabled":["blog","social","email","landing","facebook","proposals"],'
+    '"autonomy":"draft_only",'
+    '"guardrails":{"onlyListedPrices":true,"noDeadlines":true,"noInventedFacts":true,"logEveryRun":true},'
+    '"monthlySpendCap":"",'
+    '"facebook":{"goal":"","monthlyBudget":"","audience":"","competitorsToAvoid":""}},'
+    '"payments":{"gateways":["razorpay","upi"],"structure":"sole_proprietor","legalName":"",'
+    '"gstRegistered":"no","gstin":"","exportClients":"no","lutFiled":"no","invoicePrefix":"INV-",'
+    '"legalPages":{"terms":true,"privacy":true,"refund":true}},'
+    '"site":{"subdomain":"","customDomain":"","notifyEmail":"","analyticsId":""}}'
 )
 
 
@@ -322,8 +340,10 @@ def _normalise_json(raw: str) -> dict:
 async def _call_groq_prefill_async(description: str) -> dict:
     """
     Fire two Groq calls in parallel using groq/compound-mini.
-    Skeleton A (brand/hero/content, ~30 keys) and B (pricing/offers/marketing, ~16 keys)
-    run concurrently via asyncio.gather → total latency ≈ max(A, B) ≈ 8–10s.
+    Skeleton A (identity/positioning/proof/frontDoor/knowledge/brand/channels)
+    and B (start/offers/agents/payments/site) run concurrently via asyncio.gather.
+    Total latency ≈ max(A, B) ≈ 8–10 s.
+    Returns a merged partial DEFAULT_STATE dict (schema 2.0 nested shape).
     """
     from groq import AsyncGroq
     import asyncio as _asyncio
@@ -343,10 +363,10 @@ async def _call_groq_prefill_async(description: str) -> dict:
         return _normalise_json(resp.choices[0].message.content)
 
     part_a, part_b = await _asyncio.gather(
-        _call(_SKELETON_A, 1500),   # brand / hero / features / CTA / footer
-        _call(_SKELETON_B, 1000),   # pricing / offers / marketing
+        _call(_SKELETON_A, 1800),   # identity / positioning / proof / frontDoor / knowledge / brand / channels
+        _call(_SKELETON_B, 1200),   # start / offers / agents / payments / site
     )
-    # Merge — part_a wins on collisions (brand identity takes priority)
+    # Merge — part_a wins on collisions (identity/positioning takes priority)
     return {**part_b, **part_a}
 
 
@@ -366,12 +386,21 @@ def _call_groq_prefill(description: str) -> dict:
 
 
 class PrefillRequest(BaseModel):
-    description: str
+    # Schema 2.0: the ai-website-builder sends the full structured intake
+    schemaVersion: str = "2.0"
+    description: str = ""           # composed description (always sent)
+    start: dict = {}                # { businessType, market, language }
+    basics: dict = {}               # { ownerName, brandName, email, whatsapp }
+    answers: dict = {}              # { whatAndWho, problem, result, offersAndPrices, whyYou, notFit, howFound }
+    links: dict = {}                # { website, linkedin, instagram, other }
+    pastedMaterial: str = ""        # any raw text the user pasted
 
 
 class PrefillResponse(BaseModel):
     prefill: dict
-    saved: bool = False   # True if also persisted to user_site_settings
+    needsConfirmation: list = []    # field paths Genie inferred (user should review)
+    followUps: list = []            # optional clarifying questions
+    saved: bool = False             # True if also persisted to user_site_settings
 
 
 def _validate_description(description: str) -> str:
@@ -381,19 +410,33 @@ def _validate_description(description: str) -> str:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="description must not be empty.",
         )
-    if len(description) > 2000:
+    if len(description) > 8000:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="description must be 2000 characters or fewer.",
+            detail="description must be 8000 characters or fewer.",
         )
     return description
+
+
+def _build_description(body: PrefillRequest) -> str:
+    """
+    Compose the richest possible description string from the v2 intake.
+    If the caller already set body.description (ai-website-builder composes it),
+    use that directly.  Otherwise fall back to concatenating the answers dict.
+    """
+    if body.description.strip():
+        return _validate_description(body.description)
+    parts = list((body.answers or {}).values())
+    if body.pastedMaterial.strip():
+        parts.append(body.pastedMaterial.strip())
+    composed = "\n\n".join(p for p in parts if p and p.strip())
+    return _validate_description(composed)
 
 
 @router.post("/chat/prefill", response_model=PrefillResponse)
 async def chat_prefill(body: PrefillRequest):
     """
-    Generate a comprehensive wizard prefill JSON from a plain-English business description.
-    Covers all auto-fillable steps: 1, 4, 5, 6, 7, 8, 9, 10.
+    Generate a schema 2.0 wizard prefill JSON from the full v2 intake.
     Does NOT save — use /chat/prefill-and-save to also persist to the user's profile.
     """
     if not settings.GROQ_API_KEY:
@@ -402,7 +445,7 @@ async def chat_prefill(body: PrefillRequest):
             detail="AI Genie is not configured yet. Set GROQ_API_KEY in the environment.",
         )
 
-    description = _validate_description(body.description)
+    description = _build_description(body)
 
     try:
         prefill = await _call_groq_prefill_async(description)
@@ -418,6 +461,19 @@ async def chat_prefill(body: PrefillRequest):
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="AI Genie is temporarily unavailable. Please try again in a moment.",
         )
+
+    # Overlay the user's own basics over any Genie-inferred values
+    if body.basics:
+        identity = prefill.get("identity", {})
+        for src_key, dst_key in [("ownerName", "ownerName"), ("brandName", "brandName"),
+                                  ("email", "email"), ("whatsapp", "whatsapp")]:
+            if body.basics.get(src_key, "").strip():
+                identity[dst_key] = body.basics[src_key].strip()
+        prefill["identity"] = identity
+    if body.start:
+        prefill_start = prefill.get("start", {})
+        prefill_start.update({k: v for k, v in body.start.items() if v})
+        prefill["start"] = prefill_start
 
     return PrefillResponse(prefill=prefill, saved=False)
 
@@ -429,9 +485,8 @@ async def chat_prefill_and_save(
     db: Session = Depends(get_db),
 ):
     """
-    Generate the comprehensive wizard prefill JSON AND save it directly to the
-    authenticated user's site settings (user_site_settings table) — same storage
-    as completing the wizard manually.
+    Generate the schema 2.0 wizard prefill JSON AND save it to the authenticated user's
+    user_site_settings rows (one row per top-level key, schema_version='2.0').
 
     Requires a valid JWT (Bearer header or cookie).
     Falls back to prefill-only (saved=False) if the user is not authenticated.
@@ -442,7 +497,7 @@ async def chat_prefill_and_save(
             detail="AI Genie is not configured yet. Set GROQ_API_KEY in the environment.",
         )
 
-    description = _validate_description(body.description)
+    description = _build_description(body)
 
     try:
         prefill = await _call_groq_prefill_async(description)
@@ -459,17 +514,29 @@ async def chat_prefill_and_save(
             detail="AI Genie is temporarily unavailable. Please try again in a moment.",
         )
 
+    # Overlay the user's own basics over Genie-inferred values (same as /prefill)
+    if body.basics:
+        identity = prefill.get("identity", {})
+        for src_key, dst_key in [("ownerName", "ownerName"), ("brandName", "brandName"),
+                                  ("email", "email"), ("whatsapp", "whatsapp")]:
+            if body.basics.get(src_key, "").strip():
+                identity[dst_key] = body.basics[src_key].strip()
+        prefill["identity"] = identity
+    if body.start:
+        prefill_start = prefill.get("start", {})
+        prefill_start.update({k: v for k, v in body.start.items() if v})
+        prefill["start"] = prefill_start
+
     # --- Attempt to save to user profile ---
     user = _get_current_user(request, db)
     if user is None:
         # Not logged in — return prefill without saving
         return PrefillResponse(prefill=prefill, saved=False)
 
-    # Build the settings payload (mirrors buildSetupPayload in the frontend)
-    import json as _json
     from app.models.user_site_settings import UserSiteSettings
 
     def _upsert(key: str, value) -> None:
+        """Write one row to user_site_settings, tagging it as schema 2.0."""
         row = (
             db.query(UserSiteSettings)
             .filter(UserSiteSettings.user_id == user.id, UserSiteSettings.key == key)
@@ -477,100 +544,21 @@ async def chat_prefill_and_save(
         )
         if row:
             row.value = value
+            row.schema_version = "2.0"
         else:
-            db.add(UserSiteSettings(user_id=user.id, key=key, value=value))
+            db.add(UserSiteSettings(user_id=user.id, key=key, value=value, schema_version="2.0"))
 
-    p = prefill  # shorthand
-
-    _upsert("brand", {
-        "name":        p.get("brandName", ""),
-        "tagline":     p.get("tagline", ""),
-        "description": p.get("description", ""),
-        "year":        str(__import__("datetime").date.today().year),
-    })
-    _upsert("general", {
-        "siteName":        p.get("siteName", p.get("brandName", "")),
-        "siteDescription": p.get("siteDescription", ""),
-        "timezone":        "Asia/Kolkata",
-        "language":        "en",
-        "maintenanceMode": False,
-        "registrationOpen": True,
-        "emailVerification": True,
-        "twoFactorRequired": False,
-    })
-    _upsert("contact", {
-        "email":    p.get("contactEmail", ""),
-        "phone":    p.get("contactPhone", ""),
-        "location": p.get("location", ""),
-    })
-    _upsert("hero", {
-        "badge":         p.get("heroBadge", ""),
-        "headline":      p.get("heroHeadline", ""),
-        "subheadline":   p.get("heroSubheadline", ""),
-        "highlightWord": p.get("heroHighlightWord", ""),
-        "cta": {
-            "primary":   {"text": p.get("heroPrimaryText", "Get Started"), "href": "/setup-wizard"},
-            "secondary": {"text": p.get("heroSecondaryText", ""), "href": p.get("heroSecondaryHref", "")},
-        },
-    })
-    _upsert("stats",     p.get("stats", []))
-    _upsert("trustedBy", [s.strip() for s in p.get("trustedBy", "").split(",") if s.strip()])
-    _upsert("whyDifferent", {
-        "title":    p.get("whyDifferentTitle", ""),
-        "subtitle": p.get("whyDifferentSubtitle", ""),
-    })
-    _upsert("valueProps", p.get("valueProps", []))
-    _upsert("features",   p.get("features", []))
-    _upsert("cta", {
-        "headline":    p.get("ctaHeadline", ""),
-        "subheadline": p.get("ctaSubheadline", ""),
-        "primary":     {"text": p.get("ctaPrimaryText", ""), "href": p.get("ctaPrimaryHref", "/setup-wizard")},
-        "secondary":   {"text": p.get("ctaSecondaryText", ""), "href": p.get("ctaSecondaryHref", "/contact")},
-        "badges":      [b for b in [p.get("badge0"), p.get("badge1"), p.get("badge2")] if b],
-    })
-    _upsert("footerLinks", {
-        "platform":  p.get("footerPlatform", []),
-        "resources": p.get("footerResources", []),
-        "company":   p.get("footerCompany", []),
-    })
-    _upsert("pricing", {
-        "currency":              p.get("currency", "₹"),
-        "annualDiscountPercent": 20,
-        "studentDiscountPercent": 0,
-        "plans": [
-            {
-                **plan,
-                "features":     [f.strip() for f in plan.get("featuresText", "").split("\n") if f.strip()],
-                "restrictions": [r.strip() for r in plan.get("restrictionsText", "").split("\n") if r.strip()],
-            }
-            for plan in p.get("plans", [])
-        ],
-        "faqs": p.get("faqs", []),
-    })
-    _upsert("marketing_page", {
-        "hero": {
-            "headline":      p.get("mktHeadline", ""),
-            "subheadline":   p.get("mktSubheadline", ""),
-            "cta_label":     p.get("mktCtaLabel", "Start free"),
-            "cta_href":      "/setup-wizard",
-            "show_live_demo": True,
-        },
-        "problem_bullets": [b for b in p.get("mktBullets", []) if b],
-        "feature_grid":    p.get("mktFeatureGrid", []),
-        "lead_magnet": {
-            "enabled":   True,
-            "headline":  p.get("mktLeadMagnetHeadline", ""),
-            "cta_label": p.get("mktLeadMagnetCta", "Send me the guide"),
-        },
-        "final_cta": {
-            "headline":  p.get("mktFinalCtaHeadline", ""),
-            "cta_label": p.get("mktFinalCtaLabel", "Start free"),
-        },
-    })
+    # Persist each top-level domain group from the v2 prefill directly.
+    # Keys mirror DEFAULT_STATE in setup-wizard/page.js.
+    for group_key in ("start", "identity", "positioning", "offers", "proof",
+                      "frontDoor", "knowledge", "brand", "agents", "payments",
+                      "channels", "site"):
+        if group_key in prefill:
+            _upsert(group_key, prefill[group_key])
 
     try:
         db.commit()
-        logger.info("Genie prefill saved to user_site_settings for user_id=%s", user.id)
+        logger.info("Genie prefill (v2) saved to user_site_settings for user_id=%s", user.id)
     except Exception as exc:
         db.rollback()
         logger.error("Failed to save Genie prefill for user %s: %s", user.id, exc)

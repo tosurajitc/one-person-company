@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
+from sqlalchemy import text
 from app.core.database import Base
 
 
@@ -24,6 +25,7 @@ class UserSiteSettings(Base):
     )
     key = Column(String(100), nullable=False, index=True)
     value = Column(JSONB, nullable=False, default={})
+    schema_version = Column(String(10), nullable=False, server_default=text("'1.0'"))
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

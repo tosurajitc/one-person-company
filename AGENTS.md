@@ -3,9 +3,10 @@
 This file provides guidance to agents when working with code in this repository.
 
 ## Stack
-- **Backend**: Python 3.12, FastAPI + SQLAlchemy 2.0 + Alembic, PostgreSQL (`ai_services_platform` DB, user: `watsonx_user`)
+- **Backend**: Python 3.12, FastAPI + SQLAlchemy 2.0 + Alembic 1.20, PostgreSQL (`ai_services_platform` DB, user: `watsonx_user`)
 - **Frontend**: Next.js 14 (App Router), Tailwind CSS, plain JS (not TypeScript despite `@types/*` dev deps)
 - **Auth**: JWT via `python-jose` (HS256) + OAuth (Google/Microsoft/GitHub/LinkedIn) via `httpx`
+- **AI**: Groq SDK (`/api/chat`, `/api/genie/draft-site`) + Anthropic SDK — Claude Sonnet (`/api/agent/fb-marketing/chat`)
 
 ## Commands
 
@@ -66,10 +67,33 @@ These are not in sync. A user can be authenticated in-app but the middleware won
 `/api/*` in the frontend is rewritten to `http://localhost:8000/api/*` via `next.config.js`. All backend routes must have the `/api` prefix to be callable from the frontend.
 
 ### `next.config.js` has hardcoded legacy redirects
-`/platform/ai-genie`, `/platform/website-builder`, `/platform/offers`, `/platform/content-studio` all redirect to renamed paths. Do not add new pages at those old paths.
+Old paths like `/platform/ai-genie`, `/platform/website-builder` redirect to the real current routes. The live platform directories are `ai-website-builder/`, `content-studio/`, `offers-payments/` — do not add pages at the old names.
 
-### Alembic is configured and has one migration
-`alembic.ini` is fully configured with a hardcoded DB URL. One migration exists in `alembic/versions/` (renaming `course`→`offer`, `resource`→something). Run from `backend/`. If you add a new model, import it in `alembic/env.py` before running `--autogenerate`.
+### Alembic has 9 applied migrations
+`alembic.ini` is fully configured. Nine migration scripts are in `alembic/versions/` — always run `alembic upgrade head` from `backend/` before starting the server. If you add a new model, import it in `alembic/env.py` before running `--autogenerate`.
+
+Current migration chain (oldest → newest):
+1. `aabc0f0a2cfd` — Rename Course→Offer, Resource→ContentAsset
+2. `f7e3dc7821f6` — chat_messages, user_subscriptions, payments
+3. `b9e4dc8910ab` — leads table
+4. `c3a1e9f02b4d` — Community tenant rearchitecture
+5. `a1b2c3d4e5f6` — newsletter_subscribers table
+6. `a3f9b1c2d4e5` — fb_agent_states table
+7. `d4e5f6a7b8c9` — user_site_settings table
+8. `e5f6a7b8c9d0` — extend offer_type enum
+9. `f1a2b3c4d5e6` — schema_version on user_site_settings
+
+### New route files added (not in older docs)
+- `genie_routes.py` — `POST /api/genie/draft-site`: wizard AI prefill via Groq; returns partial schema 2.0 state
+- `site_build_routes.py` — `POST /api/sites/build`: receives full wizard payload, persists to `user_site_settings`, returns preview URL
+- `fb_agent_routes.py` — `POST /api/agent/fb-marketing/chat`: Facebook Marketing specialist via Anthropic Claude Sonnet
+- `agent_session_routes.py` — live specialist session lifecycle: start / heartbeat / stop / message / get
+
+### `site_settings` DB rows are seeded once and never auto-updated
+`seed_default_settings()` in `settings_routes.py` only inserts rows that **don't exist yet**. Changing `DEFAULT_SETTINGS` in the source file will NOT update already-seeded rows in the DB. To update live data, run a direct SQL `UPDATE` or use the admin settings UI at `/admin/settings`.
+
+### `UserSiteSettings` is per-founder, not global
+`user_site_settings` table stores setup-wizard config scoped to `user_id`. Each row has a `key` (e.g. `"brand"`, `"hero"`) and a `schema_version` field (`"1.0"` or `"2.0"`). Do not confuse with the global `site_settings` table (platform-wide JSONB key-value store).
 
 ## Code Style
 
@@ -87,16 +111,32 @@ These are not in sync. A user can be authenticated in-app but the middleware won
 - Tailwind custom tokens: `primary-*` (blue scale), `gray-*` (slate scale), custom animations `fade-in`, `slide-up`, `slide-down`, `scale-in`, `float`, `glow`; box shadows `shadow-glow`, `shadow-glow-lg`, `shadow-inner-glow`; fonts `font-sans` (Inter) and `font-mono` (JetBrains Mono)
 - `clsx` + `tailwind-merge` available for conditional class merging
 - `useAuth()` from `context/AuthContext.js` for auth state; `withAuth(Component, {role})` HOC for page-level protection
+- `useSiteConfig()` from `hooks/useSiteConfig.js` — fetches `/api/settings/public` on mount; DB values override `site.config.js` static defaults. Always use this hook on public pages instead of importing `site.config.js` directly
+- Feature card statuses (`Available` / `Live Demo` / `Coming Soon`) and their links are stored in the `features` key in the `site_settings` DB table. To change them at runtime, UPDATE the DB row directly or use `/admin/settings` — editing `DEFAULT_SETTINGS` in `settings_routes.py` only affects fresh installs
 
 ## Environment Variables (Backend `.env`)
 ```
-SECRET_KEY=          # Required; defaults to random token (rotates on restart if not set!)
+SECRET_KEY=                   # Required; defaults to random token (rotates on restart — invalidates all JWTs!)
 DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD
-GROQ_API_KEY         # Optional, for future chat
+FIRST_SUPERUSER=              # Super-admin email (seeded on first startup)
+FIRST_SUPERUSER_PASSWORD=
+
+# AI — at least one required for AI features
+GROQ_API_KEY=                 # Required for /api/chat and /api/genie/draft-site
+GROQ_MODEL=                   # Optional override (default: groq/compound-mini)
+ANTHROPIC_API_KEY=            # Required for /api/agent/fb-marketing/chat (Claude Sonnet)
+ANTHROPIC_MODEL=              # Optional override (default: claude-sonnet-4-5)
+
+# OAuth (configure at least one provider)
 GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
 MICROSOFT_CLIENT_ID / MICROSOFT_CLIENT_SECRET
 GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET
-FIRST_SUPERUSER / FIRST_SUPERUSER_PASSWORD   # Set in Settings; does NOT auto-create an account (admin@admin.com/password is hardcoded in create_super_admin)
+
+# Payments
+RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET
+STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET
+
+FRONTEND_URL=http://localhost:3000   # Used to build payment redirect URLs
 ```
 `SECRET_KEY` defaults to `secrets.token_urlsafe(32)` **per process** — all JWTs are invalidated on every backend restart unless set in `.env`.

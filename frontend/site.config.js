@@ -149,6 +149,13 @@ const siteConfig = {
       status:      'Available',
     },
     {
+      title:       'AI Genie Assistant',
+      description: 'Your always-on business advisor — handles customer queries, writes content, and gives strategic advice',
+      preview:     'Powered by advanced AI models',
+      link:        '/platform/content-studio',
+      status:      'Live Demo',
+    },
+    {
       title:       'Offers & Payments',
       description: 'Create service packages, digital products, and payment links in minutes — sell anything solo',
       preview:     'Connect your payment gateway',
@@ -160,7 +167,7 @@ const siteConfig = {
       description: 'Connect with fellow OPC founders, share wins, get feedback, and find collaborators',
       preview:     'Private, moderated founder network',
       link:        '/community',
-      status:      'Available',
+      status:      'Coming Soon',
     },
     {
       title:       'Content Studio',
