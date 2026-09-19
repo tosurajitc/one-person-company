@@ -21,6 +21,7 @@
  */
 
 import { useState, useEffect, useCallback, useContext, createContext } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ArrowRight, ArrowLeft, Download, CheckCircle, AlertTriangle, Sparkles,
   Building2, Target, Layers, Award, DoorOpen, BookOpen, Palette, Bot,
@@ -83,17 +84,22 @@ const clean = list => (list || []).map(s => (typeof s === 'string' ? s.trim() : 
 const WizardContext = createContext(null)
 const useWizard = () => useContext(WizardContext)
 
+// Tracks which dotted paths were pre-filled from the DB saved draft
+const PrefilledContext = createContext(new Set())
+const usePrefilled = () => useContext(PrefilledContext)
+
 // ─────────────────────────────────────────────
 // Field primitives (bound to wizard state by path)
 // ─────────────────────────────────────────────
 const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm'
 
-function Field({ label, hint, required, children }) {
+function Field({ label, hint, required, prefilled, children }) {
   return (
     <div>
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+          {prefilled && <FromDbBadge />}
         </label>
       )}
       {hint && <p className="text-xs text-gray-500 mb-1.5">{hint}</p>}
@@ -104,6 +110,8 @@ function Field({ label, hint, required, children }) {
 
 function Text({ path, label, hint, placeholder, required, type = 'text', prefix }) {
   const { data, update } = useWizard()
+  const prefilledPaths = usePrefilled()
+  const isPrefilled = prefilledPaths.has(path)
   const value = getIn(data, path) ?? ''
   const input = (
     <input
@@ -115,7 +123,7 @@ function Text({ path, label, hint, placeholder, required, type = 'text', prefix 
     />
   )
   return (
-    <Field label={label} hint={hint} required={required}>
+    <Field label={label} hint={hint} required={required} prefilled={isPrefilled}>
       {prefix ? (
         <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 bg-white">
           <span className="px-2.5 py-2 bg-gray-100 text-gray-500 text-sm border-r border-gray-300 whitespace-nowrap">{prefix}</span>
@@ -128,8 +136,10 @@ function Text({ path, label, hint, placeholder, required, type = 'text', prefix 
 
 function Area({ path, label, hint, placeholder, required, rows = 3 }) {
   const { data, update } = useWizard()
+  const prefilledPaths = usePrefilled()
+  const isPrefilled = prefilledPaths.has(path)
   return (
-    <Field label={label} hint={hint} required={required}>
+    <Field label={label} hint={hint} required={required} prefilled={isPrefilled}>
       <textarea rows={rows} className={inputCls} value={getIn(data, path) ?? ''} placeholder={placeholder} onChange={e => update(path, e.target.value)} />
     </Field>
   )
@@ -297,6 +307,29 @@ function Section({ title, children }) {
   )
 }
 
+// Badge shown next to a label when a value was loaded from the saved DB draft
+function FromDbBadge() {
+  return (
+    <span className="ml-1.5 align-middle px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-semibold">
+      From your profile
+    </span>
+  )
+}
+
+// Read-only confirmation chip — used for fields the user already answered in the intake form
+function ConfirmedChip({ label, value, onEdit }) {
+  if (!value) return null
+  return (
+    <div className="flex items-center justify-between px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm">
+      <span className="text-xs font-medium text-green-700">{label}</span>
+      <span className="flex items-center gap-2">
+        <span className="font-semibold text-gray-900">{value}</span>
+        <button type="button" onClick={onEdit} className="text-[11px] text-green-600 underline hover:text-green-800">Edit</button>
+      </span>
+    </div>
+  )
+}
+
 // Short guidance drawn from the book, shown at the top of steps
 function BookNote({ chapter, children }) {
   return (
@@ -366,11 +399,27 @@ const BUSINESS_TYPES = [
   { value: 'other',       label: 'Something else',         hint: 'Describe it above' },
 ]
 
+const MARKET_LABELS = { india: 'India (₹)', global: 'Outside India ($)', both: 'Both (₹ and $)' }
+const LANGUAGE_LABELS = { en: 'English', hi: 'Hindi', bn: 'Bengali', 'en-hi': 'English + Hindi' }
+
 function Step1({ onAiDraft, aiState }) {
-  const { data } = useWizard()
+  const { data, update } = useWizard()
+  const prefilledPaths = usePrefilled()
+
+  // businessType / market / language — show as confirmed chips when pre-filled from intake
+  const btPrefilled   = prefilledPaths.has('start.businessType')
+  const mktPrefilled  = prefilledPaths.has('start.market')
+  const langPrefilled = prefilledPaths.has('start.language')
+
+  const btLabel   = BUSINESS_TYPES.find(o => o.value === data.start.businessType)?.label || data.start.businessType
+  const mktLabel  = MARKET_LABELS[data.start.market]  || data.start.market
+  const langLabel = LANGUAGE_LABELS[data.start.language] || data.start.language
+
   return (
     <div className="space-y-6">
-      <StepHeader step={1} intro="Describe your business the way you'd explain it to a friend. Our AI uses this to draft the rest of the wizard, and you can edit everything afterwards." />
+      <StepHeader step={1} intro="Confirm the summary below — it was composed from your Genie intake answers. Edit anything that needs updating, then continue." />
+
+      {/* Description — always editable, badge if pre-filled */}
       <Area
         path="start.description"
         label="What does your business do, and for whom?"
@@ -378,32 +427,60 @@ function Step1({ onAiDraft, aiState }) {
         rows={4}
         placeholder="e.g. I'm a chartered accountant in Kolkata. I help freelancers and small agencies set up GST, file returns on time and stop overpaying tax. Most clients find me through LinkedIn and referrals."
       />
-      <Choice path="start.businessType" label="Which describes you best?" options={BUSINESS_TYPES} columns={3} />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Choice
-          path="start.market"
-          label="Where are your clients?"
-          options={[
-            { value: 'india',  label: 'India',            hint: 'Prices in ₹' },
-            { value: 'global', label: 'Outside India',    hint: 'Prices in $' },
-            { value: 'both',   label: 'Both',             hint: 'Separate ₹ and $ prices' },
-          ]}
-          columns={3}
-        />
-        <Select
-          path="start.language"
-          label="Website language"
-          options={[
-            { value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' },
-            { value: 'bn', label: 'Bengali' }, { value: 'en-hi', label: 'English + Hindi' },
-          ]}
-        />
-      </div>
+
+      {/* businessType / market / language — chips when pre-filled, full selectors when not */}
+      {(btPrefilled || mktPrefilled || langPrefilled) ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Carried over from your intake form</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {btPrefilled
+              ? <ConfirmedChip label="You are a" value={btLabel} onEdit={() => prefilledPaths.delete('start.businessType')} />
+              : <Choice path="start.businessType" label="Which describes you best?" options={BUSINESS_TYPES} columns={3} />}
+            {mktPrefilled
+              ? <ConfirmedChip label="Clients are in" value={mktLabel} onEdit={() => prefilledPaths.delete('start.market')} />
+              : <Choice path="start.market" label="Where are your clients?" options={[
+                  { value: 'india', label: 'India', hint: 'Prices in ₹' },
+                  { value: 'global', label: 'Outside India', hint: 'Prices in $' },
+                  { value: 'both', label: 'Both', hint: 'Separate ₹ and $ prices' },
+                ]} columns={3} />}
+            {langPrefilled
+              ? <ConfirmedChip label="Website language" value={langLabel} onEdit={() => prefilledPaths.delete('start.language')} />
+              : <Select path="start.language" label="Website language" options={[
+                  { value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' },
+                  { value: 'bn', label: 'Bengali' }, { value: 'en-hi', label: 'English + Hindi' },
+                ]} />}
+          </div>
+        </div>
+      ) : (
+        <>
+          <Choice path="start.businessType" label="Which describes you best?" options={BUSINESS_TYPES} columns={3} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Choice
+              path="start.market"
+              label="Where are your clients?"
+              options={[
+                { value: 'india',  label: 'India',         hint: 'Prices in ₹' },
+                { value: 'global', label: 'Outside India', hint: 'Prices in $' },
+                { value: 'both',   label: 'Both',          hint: 'Separate ₹ and $ prices' },
+              ]}
+              columns={3}
+            />
+            <Select
+              path="start.language"
+              label="Website language"
+              options={[
+                { value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' },
+                { value: 'bn', label: 'Bengali' }, { value: 'en-hi', label: 'English + Hindi' },
+              ]}
+            />
+          </div>
+        </>
+      )}
 
       <div className="rounded-xl border border-dashed border-blue-300 bg-blue-50/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div className="text-sm text-gray-700">
-          <p className="font-medium text-gray-900">Let AI fill in the next steps</p>
-          <p className="text-xs text-gray-500">It drafts positioning, offers and FAQs from your description. Prices and facts stay yours to confirm.</p>
+          <p className="font-medium text-gray-900">Re-draft with AI</p>
+          <p className="text-xs text-gray-500">Updates positioning, offers and FAQs from your description. Prices and facts stay yours.</p>
         </div>
         <button
           type="button"
@@ -424,9 +501,26 @@ function Step1({ onAiDraft, aiState }) {
 
 // ── STEP 2 — Identity ──────────────────────────
 function Step2() {
+  const prefilledPaths = usePrefilled()
+  const prefilledIdentityFields = [
+    'identity.ownerName', 'identity.brandName', 'identity.email', 'identity.whatsapp',
+    'identity.ownerRole', 'identity.city', 'identity.country',
+  ].filter(p => prefilledPaths.has(p))
+
   return (
     <div className="space-y-6">
       <StepHeader step={2} intro="These details appear in the header, footer, About page and contact page." />
+
+      {prefilledIdentityFields.length > 0 && (
+        <div className="flex items-start gap-2.5 p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
+          <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-600" />
+          <span>
+            <strong>Pre-filled from your profile: </strong>
+            {prefilledIdentityFields.map(p => p.split('.')[1]).join(', ')}. Review and update anything that has changed.
+          </span>
+        </div>
+      )}
+
       <Section title="Business">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Text path="identity.brandName" label="Business or brand name" required placeholder="e.g. Clear Books Studio" />
@@ -465,15 +559,32 @@ const NICHE_DIMENSIONS = [
 
 function Step3() {
   const { data, update } = useWizard()
+  const prefilledPaths = usePrefilled()
   const p = data.positioning
   const score = Object.values(p.nicheScore).reduce((a, b) => a + Number(b), 0)
   const blank = t => <span className="text-gray-400">{t}</span>
+
+  const positioningPrefilledCount = [
+    'positioning.buyer', 'positioning.problem', 'positioning.outcome',
+    'positioning.fear', 'positioning.forWho', 'positioning.notFor',
+  ].filter(path => prefilledPaths.has(path)).length
+
   return (
     <div className="space-y-6">
       <StepHeader step={3} intro="Your whole website is built around one sentence about who you help. Be specific; a narrow site converts better than a broad one." />
       <BookNote chapter="Chapter 3">
         Narrow beats clever. Visitors who instantly recognise themselves are already half convinced, so the site can spend its space on booking a conversation instead of explaining who you are.
       </BookNote>
+
+      {positioningPrefilledCount > 0 && (
+        <div className="flex items-start gap-2.5 p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
+          <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-600" />
+          <span>
+            <strong>{positioningPrefilledCount} field{positioningPrefilledCount > 1 ? 's' : ''} pre-filled from your Genie draft.</strong>{' '}
+            Fields marked <span className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">From your profile</span> were extracted by AI — review them and correct anything that is off.
+          </span>
+        </div>
+      )}
 
       <Section title="Your positioning sentence">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1642,32 +1753,140 @@ function StepSidebar({ step, setStep, issues, onReset }) {
 // Main page
 // ─────────────────────────────────────────────
 export default function SetupWizardPage() {
-  const [step, setStep] = useState(1)
+  const router = useRouter()
+  const [authChecked, setAuthChecked] = useState(false)
+
+  useEffect(() => {
+    const token =
+      localStorage.getItem('auth_token') ||
+      localStorage.getItem('token') ||
+      document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
+    if (!token) {
+      router.replace('/login?redirect=/setup-wizard')
+    } else {
+      setAuthChecked(true)
+    }
+  }, [router])
+
+  // Support ?step=N deep-link from the dashboard "Edit sections" shortcuts
+  const initialStep = (() => {
+    if (typeof window === 'undefined') return 1
+    const n = Number(new URLSearchParams(window.location.search).get('step'))
+    return (n >= 1 && n <= STEPS.length) ? n : 1
+  })()
+
+  const [step, setStep] = useState(initialStep)
   const [data, setData] = useState(DEFAULT_STATE)
   const [hydrated, setHydrated] = useState(false)
   const [aiState, setAiState] = useState({ status: 'idle' })
   const [build, setBuild] = useState({ status: 'idle' })
   const [notice, setNotice] = useState(null)
+  // Set of dotted paths that were loaded from the DB saved draft (not typed by user)
+  const [prefilledPaths] = useState(() => new Set())
 
   const update = useCallback((path, value) => setData(d => setIn(d, path, value)), [])
 
-  // Restore a saved draft, then apply any Genie prefill on top
+  // Restore a saved draft, then apply any Genie prefill / saved DB draft on top
   useEffect(() => {
     if (typeof window === 'undefined') return
     let next = DEFAULT_STATE
+    let noticeMsg = null
     try {
       const saved = localStorage.getItem(DRAFT_STORAGE_KEY)
-      if (saved) { next = deepMerge(DEFAULT_STATE, JSON.parse(saved)); setNotice('We restored your saved progress.') }
+      if (saved) { next = deepMerge(DEFAULT_STATE, JSON.parse(saved)); noticeMsg = 'We restored your saved progress.' }
     } catch (_) { /* ignore a corrupt draft */ }
     try {
       const prefill = sessionStorage.getItem('genie_prefill')
-      if (prefill) { next = deepMerge(next, JSON.parse(prefill)); setNotice('Genie pre-filled some steps from your description. Review them before building.') }
+      if (prefill) { next = deepMerge(next, JSON.parse(prefill)); noticeMsg = 'Genie pre-filled your steps from your business draft. Review and confirm details below.' }
     } catch (_) { /* ignore */ } finally {
       try { sessionStorage.removeItem('genie_prefill') } catch (_) { /* ignore */ }
     }
-    setData(next)
-    setHydrated(true)
-  }, [])
+
+    // Also pool from user profile & backend saved draft if fields are still empty
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || ''
+    if (token) {
+      Promise.all([
+        fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/genie/status', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]).then(([userProfile, genieStatus]) => {
+        // preferUserInput: saved_draft fills every field that is still empty in next;
+        // any field the user actually typed (non-empty string) is kept as-is.
+        let merged = next
+        if (genieStatus?.saved_draft) {
+          const draft = genieStatus.saved_draft
+
+          // Fix start.description: if it's too short (just businessType text), compose it
+          // properly from positioning.buyer + problem + outcome stored in the draft
+          const draftBuyer   = getIn(draft, 'positioning.buyer')   || ''
+          const draftProblem = getIn(draft, 'positioning.problem') || ''
+          const draftOutcome = getIn(draft, 'positioning.outcome') || ''
+          const composedDesc = [draftBuyer, draftProblem, draftOutcome].map(s => s.trim()).filter(Boolean).join('. ')
+          const rawDesc = (getIn(draft, 'start.description') || '').trim()
+          // Use composed description when the raw one is very short (< 60 chars) and
+          // positioning fields are richer
+          if (composedDesc.length > rawDesc.length) {
+            draft.start = { ...(draft.start || {}), description: composedDesc }
+          }
+
+          merged = preferUserInput(draft, next)
+
+          // Record which paths came from the DB draft (non-empty in draft, empty in next)
+          const DB_TRACKED_PATHS = [
+            'start.description', 'start.businessType', 'start.market', 'start.language',
+            'identity.ownerName', 'identity.brandName', 'identity.email', 'identity.whatsapp',
+            'identity.ownerRole', 'identity.city', 'identity.country',
+            'positioning.buyer', 'positioning.problem', 'positioning.outcome',
+            'positioning.timeframe', 'positioning.fear', 'positioning.credibility',
+            'positioning.forWho', 'positioning.notFor',
+            'offers.tiers.0.name', 'offers.tiers.0.priceInr', 'offers.tiers.0.priceUsd',
+            'offers.tiers.1.name', 'offers.tiers.1.priceInr', 'offers.tiers.1.priceUsd',
+            'offers.tiers.2.name', 'offers.tiers.2.priceInr', 'offers.tiers.2.priceUsd',
+            'frontDoor.primaryCta', 'frontDoor.responseTime',
+            'channels.social.linkedin', 'channels.social.instagram',
+          ]
+          DB_TRACKED_PATHS.forEach(p => {
+            const draftVal = getIn(draft, p)
+            const nextVal  = getIn(next, p)
+            // Mark as prefilled if draft has a non-empty value and local state was empty
+            const draftHasValue = Array.isArray(draftVal)
+              ? draftVal.some(v => v && (typeof v === 'string' ? v.trim() : true))
+              : typeof draftVal === 'string' ? draftVal.trim() : !!draftVal
+            const nextHasValue = Array.isArray(nextVal)
+              ? nextVal.some(v => v && (typeof v === 'string' ? v.trim() : true))
+              : typeof nextVal === 'string' ? nextVal.trim() : !!nextVal
+            if (draftHasValue && !nextHasValue) prefilledPaths.add(p)
+          })
+
+          noticeMsg = 'Your profile data has been loaded. Fields marked "From your profile" came from your Genie draft — confirm them before building.'
+        }
+        if (userProfile) {
+          if (!merged.identity?.ownerName && userProfile.full_name) {
+            merged = setIn(merged, 'identity.ownerName', userProfile.full_name)
+            prefilledPaths.add('identity.ownerName')
+          }
+          if (!merged.identity?.email && userProfile.email) {
+            merged = setIn(merged, 'identity.email', userProfile.email)
+            prefilledPaths.add('identity.email')
+          }
+          if (!merged.identity?.photoUrl && userProfile.avatar_url) {
+            merged = setIn(merged, 'identity.photoUrl', userProfile.avatar_url)
+          }
+        }
+        setData(merged)
+        if (noticeMsg) setNotice(noticeMsg)
+        setHydrated(true)
+      }).catch(() => {
+        // Network failed — still apply local state
+        setData(next)
+        if (noticeMsg) setNotice(noticeMsg)
+        setHydrated(true)
+      })
+    } else {
+      setData(next)
+      if (noticeMsg) setNotice(noticeMsg)
+      setHydrated(true)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Autosave draft (no secrets are stored in wizard state)
   useEffect(() => {
@@ -1770,8 +1989,11 @@ export default function SetupWizardPage() {
     }
   }
 
+  if (!authChecked) return null
+
   return (
     <WizardContext.Provider value={{ data, update }}>
+    <PrefilledContext.Provider value={prefilledPaths}>
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         <div className="bg-blue-600 text-white text-center py-3 px-4 text-sm font-medium">
           Answer a few questions about your business. Our AI builds your website from them.
@@ -1799,6 +2021,7 @@ export default function SetupWizardPage() {
           </div>
         </div>
       </div>
+    </PrefilledContext.Provider>
     </WizardContext.Provider>
   )
 }

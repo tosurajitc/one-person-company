@@ -7,6 +7,7 @@ const PROTECTED_ROUTES = [
   '/profile',
   '/settings',
   '/platform',
+  '/setup-wizard',
 ]
 
 // Routes that require admin access
@@ -29,7 +30,6 @@ const PUBLIC_ROUTES = [
   '/pricing',
   '/about',
   '/admin/login',
-  '/setup-wizard',
   '/get_started',
 ]
 
@@ -37,6 +37,12 @@ const PUBLIC_ROUTES = [
 const AUTH_REDIRECT_ROUTES = [
   '/login',
 ]
+
+// Paths that look like a founder site slug: one lowercase segment with no sub-path
+// e.g. /sharma-digital  but NOT /dashboard or /admin/xyz or /platform/x
+function isFounderSitePath(pathname) {
+  return /^\/[a-z0-9][a-z0-9-]*$/.test(pathname)
+}
 
 export function middleware(request) {
   const { pathname } = request.nextUrl
@@ -56,10 +62,12 @@ export function middleware(request) {
         user = decoded
         isAuthenticated = true
       }
+      // Expired token: isAuthenticated stays false; route guards below will redirect to login
     } catch (error) {
       console.error('Token decode error:', error)
-      // Invalid token, clear it
-      const response = NextResponse.next()
+      // Invalid token — clear the cookie and redirect to login
+      const loginUrl = new URL('/login', request.url)
+      const response = NextResponse.redirect(loginUrl)
       response.cookies.delete('token')
       return response
     }
@@ -75,7 +83,12 @@ export function middleware(request) {
 
   // 1. Handle authentication redirects (logged-in users accessing login/signup)
   if (isAuthenticated && isAuthRedirectRoute()) {
-    // Redirect based on user role
+    // If a redirect param is present, honour it (e.g. user navigated to
+    // /login?redirect=/setup-wizard while already logged in)
+    const redirectParam = request.nextUrl.searchParams.get('redirect') || request.nextUrl.searchParams.get('next')
+    if (redirectParam && !redirectParam.startsWith('/admin')) {
+      return NextResponse.redirect(new URL(redirectParam, request.url))
+    }
     if (isAdmin()) {
       return NextResponse.redirect(new URL('/admin', request.url))
     }
@@ -121,7 +134,13 @@ export function middleware(request) {
     return NextResponse.next()
   }
 
-  // 5. Handle unknown routes
+  // 5. Founder site pages — /[slug] with no sub-path (e.g. /sharma-digital)
+  //    These are publicly accessible even without authentication.
+  if (isFounderSitePath(pathname)) {
+    return NextResponse.next()
+  }
+
+  // 6. Handle unknown routes
   // For any other route, check if user is authenticated
   if (!isAuthenticated) {
     // Unknown route, not authenticated - redirect to login

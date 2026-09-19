@@ -7,8 +7,181 @@ import {
   BarChart3, Activity, User, Settings,
   TrendingUp, MessageSquare, FileText,
   Users, Zap, ChevronRight,
-  Bell, ArrowRight, Globe, CheckCircle, Sparkles
+  Bell, ArrowRight, Globe, CheckCircle, Sparkles,
+  ExternalLink, Pencil, Eye, Wand2, Layers, Target,
+  BookOpen, DoorOpen, Award, Wallet, Share2, AlertCircle,
 } from 'lucide-react'
+
+// ─── My Website panel ────────────────────────────────────────────────────────
+// Fetches the user's saved site data and renders a management card.
+
+const WIZARD_SHORTCUTS = [
+  { step: 1,  label: 'Business description', icon: Sparkles  },
+  { step: 2,  label: 'Identity & contact',   icon: User      },
+  { step: 3,  label: 'Positioning',          icon: Target    },
+  { step: 4,  label: 'Offers & prices',      icon: Layers    },
+  { step: 5,  label: 'Proof & testimonials', icon: Award     },
+  { step: 6,  label: 'Front door / CTA',     icon: DoorOpen  },
+  { step: 7,  label: 'FAQs & policies',      icon: BookOpen  },
+  { step: 10, label: 'Payments & GST',       icon: Wallet    },
+  { step: 11, label: 'Social & publishing',  icon: Share2    },
+]
+
+function MyWebsitePanel({ token }) {
+  const [site,    setSite]    = useState(null)   // { slug, theme, status, payload }
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState(null)
+
+  useEffect(() => {
+    if (!token) { setLoading(false); return }
+    // Load the founder's own site data through the authenticated settings endpoint
+    Promise.all([
+      fetch('/api/settings/mine', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null),
+      fetch('/api/genie/status', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null),
+    ]).then(([settings, genie]) => {
+      const siteKey = settings?.site || {}
+      const slug = siteKey.subdomain || null
+      if (!slug) { setLoading(false); return }
+
+      // Derive display data straight from saved settings groups
+      setSite({
+        slug,
+        brandName:    settings?.business?.brandName || slug,
+        status:       'draft',   // site_build_routes always saves 'draft' initially
+        positioning:  settings?.positioning || {},
+        offers:       (settings?.offers?.tiers || []).filter(t => t?.name),
+        market:       settings?.site?.market || 'india',
+        hasDraft:     !!genie?.has_saved_draft,
+      })
+      setLoading(false)
+    }).catch(() => { setError('Could not load site data'); setLoading(false) })
+  }, [token])
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
+        <div className="h-3 bg-gray-200 rounded w-1/2" />
+      </div>
+    )
+  }
+
+  // No site built yet
+  if (!site) {
+    return (
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Globe className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="font-bold text-lg">Your website is not built yet</h2>
+            <p className="text-blue-100 text-sm mt-0.5">Answer a few questions and Genie will build it for you in minutes.</p>
+          </div>
+        </div>
+        <Link
+          href="/platform/ai-website-builder"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-blue-600 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors"
+        >
+          <Wand2 className="w-4 h-4" />Build my website with AI
+        </Link>
+      </div>
+    )
+  }
+
+  const pos = site.positioning
+  const previewUrl = `/${site.slug}`
+
+  const fmt = (v, prefix = '') => v ? `${prefix}${Number(v).toLocaleString('en-IN')}` : null
+  const tierPrice = t => {
+    const inr = fmt(t.priceInr, '₹')
+    const usd = fmt(t.priceUsd, '$')
+    const suffix = t.tier === 'recurring' ? '/mo' : ''
+    const parts = site.market === 'india' ? [inr] : site.market === 'global' ? [usd] : [inr, usd]
+    return parts.filter(Boolean).map(p => p + suffix).join(' · ') || null
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+      {/* Header bar */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Globe className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-900 text-sm">{site.brandName}</p>
+            <p className="text-xs text-gray-500 font-mono">localhost:3000{previewUrl}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">Draft</span>
+          <Link
+            href={previewUrl}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />Preview
+          </Link>
+        </div>
+      </div>
+
+      <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {/* Positioning sentence */}
+        {pos?.buyer && pos?.outcome && (
+          <div className="sm:col-span-2 rounded-xl bg-gray-900 text-white px-4 py-3 text-sm leading-relaxed">
+            I help <strong>{pos.buyer}</strong> who struggle with <strong>{pos.problem || '…'}</strong> to get <strong>{pos.outcome}</strong>
+            {pos.timeframe ? ` within ${pos.timeframe}` : ''}
+            {pos.fear ? `, without ${pos.fear}` : ''}.
+          </div>
+        )}
+
+        {/* Offer tiers */}
+        {site.offers.length > 0 && (
+          <div className="sm:col-span-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Your offers</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {site.offers.slice(0, 3).map((t, i) => (
+                <div key={i} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
+                  <p className="text-xs text-gray-500">{['Tier 1', 'Tier 2', 'Tier 3'][i]}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate mt-0.5">{t.name}</p>
+                  {tierPrice(t) && <p className="text-xs text-blue-600 font-medium mt-0.5">{tierPrice(t)}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Edit shortcuts into wizard */}
+        <div className="sm:col-span-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Edit sections</p>
+          <div className="flex flex-wrap gap-2">
+            {WIZARD_SHORTCUTS.map(s => {
+              const Icon = s.icon
+              return (
+                <Link
+                  key={s.step}
+                  href={`/setup-wizard?step=${s.step}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 border border-gray-200 rounded-lg text-xs text-gray-700 transition-colors"
+                >
+                  <Icon className="w-3 h-3" />{s.label}
+                </Link>
+              )
+            })}
+            <Link
+              href="/setup-wizard"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg text-xs font-semibold transition-colors"
+            >
+              <Pencil className="w-3 h-3" />Open full wizard
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const siteConfig = useSiteConfig()
@@ -23,6 +196,7 @@ export default function DashboardPage() {
   const [stats, setStats]       = useState(null)
   const [activities, setActivities] = useState([])
   const [loading, setLoading]   = useState(true)
+  const [token,   setToken]     = useState(null)
 
   useEffect(() => {
     const h = new Date().getHours()
@@ -31,8 +205,9 @@ export default function DashboardPage() {
 
   // Fetch dashboard stats from API
   useEffect(() => {
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    const tok = localStorage.getItem('auth_token') || localStorage.getItem('token')
+    setToken(tok)
+    const headers = tok ? { Authorization: `Bearer ${tok}` } : {}
 
     Promise.all([
       fetch('/api/auth/me', { headers }).then(r => r.ok ? r.json() : null),
@@ -78,6 +253,16 @@ export default function DashboardPage() {
               Settings
             </Link>
           </div>
+        </div>
+
+        {/* ── My Website Panel ── */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-blue-600" />My Website
+            </h2>
+          </div>
+          <MyWebsitePanel token={token} />
         </div>
 
         {/* Stats — pulled from siteConfig so admin can customise them */}

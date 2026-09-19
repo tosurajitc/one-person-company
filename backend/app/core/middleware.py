@@ -85,6 +85,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         ("POST", "/api/auth/signup"),
         ("POST", "/api/auth/logout"),
         ("POST", "/api/auth/oauth/callback"),
+        ("POST", "/api/auth/oauth/{provider}/url"),
         ("GET", "/api/auth/verify"),
         ("GET", "/api/auth/me"),
         # Public site data
@@ -95,6 +96,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         ("GET", "/api/resources/public"),
         ("GET", "/api/content/offers/public/{username}/{slug}"),
         ("GET", "/api/public/{username}/community/{slug}"),
+        ("GET", "/api/sites/public/{slug}"),
         # Visitor forms
         ("POST", "/api/contact"),
         ("GET", "/api/contact/health"),
@@ -104,6 +106,8 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         ("POST", "/api/chat"),
         ("POST", "/api/chat/prefill"),
         ("POST", "/api/genie/draft-site"),
+        ("POST", "/api/genie/intake"),
+        ("GET", "/api/genie/status"),
         # Payment gateway webhooks (verified by signature inside the route)
         ("POST", "/api/payments/webhook/razorpay"),
         ("POST", "/api/payments/webhook/stripe"),

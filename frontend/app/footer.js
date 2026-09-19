@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   Brain, Sparkles, ArrowRight, Mail, Phone, MapPin,
@@ -10,7 +11,22 @@ import {
 } from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
 
+const SUPPRESS_HEADER_PREFIXES = ['/admin']
+
+function isFounderSitePath(pathname) {
+  if (SUPPRESS_HEADER_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) return true
+  const PLATFORM_ROUTES = new Set([
+    'dashboard', 'profile', 'settings', 'platform', 'setup-wizard',
+    'login', 'signout', 'pricing', 'resources', 'community',
+    'marketing', 'contact', 'get_started', 'about', 'auth',
+  ])
+  if (!/^\/[a-z0-9][a-z0-9-]*$/.test(pathname)) return false
+  const segment = pathname.slice(1)
+  return !PLATFORM_ROUTES.has(segment)
+}
+
 export default function Footer() {
+  const pathname = usePathname()
   const siteConfig = useSiteConfig()
   const [email, setEmail] = useState('')
   const [isSubscribing, setIsSubscribing] = useState(false)
@@ -65,6 +81,9 @@ export default function Footer() {
       href,
       icon: socialIconMap[name.charAt(0).toUpperCase() + name.slice(1)] || Globe,
     }))
+
+  // Hide platform footer on founder-generated website pages
+  if (isFounderSitePath(pathname)) return null
 
   return (
     <footer className="bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 text-white">

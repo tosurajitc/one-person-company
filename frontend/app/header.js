@@ -1,11 +1,35 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, FileText, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown } from 'lucide-react'
+import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, FileText, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown, LayoutDashboard } from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
 
+// Founder site slugs match /[a-z0-9][a-z0-9-]* with no sub-path,
+// but must not be a known platform route.
+// On these routes the platform header must be hidden so the site's
+// own nav renders cleanly at the top of the page.
+// Routes that have their own full-page shell (AdminShell, founder site nav, etc.)
+// and must NOT render the platform header/footer.
+const SUPPRESS_HEADER_PREFIXES = ['/admin']
+
+function isFounderSitePath(pathname) {
+  // Admin routes have their own AdminShell header
+  if (SUPPRESS_HEADER_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) return true
+  // Founder site slugs: single lowercase segment, not a known platform route
+  const PLATFORM_ROUTES = new Set([
+    'dashboard', 'profile', 'settings', 'platform', 'setup-wizard',
+    'login', 'signout', 'pricing', 'resources', 'community',
+    'marketing', 'contact', 'get_started', 'about', 'auth',
+  ])
+  if (!/^\/[a-z0-9][a-z0-9-]*$/.test(pathname)) return false
+  const segment = pathname.slice(1)
+  return !PLATFORM_ROUTES.has(segment)
+}
+
 export default function Header() {
+  const pathname = usePathname()
   const siteConfig = useSiteConfig()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -107,8 +131,11 @@ export default function Header() {
     }
   }
 
+  // Hide platform header on founder-generated website pages
+  if (isFounderSitePath(pathname)) return null
+
   return (
-    <header 
+    <header
       className="fixed w-full top-0 z-50 bg-white/90 backdrop-blur-md shadow-lg border-b border-gray-200"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -141,6 +168,15 @@ export default function Header() {
               {/* Platform Dropdown Menu */}
               <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="py-2">
+                    <Link href="/platform/my-website" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                      <div className="flex items-center">
+                        <LayoutDashboard className="w-5 h-5 mr-3 text-green-500" />
+                        <div>
+                          <div className="font-medium">My Website</div>
+                          <div className="text-xs text-gray-500">Edit and manage your published site</div>
+                        </div>
+                      </div>
+                    </Link>
                     <Link href="/platform/ai-website-builder" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                       <div className="flex items-center">
                         <Globe className="w-5 h-5 mr-3 text-blue-500" />
@@ -286,6 +322,14 @@ export default function Header() {
                         >
                           <BarChart3 className="w-4 h-4 mr-3" />
                           Dashboard
+                        </Link>
+                        <Link
+                          href="/platform/my-website"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <LayoutDashboard className="w-4 h-4 mr-3" />
+                          My Website
                         </Link>
                         <Link
                           href="/profile"

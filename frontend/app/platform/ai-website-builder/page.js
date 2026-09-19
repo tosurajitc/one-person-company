@@ -26,12 +26,12 @@
  * removed and moved to the "only you can add" list.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSiteConfig } from '../../../hooks/useSiteConfig'
 import { useRouter } from 'next/navigation'
 import {
   Sparkles, ArrowRight, CheckCircle, Loader2, Wand2, AlertCircle, AlertTriangle,
-  ChevronDown, ChevronUp, Link2, ClipboardList, RotateCcw, HelpCircle,
+  ChevronDown, ChevronUp, Link2, ClipboardList, RotateCcw, HelpCircle, User, Menu, X,
 } from 'lucide-react'
 
 const SCHEMA_VERSION = '2.0'
@@ -85,6 +85,12 @@ const QUESTIONS = [
     help: 'Years of experience, qualifications, past roles, results you can back up. Genie will not invent any of these.',
     placeholder: 'CA for 9 years, ex-Deloitte. Handled 140+ freelancer clients. Saved one design studio ₹2.4 lakh in its first year.',
     fills: 'Credibility, credentials, experience, results, About page',
+    suggestions: [
+      "5+ years of hands-on industry experience with 50+ happy clients.",
+      "Worked with top tier global brands and startups in this niche.",
+      "Proven track record with measurable ROI and verified testimonials.",
+      "Certified specialist with end-to-end dedicated 1-on-1 support."
+    ]
   },
   {
     key: 'notFit',
@@ -92,6 +98,12 @@ const QUESTIONS = [
     help: 'This filters out enquiries that waste your time.',
     placeholder: 'Companies with their own finance team, or people who only want the cheapest possible filing.',
     fills: '"Not for you if…" list, enquiry form questions',
+    suggestions: [
+      "People looking for the cheapest quick-fix without long-term quality.",
+      "Large enterprise teams with existing in-house departments.",
+      "Anyone expecting overnight results without active collaboration.",
+      "Businesses not ready to invest in structured growth."
+    ]
   },
   {
     key: 'howFound',
@@ -99,6 +111,12 @@ const QUESTIONS = [
     help: 'Referrals, LinkedIn, Instagram, Google, WhatsApp, events…',
     placeholder: 'Mostly referrals and LinkedIn posts. Most people message me on WhatsApp first.',
     fills: 'Main button on your site, contact options, content plan, AI agents',
+    suggestions: [
+      "Mostly referrals from past clients and WhatsApp direct messaging.",
+      "LinkedIn outreach and posts, with calls booked via Calendly.",
+      "Instagram DMs, organic search, and portfolio enquiries.",
+      "Word of mouth, industry events, and direct email enquiries."
+    ]
   },
 ]
 
@@ -111,13 +129,13 @@ const BUSINESS_TYPES = [
   { value: 'other',      label: 'Other' },
 ]
 
-const EMPTY_INTAKE = {
+const createEmptyIntake = () => ({
   basics: { ownerName: '', brandName: '', email: '', whatsapp: '' },
   start: { businessType: 'consulting', market: 'india', language: 'en' },
   answers: Object.fromEntries(QUESTIONS.map(q => [q.key, ''])),
   links: { website: '', linkedin: '', instagram: '', other: '' },
   pastedMaterial: '',
-}
+})
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -305,21 +323,159 @@ function CheckBadge() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main widget
 // ─────────────────────────────────────────────────────────────────────────────
+function loadRazorpay() {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) return resolve(true)
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Floating nav sections definition
+// ─────────────────────────────────────────────────────────────────────────────
+const NAV_SECTIONS = [
+  { id: 'section-basics', label: 'The basics', short: null, required: false },
+  ...QUESTIONS.map((q, i) => ({
+    id: `section-q-${q.key}`,
+    label: q.title.replace(/[?]/g, '').split(',')[0].slice(0, 38),
+    short: i + 1,
+    required: !!q.required,
+    key: q.key,
+  })),
+  { id: 'section-extras', label: 'Links & material', short: QUESTIONS.length + 1, required: false },
+]
+
+function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKeys }) {
+  return (
+    <>
+      {/* ── Mobile FAB ── */}
+      <button
+        type="button"
+        onClick={onMobileToggle}
+        className="lg:hidden fixed bottom-6 right-6 z-50 w-12 h-12 bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center"
+        aria-label="Toggle question menu"
+      >
+        {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* ── Mobile overlay ── */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={onMobileToggle} />
+      )}
+
+      {/* ── Desktop: fixed left panel | Mobile: slide-up sheet ── */}
+      <aside
+        className={[
+          /* shared */
+          'bg-white z-40 transition-transform duration-300',
+          /* desktop */
+          'lg:fixed lg:top-20 lg:left-0 lg:bottom-0 lg:w-60 lg:border-r lg:border-gray-200 lg:translate-y-0 lg:translate-x-0 lg:flex lg:flex-col',
+          /* mobile */
+          'fixed bottom-0 left-0 right-0 rounded-t-2xl shadow-2xl px-4 pt-3 pb-6',
+          mobileOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
+        ].join(' ')}
+      >
+        {/* drag handle (mobile only) */}
+        <div className="lg:hidden flex justify-center mb-3">
+          <div className="w-10 h-1.5 bg-gray-300 rounded-full" />
+        </div>
+
+        {/* header */}
+        <div className="hidden lg:flex items-center justify-between px-5 pt-6 pb-3 border-b border-gray-100 shrink-0">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Sections</span>
+          <span className="text-[11px] text-gray-400">
+            {answeredKeys.size}/{QUESTIONS.length} done
+          </span>
+        </div>
+        <p className="lg:hidden text-xs font-semibold text-gray-700 mb-3">Jump to a section</p>
+
+        {/* scrollable nav list */}
+        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
+          {NAV_SECTIONS.map(sec => {
+            const isActive = activeId === sec.id
+            const answered = sec.key ? answeredKeys.has(sec.key) : false
+            const dot = answered
+              ? 'bg-green-500 text-white'
+              : sec.required
+              ? 'bg-red-100 text-red-600 ring-1 ring-red-300'
+              : 'bg-gray-100 text-gray-500'
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                onClick={() => {
+                  onNavigate(sec.id)
+                  if (mobileOpen) onMobileToggle()
+                }}
+                className={[
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-xs group',
+                  isActive
+                    ? 'bg-primary-50 text-primary-700 font-semibold shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                ].join(' ')}
+              >
+                {/* active bar */}
+                <span className={`shrink-0 w-1 h-5 rounded-full ${isActive ? 'bg-primary-500' : 'bg-transparent group-hover:bg-gray-200'}`} />
+                {/* number / status dot */}
+                <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${dot}`}>
+                  {answered ? '✓' : sec.short ?? '●'}
+                </span>
+                {/* label */}
+                <span className="leading-snug line-clamp-2 flex-1">{sec.label}</span>
+                {/* required pill */}
+                {sec.required && !answered && (
+                  <span className="shrink-0 text-[9px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">req</span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* footer CTA (desktop) */}
+        <div className="hidden lg:block px-5 py-4 border-t border-gray-100 shrink-0">
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            Answer all required questions, then click <strong className="text-gray-700">Draft my website</strong> at the bottom.
+          </p>
+        </div>
+      </aside>
+    </>
+  )
+}
+
 function GenieIntakeWidget() {
   const router = useRouter()
-  const [intake, setIntake] = useState(EMPTY_INTAKE)
+  const [intake, setIntake] = useState(createEmptyIntake)
   const [hydrated, setHydrated] = useState(false)
   const [showExtras, setShowExtras] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null) // { prefill, needsConfirmation, removed, followUps, saved }
+  const [quotaInfo, setQuotaInfo] = useState(null)
+  const [paying, setPaying] = useState(false)
+  const [activeSection, setActiveSection] = useState('section-basics')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
-  // Restore answers typed earlier on this device
+  // Fetch generation status and restore answers
   useEffect(() => {
     try {
       const saved = localStorage.getItem(ANSWERS_STORAGE_KEY)
-      if (saved) setIntake(deepMerge(EMPTY_INTAKE, JSON.parse(saved)))
+      if (saved) setIntake(deepMerge(createEmptyIntake(), JSON.parse(saved)))
     } catch (_) { /* ignore */ }
+
+    const token = (typeof window !== 'undefined' && (localStorage.getItem('auth_token') || localStorage.getItem('token'))) || ''
+    if (token) {
+      fetch('/api/genie/status', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => setQuotaInfo(data))
+      .catch(() => {})
+    }
+
     setHydrated(true)
   }, [])
 
@@ -331,11 +487,45 @@ function GenieIntakeWidget() {
     return () => clearTimeout(t)
   }, [intake, hydrated])
 
+  // Track which section is in view for the side nav highlight
+  useEffect(() => {
+    const sectionIds = NAV_SECTIONS.map(s => s.id)
+    const observers = []
+    const visible = new Map()
+
+    sectionIds.forEach(id => {
+      const el = document.getElementById(id)
+      if (!el) return
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          visible.set(id, entry.isIntersecting)
+          // Pick the topmost visible section
+          const first = sectionIds.find(sid => visible.get(sid))
+          if (first) setActiveSection(first)
+        },
+        { rootMargin: '-20% 0px -60% 0px', threshold: 0 }
+      )
+      obs.observe(el)
+      observers.push(obs)
+    })
+
+    return () => observers.forEach(o => o.disconnect())
+  }, [hydrated, result])
+
+  const scrollToSection = useCallback((id) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const y = el.getBoundingClientRect().top + window.scrollY - 100
+    window.scrollTo({ top: y, behavior: 'smooth' })
+    setActiveSection(id)
+  }, [])
+
   const update = (path, value) => setIntake(d => setIn(d, path, value))
 
   const requiredQs = QUESTIONS.filter(q => q.required)
-  const answeredCount = QUESTIONS.filter(q => intake.answers[q.key].trim()).length
-  const missingRequired = requiredQs.filter(q => !intake.answers[q.key].trim())
+  const answeredCount = QUESTIONS.filter(q => (intake.answers?.[q.key] || '').trim()).length
+  const answeredKeys = new Set(QUESTIONS.filter(q => (intake.answers?.[q.key] || '').trim()).map(q => q.key))
+  const missingRequired = requiredQs.filter(q => !(intake.answers?.[q.key] || '').trim())
   const hasExtras = Object.values(intake.links).some(Boolean) || intake.pastedMaterial.trim()
   const canSubmit = missingRequired.length === 0 && !loading
 
@@ -347,7 +537,7 @@ function GenieIntakeWidget() {
     setResult(null)
     try {
       const token = (typeof window !== 'undefined' && (localStorage.getItem('auth_token') || localStorage.getItem('token'))) || ''
-      const endpoint = token ? '/api/chat/prefill-and-save' : '/api/chat/prefill'
+      const endpoint = '/api/genie/intake'
       const description = composeDescription(intake)
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -363,7 +553,22 @@ function GenieIntakeWidget() {
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.detail || `Genie could not draft your site (error ${res.status}). Your answers are saved; try again.`)
+      if (!res.ok) {
+        if (res.status === 402) {
+          // Quota exhausted (1 free draft used, needs Rs. 99 top-up)
+          const detail = typeof data.detail === 'object' ? data.detail : {}
+          setQuotaInfo(prev => ({
+            ...(prev || {}),
+            has_saved_draft: !!detail.has_saved_draft,
+            saved_draft: detail.saved_draft,
+            free_generation_available: false,
+            can_generate: false,
+          }))
+          throw new Error(detail.message || "You have used your 1 free AI website draft. Pay ₹99 to generate a new AI draft, or continue with your saved draft.")
+        }
+        const errMessage = typeof data.detail === 'string' ? data.detail : (data.detail?.message || `Genie could not draft your site (error ${res.status}). Your answers are saved; try again.`)
+        throw new Error(errMessage)
+      }
 
       const raw = isPlainObject(data.prefill) ? data.prefill : {}
       if (raw.brandName || raw.heroHeadline) {
@@ -411,9 +616,82 @@ function GenieIntakeWidget() {
   const handleStartOver = () => {
     if (typeof window !== 'undefined' && !window.confirm('Clear your answers and start again?')) return
     try { localStorage.removeItem(ANSWERS_STORAGE_KEY) } catch (_) { /* ignore */ }
-    setIntake(EMPTY_INTAKE)
+    setIntake(createEmptyIntake())
     setResult(null)
     setError(null)
+  }
+
+  const handlePayForAiCredit = async () => {
+    setPaying(true)
+    setError(null)
+    try {
+      const token = (typeof window !== 'undefined' && (localStorage.getItem('auth_token') || localStorage.getItem('token'))) || ''
+      if (!token) {
+        router.push('/login?redirect=/platform/ai-website-builder')
+        return
+      }
+
+      const res = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ gateway: 'razorpay', purpose: 'ai_credit' }),
+      })
+      const order = await res.json()
+      if (!res.ok) throw new Error(order.detail || 'Could not create payment order.')
+
+      const sdkLoaded = await loadRazorpay()
+      if (!sdkLoaded) throw new Error('Could not load payment gateway. Please check your internet connection.')
+
+      const rzp = new window.Razorpay({
+        key: order.razorpay_key_id,
+        amount: order.amount * 100,
+        currency: order.currency || 'INR',
+        name: 'Shukto AI',
+        description: 'New AI Website Generation (1 Credit)',
+        order_id: order.order_id,
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                gateway_order_id: response.razorpay_order_id,
+                gateway_payment_id: response.razorpay_payment_id,
+                gateway_signature: response.razorpay_signature,
+              }),
+            })
+            if (!verifyRes.ok) throw new Error('Payment verification failed.')
+            
+            // Refresh status
+            const statusRes = await fetch('/api/genie/status', { headers: { Authorization: `Bearer ${token}` } })
+            const updated = await statusRes.json()
+            setQuotaInfo(updated)
+            setError(null)
+            alert('Payment successful! You can now click "Draft my website" to generate your new AI draft.')
+          } catch (verErr) {
+            setError(verErr.message)
+          } finally {
+            setPaying(false)
+          }
+        },
+        modal: {
+          ondismiss: () => setPaying(false),
+        },
+      })
+      rzp.open()
+    } catch (err) {
+      setError(err.message)
+      setPaying(false)
+    }
+  }
+
+  const handleUseSavedDraft = () => {
+    if (!quotaInfo?.saved_draft) return
+    try {
+      sessionStorage.setItem(PREFILL_KEY, JSON.stringify(quotaInfo.saved_draft))
+      sessionStorage.setItem(CONFIRM_KEY, JSON.stringify([]))
+    } catch (_) {}
+    router.push('/setup-wizard')
   }
 
   if (result) {
@@ -428,162 +706,259 @@ function GenieIntakeWidget() {
   }
 
   return (
-    <form onSubmit={handleGenerate} className="bg-gray-50 rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm space-y-6">
-      {/* Progress */}
-      <div>
-        <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-          <span>{answeredCount} of {QUESTIONS.length} questions answered</span>
-          <span>{requiredQs.length} required</span>
-        </div>
-        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <div className="h-1.5 bg-primary-600 rounded-full transition-all" style={{ width: `${(answeredCount / QUESTIONS.length) * 100}%` }} />
-        </div>
-      </div>
+    <div className="relative">
+      {/* Floating fixed side nav */}
+      <SideNav
+        activeId={activeSection}
+        onNavigate={scrollToSection}
+        mobileOpen={mobileNavOpen}
+        onMobileToggle={() => setMobileNavOpen(o => !o)}
+        answeredKeys={answeredKeys}
+      />
 
-      {/* Basics */}
-      <fieldset className="space-y-3">
-        <legend className="text-sm font-semibold text-gray-900 mb-2">The basics</legend>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input className={inputCls} aria-label="Your name" placeholder="Your name" value={intake.basics.ownerName} onChange={e => update('basics.ownerName', e.target.value)} />
-          <input className={inputCls} aria-label="Business name" placeholder="Business name (if you have one)" value={intake.basics.brandName} onChange={e => update('basics.brandName', e.target.value)} />
-          <input className={inputCls} aria-label="Business email" type="email" placeholder="Business email" value={intake.basics.email} onChange={e => update('basics.email', e.target.value)} />
-          <input className={inputCls} aria-label="WhatsApp number" placeholder="WhatsApp number (optional)" value={intake.basics.whatsapp} onChange={e => update('basics.whatsapp', e.target.value)} />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <label className="text-xs text-gray-600">
-            You are a
-            <select className={`${inputCls} mt-1`} value={intake.start.businessType} onChange={e => update('start.businessType', e.target.value)}>
-              {BUSINESS_TYPES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-            </select>
-          </label>
-          <label className="text-xs text-gray-600">
-            Your clients are in
-            <select className={`${inputCls} mt-1`} value={intake.start.market} onChange={e => update('start.market', e.target.value)}>
-              <option value="india">India (₹)</option>
-              <option value="global">Outside India ($)</option>
-              <option value="both">Both (₹ and $)</option>
-            </select>
-          </label>
-          <label className="text-xs text-gray-600">
-            Website language
-            <select className={`${inputCls} mt-1`} value={intake.start.language} onChange={e => update('start.language', e.target.value)}>
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="bn">Bengali</option>
-              <option value="en-hi">English + Hindi</option>
-            </select>
-          </label>
-        </div>
-      </fieldset>
+      {/* Main form */}
+      <form onSubmit={handleGenerate} className="space-y-6">
+        {/* Quota Banner */}
+        {quotaInfo?.has_saved_draft && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+            <div>
+              <p className="font-semibold text-blue-950">You have a saved AI website draft.</p>
+              <p className="text-xs text-blue-800 mt-0.5">
+                Editing your saved draft in the wizard is 100% free. Generating a brand-new AI draft is ₹99.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleUseSavedDraft}
+              className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-sm"
+            >
+              Continue with saved draft &rarr;
+            </button>
+          </div>
+        )}
 
-      {/* Questions */}
-      <ol className="space-y-5">
-        {QUESTIONS.map((q, i) => {
-          const value = intake.answers[q.key]
-          const tooShort = value.trim() && q.minLength && value.trim().length < q.minLength
-          return (
-            <li key={q.key} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-              <label htmlFor={`q-${q.key}`} className="block">
-                <span className="flex items-start gap-2.5">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
-                  <span className="text-sm font-semibold text-gray-900 leading-snug">
-                    {q.title}
-                    {q.required ? <span className="text-red-500 ml-0.5">*</span> : <span className="ml-1.5 text-xs font-normal text-gray-400">optional</span>}
-                  </span>
-                </span>
-                <span className="block text-xs text-gray-500 mt-1 ml-8">{q.help}</span>
-              </label>
-              <textarea
-                id={`q-${q.key}`}
-                rows={3}
-                value={value}
-                onChange={e => update(`answers.${q.key}`, e.target.value)}
-                placeholder={q.placeholder}
-                className={`${inputCls} resize-y`}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="text-gray-400">Helps Genie fill: {q.fills}</span>
-                {tooShort && <span className="text-amber-700">A little more detail will give a better draft</span>}
-              </div>
-            </li>
-          )
-        })}
+        {/* Progress */}
+        <div>
+          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+            <span>{answeredCount} of {QUESTIONS.length} questions answered</span>
+            <span>{requiredQs.length} required</span>
+          </div>
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-primary-600 rounded-full transition-all" style={{ width: `${(answeredCount / QUESTIONS.length) * 100}%` }} />
+          </div>
+        </div>
 
-        {/* Links & pasted material */}
-        <li className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowExtras(s => !s)}
-            aria-expanded={showExtras || !!hasExtras}
-            className="w-full flex items-start gap-2.5 p-4 text-left hover:bg-gray-50"
-          >
-            <span className="shrink-0 w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">{QUESTIONS.length + 1}</span>
-            <span className="flex-1">
-              <span className="block text-sm font-semibold text-gray-900">
-                Share links or paste anything you already have <span className="ml-1 text-xs font-normal text-gray-400">optional, but fills the most</span>
-              </span>
-              <span className="block text-xs text-gray-500 mt-1">Your website or LinkedIn, a price list, client reviews, FAQs, a past proposal.</span>
-            </span>
-            {showExtras || hasExtras ? <ChevronUp className="w-4 h-4 text-gray-400 mt-1" /> : <ChevronDown className="w-4 h-4 text-gray-400 mt-1" />}
-          </button>
-          {(showExtras || hasExtras) && (
-            <div className="px-4 pb-4 space-y-3 border-t border-gray-100 pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  ['website', 'Current website'],
-                  ['linkedin', 'LinkedIn profile'],
-                  ['instagram', 'Instagram'],
-                  ['other', 'Any other link (Google reviews, portfolio)'],
-                ].map(([key, label]) => (
-                  <div key={key} className="relative">
-                    <Link2 className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
-                    <input type="url" aria-label={label} placeholder={label} value={intake.links[key]} onChange={e => update(`links.${key}`, e.target.value)} className={`${inputCls} pl-9`} />
+        {/* Basics */}
+        <fieldset id="section-basics" className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4 scroll-mt-28">
+          <legend className="w-full text-sm font-semibold text-gray-900 pb-3 mb-1 border-b border-gray-100 flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center"><User className="w-3.5 h-3.5 text-primary-600" /></span>
+            The basics
+            <span className="ml-auto text-[10px] font-medium text-gray-400">Used on your website</span>
+          </legend>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input className={inputCls} aria-label="Your name" placeholder="Your name" value={intake.basics.ownerName} onChange={e => update('basics.ownerName', e.target.value)} />
+            <input className={inputCls} aria-label="Business name" placeholder="Business name (if you have one)" value={intake.basics.brandName} onChange={e => update('basics.brandName', e.target.value)} />
+            <input className={inputCls} aria-label="Business email" type="email" placeholder="Business email" value={intake.basics.email} onChange={e => update('basics.email', e.target.value)} />
+            <input className={inputCls} aria-label="WhatsApp number" placeholder="WhatsApp number (optional)" value={intake.basics.whatsapp} onChange={e => update('basics.whatsapp', e.target.value)} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="text-xs text-gray-600">
+              You are a
+              <select className={`${inputCls} mt-1`} value={intake.start.businessType} onChange={e => update('start.businessType', e.target.value)}>
+                {BUSINESS_TYPES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+              </select>
+            </label>
+            <label className="text-xs text-gray-600">
+              Your clients are in
+              <select className={`${inputCls} mt-1`} value={intake.start.market} onChange={e => update('start.market', e.target.value)}>
+                <option value="india">India (₹)</option>
+                <option value="global">Outside India ($)</option>
+                <option value="both">Both (₹ and $)</option>
+              </select>
+            </label>
+            <label className="text-xs text-gray-600">
+              Website language
+              <select className={`${inputCls} mt-1`} value={intake.start.language} onChange={e => update('start.language', e.target.value)}>
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="bn">Bengali</option>
+                <option value="en-hi">English + Hindi</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+        {/* Questions */}
+        <ol className="space-y-4">
+          {QUESTIONS.map((q, i) => {
+            const value = intake.answers?.[q.key] || ''
+            const tooShort = value.trim() && q.minLength && value.trim().length < q.minLength
+            const answered = value.trim().length > 0
+            return (
+              <li
+                key={q.key}
+                id={`section-q-${q.key}`}
+                className={`bg-white rounded-2xl border p-5 space-y-3 scroll-mt-28 transition-shadow ${answered ? 'border-green-200 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+              >
+                {/* Question header */}
+                <label htmlFor={`q-${q.key}`} className="block cursor-pointer">
+                  <div className="flex items-start gap-3">
+                    <span className={`shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center mt-0.5 transition-colors ${answered ? 'bg-green-500' : 'bg-primary-600'}`}>
+                      {answered ? '✓' : i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">
+                        {q.title}
+                        {q.required
+                          ? <span className="ml-1.5 text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full align-middle">required</span>
+                          : <span className="ml-1.5 text-[10px] font-medium text-gray-400 align-middle">optional</span>}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">{q.help}</p>
+                    </div>
+                    {answered && <span className="shrink-0 text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full mt-1">Done</span>}
                   </div>
-                ))}
-              </div>
-              <div>
-                <label htmlFor="pasted" className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-1">
-                  <ClipboardList className="w-3.5 h-3.5" />Paste text
                 </label>
                 <textarea
-                  id="pasted"
-                  rows={6}
-                  value={intake.pastedMaterial}
-                  onChange={e => update('pastedMaterial', e.target.value)}
-                  placeholder={'Price list, brochure text, client reviews (with names), your FAQs, refund policy…\n\nTestimonials are only used if they appear here, word for word.'}
+                  id={`q-${q.key}`}
+                  rows={3}
+                  value={value}
+                  onChange={e => update(`answers.${q.key}`, e.target.value)}
+                  placeholder={q.placeholder}
                   className={`${inputCls} resize-y`}
                 />
+                {Array.isArray(q.suggestions) && q.suggestions.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
+                      <span>💡</span> Quick suggestions — click to add:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {q.suggestions.map((sugg, sIdx) => (
+                        <button
+                          key={sIdx}
+                          type="button"
+                          onClick={() => {
+                            const current = (intake.answers?.[q.key] || '').trim()
+                            const updated = current ? `${current} ${sugg}` : sugg
+                            update(`answers.${q.key}`, updated)
+                          }}
+                          className="text-xs bg-gray-50 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 border border-gray-200 text-gray-600 rounded-lg px-2.5 py-1.5 text-left transition-colors"
+                        >
+                          + {sugg}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1 border-t border-gray-100">
+                  <span className="text-gray-400 flex items-center gap-1">
+                    <span className="text-gray-300">→</span> Fills: {q.fills}
+                  </span>
+                  {tooShort && <span className="text-amber-600 font-medium">A little more detail will give a better draft</span>}
+                </div>
+              </li>
+            )
+          })}
+
+          {/* Links & pasted material */}
+          <li id="section-extras" className="bg-white rounded-xl border border-gray-200 overflow-hidden scroll-mt-28">
+            <button
+              type="button"
+              onClick={() => setShowExtras(s => !s)}
+              aria-expanded={showExtras || !!hasExtras}
+              className="w-full flex items-start gap-2.5 p-4 text-left hover:bg-gray-50"
+            >
+              <span className="shrink-0 w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">{QUESTIONS.length + 1}</span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold text-gray-900">
+                  Share links or paste anything you already have <span className="ml-1 text-xs font-normal text-gray-400">optional, but fills the most</span>
+                </span>
+                <span className="block text-xs text-gray-500 mt-1">Your website or LinkedIn, a price list, client reviews, FAQs, a past proposal.</span>
+              </span>
+              {showExtras || hasExtras ? <ChevronUp className="w-4 h-4 text-gray-400 mt-1" /> : <ChevronDown className="w-4 h-4 text-gray-400 mt-1" />}
+            </button>
+            {(showExtras || hasExtras) && (
+              <div className="px-4 pb-4 space-y-3 border-t border-gray-100 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    ['website', 'Current website'],
+                    ['linkedin', 'LinkedIn profile'],
+                    ['instagram', 'Instagram'],
+                    ['other', 'Any other link (Google reviews, portfolio)'],
+                  ].map(([key, label]) => (
+                    <div key={key} className="relative">
+                      <Link2 className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                      <input type="url" aria-label={label} placeholder={label} value={intake.links?.[key] || ''} onChange={e => update(`links.${key}`, e.target.value)} className={`${inputCls} pl-9`} />
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <label htmlFor="pasted" className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-1">
+                    <ClipboardList className="w-3.5 h-3.5" />Paste text
+                  </label>
+                  <textarea
+                    id="pasted"
+                    rows={6}
+                    value={intake.pastedMaterial || ''}
+                    onChange={e => update('pastedMaterial', e.target.value)}
+                    placeholder={'Price list, brochure text, client reviews (with names), your FAQs, refund policy…\n\nTestimonials are only used if they appear here, word for word.'}
+                    className={`${inputCls} resize-y`}
+                  />
+                </div>
               </div>
+            )}
+          </li>
+        </ol>
+
+        {error && (
+          <div className="flex flex-col gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm" role="alert">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-amber-700" />
+              <span className="font-medium">{error}</span>
             </div>
-          )}
-        </li>
-      </ol>
-
-      {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm" role="alert">
-          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2 border-t border-gray-200">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="inline-flex items-center justify-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Genie is drafting your site…</>
-            : <><Wand2 className="w-4 h-4 mr-2" />Draft my website</>}
-        </button>
-        {missingRequired.length > 0 && (
-          <p className="text-xs text-gray-500">Answer question{missingRequired.length > 1 ? 's' : ''} {missingRequired.map(q => QUESTIONS.indexOf(q) + 1).join(', ')} to continue.</p>
+            {quotaInfo && !quotaInfo.free_generation_available && quotaInfo.credits === 0 && (
+              <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-amber-200">
+                <button
+                  type="button"
+                  onClick={handlePayForAiCredit}
+                  disabled={paying}
+                  className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs rounded-lg shadow-sm"
+                >
+                  {paying ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                  Get 1 New AI Draft for ₹99
+                </button>
+                {quotaInfo.has_saved_draft && (
+                  <button
+                    type="button"
+                    onClick={handleUseSavedDraft}
+                    className="inline-flex items-center px-3.5 py-2 bg-white border border-gray-300 text-gray-700 font-medium text-xs rounded-lg hover:bg-gray-50"
+                  >
+                    Continue with previous draft (Free)
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
-        <button type="button" onClick={handleStartOver} className="sm:ml-auto inline-flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-red-600">
-          <RotateCcw className="w-3.5 h-3.5" />Clear answers
-        </button>
-      </div>
-    </form>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2 border-t border-gray-200">
+          <button
+            type="submit"
+            disabled={!canSubmit || paying}
+            className="inline-flex items-center justify-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Genie is drafting your site…</>
+              : <><Wand2 className="w-4 h-4 mr-2" />Draft my website</>}
+          </button>
+          {missingRequired.length > 0 && (
+            <p className="text-xs text-gray-500">Answer question{missingRequired.length > 1 ? 's' : ''} {missingRequired.map(q => QUESTIONS.indexOf(q) + 1).join(', ')} to continue.</p>
+          )}
+          <button type="button" onClick={handleStartOver} className="sm:ml-auto inline-flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-red-600">
+            <RotateCcw className="w-3.5 h-3.5" />Clear answers
+          </button>
+        </div>
+      </form>
+    </div>
   )
 }
 
@@ -779,33 +1154,54 @@ function ReviewPanel({ result, onOpenWizard, onEdit, onStartOver }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function AIWebsiteBuilderPage() {
+  const router = useRouter()
+  const [authChecked, setAuthChecked] = useState(false)
+
+  useEffect(() => {
+    const token =
+      localStorage.getItem('auth_token') ||
+      localStorage.getItem('token') ||
+      document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
+    if (!token) {
+      router.replace('/login?redirect=/platform/ai-website-builder')
+    } else {
+      setAuthChecked(true)
+    }
+  }, [router])
+
   const siteConfig = useSiteConfig()
   const feature = (siteConfig.features || []).find(f => f.title === 'AI Website Builder') || {}
 
+  if (!authChecked) return null
+
   return (
-    <div className="min-h-screen bg-white pt-20">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center px-4 py-2 bg-primary-50 border border-primary-100 rounded-full text-sm font-medium mb-6 text-primary-700">
-            <Sparkles className="w-4 h-4 mr-2" />
-            {feature.status || 'Available'}
+    <div className="min-h-screen bg-gray-50 pt-20">
+      {/* Content area — on desktop, left edge starts after the 240px fixed sidebar */}
+      <div className="lg:pl-60 min-h-[calc(100vh-5rem)]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          {/* Page header */}
+          <div className="mb-8">
+            <div className="inline-flex items-center px-3 py-1.5 bg-primary-50 border border-primary-100 rounded-full text-xs font-medium mb-4 text-primary-700">
+              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+              {feature.status || 'Available'}
+            </div>
+            <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 leading-tight">
+              {feature.title || 'AI Website Builder'}
+            </h1>
+            <p className="text-base text-gray-600 max-w-xl leading-relaxed">
+              Answer a few questions about your business. Genie drafts your positioning, offers and pages, and you confirm the details before anything goes live.
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Takes about 10 minutes. Keep your price list and LinkedIn link handy.
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 leading-tight">
-            {feature.title || 'AI Website Builder'}
-          </h1>
-          <p className="text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
-            Answer a few questions about your business. Genie drafts your positioning, offers and pages, and you confirm the details before anything goes live.
-          </p>
-          <p className="text-sm text-gray-500 mt-4">
-            Takes about 10 minutes. Keep your price list and LinkedIn link handy.
+
+          <GenieIntakeWidget />
+
+          <p className="text-center text-xs text-gray-400 mt-6 pb-8">
+            Your answers are saved on this device as you type. Genie never invents prices, numbers or testimonials.
           </p>
         </div>
-
-        <GenieIntakeWidget />
-
-        <p className="text-center text-xs text-gray-500 mt-6">
-          Your answers are saved on this device as you type. Genie never invents prices, numbers or testimonials.
-        </p>
       </div>
     </div>
   )
