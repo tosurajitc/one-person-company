@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FcGoogle } from "react-icons/fc";
-import { FaLinkedin, FaMicrosoft, FaGithub } from "react-icons/fa"; 
+import { FaLinkedin, FaFacebook, FaGithub } from "react-icons/fa";
 
 import { 
   LogIn, Brain, Target, ArrowRight, Play, Eye, EyeOff,
@@ -168,29 +168,33 @@ function LoginForm() {
   
   // OAuth providers with updated styling
   const socialLogins = [
-    { 
-      name: 'Google', 
-      icon: FcGoogle, 
+    {
+      name: 'Google',
+      icon: FcGoogle,
       color: 'hover:bg-red-50 border-gray-300 hover:border-red-300',
-      provider: 'google'
+      provider: 'google',
+      iconColor: undefined  // FcGoogle has built-in colors
     },
-    { 
-      name: 'LinkedIn', 
-      icon: FaLinkedin, 
-      color: 'hover:bg-blue-50 border-gray-300 hover:border-blue-300',
-      provider: 'linkedin'
+    {
+      name: 'LinkedIn',
+      icon: FaLinkedin,
+      color: 'hover:bg-blue-50 border-gray-300 hover:border-blue-600',
+      provider: 'linkedin',
+      iconColor: '#0A66C2'  // LinkedIn brand blue
     },
-    { 
-      name: 'Microsoft', 
-      icon: FaMicrosoft, 
-      color: 'hover:bg-blue-50 border-gray-300 hover:border-blue-300',
-      provider: 'microsoft'
+    {
+      name: 'Facebook',
+      icon: FaFacebook,
+      color: 'hover:bg-blue-50 border-gray-300 hover:border-blue-500',
+      provider: 'facebook',
+      iconColor: '#1877F2'  // Facebook brand blue
     },
-    { 
-      name: 'Github', 
-      icon: FaGithub, 
-      color: 'hover:bg-gray-50 border-gray-300 hover:border-gray-400',
-      provider: 'github'
+    {
+      name: 'Github',
+      icon: FaGithub,
+      color: 'hover:bg-gray-50 border-gray-300 hover:border-gray-800',
+      provider: 'github',
+      iconColor: '#181717'  // GitHub brand black
     },
   ]
 
@@ -203,6 +207,7 @@ function LoginForm() {
       // Generate state parameter for security
       const state = generateRandomString(32)
       localStorage.setItem('oauth_state', state)
+      localStorage.setItem('oauth_provider', provider)
       
       // Construct OAuth URL
       const oauthUrl = await getOAuthUrl(provider, state)
@@ -326,9 +331,10 @@ function LoginForm() {
         window.dispatchEvent(new Event('authchange'))
       }
 
-      // Redirect: admins go to /admin, everyone else to /dashboard
+      // Redirect: honour ?next= or ?redirect= (both are used by different pages)
       const role = data.user?.role ?? ''
-      const next = new URLSearchParams(window.location.search).get('next')
+      const params = new URLSearchParams(window.location.search)
+      const next = params.get('next') || params.get('redirect')
       router.push(next || (role === 'admin' || role === 'super_admin' ? '/admin' : '/dashboard'))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -356,8 +362,9 @@ function LoginForm() {
     }
 
     if (success) {
-      // Redirect to dashboard on successful login
-      router.push('/dashboard')
+      // Honour ?next= or ?redirect= if present, otherwise go to dashboard
+      const next = urlParams.get('next') || urlParams.get('redirect')
+      router.push(next || '/dashboard')
     }
   }, [router])
   
@@ -493,7 +500,7 @@ function LoginForm() {
                   {isProviderLoading ? (
                     <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin mr-3" />
                   ) : (
-                    <IconComponent className="w-5 h-5 mr-3" />
+                    <IconComponent className="w-5 h-5 mr-3" style={social.iconColor ? { color: social.iconColor } : undefined} />
                   )}
                   <span>
                     {isProviderLoading ? 'Connecting...' : `Continue with ${social.name}`}

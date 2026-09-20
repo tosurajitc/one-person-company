@@ -421,21 +421,43 @@ async def update_settings(
 _V2_KEYS = frozenset({
     "start", "identity", "positioning", "offers", "proof",
     "frontDoor", "knowledge", "brand", "agents", "payments", "channels", "site",
+    "template", "template_data",
 })
 
 
 def _upsert_user_setting(db: Session, user_id: int, key: str, value: Any, schema_version: str = "1.0") -> None:
-    """Insert or update a single user_site_settings row."""
+    """Insert or update a single user_site_settings row.
+
+    When key == 'template', also writes the denormalised template_slug and
+    template_section columns (added in migration g2h3i4j5k6l7) so the
+    backend can query template selection without parsing the JSONB value.
+    The writes are wrapped in a hasattr guard so a missing column never
+    breaks saves for any other key (defensive against unapplied migrations).
+    """
     row = (
         db.query(UserSiteSettings)
         .filter(UserSiteSettings.user_id == user_id, UserSiteSettings.key == key)
         .first()
     )
+
     if row:
         row.value = value
         row.schema_version = schema_version
+        # Denormalised columns — only set when key == 'template' and columns exist
+        if key == "template" and isinstance(value, dict) and hasattr(UserSiteSettings, "template_slug"):
+            row.template_slug    = value.get("slug")
+            row.template_section = value.get("sectionId")
     else:
-        db.add(UserSiteSettings(user_id=user_id, key=key, value=value, schema_version=schema_version))
+        kwargs: Dict[str, Any] = dict(
+            user_id=user_id,
+            key=key,
+            value=value,
+            schema_version=schema_version,
+        )
+        if key == "template" and isinstance(value, dict) and hasattr(UserSiteSettings, "template_slug"):
+            kwargs["template_slug"]    = value.get("slug")
+            kwargs["template_section"] = value.get("sectionId")
+        db.add(UserSiteSettings(**kwargs))
 
 
 @router.post("/setup", status_code=status.HTTP_200_OK)

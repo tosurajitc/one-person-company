@@ -23,7 +23,7 @@ class OAuthClient:
         
         token_urls = {
             "google": "https://oauth2.googleapis.com/token",
-            "microsoft": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            "facebook": "https://graph.facebook.com/v18.0/oauth/access_token",
             "github": "https://github.com/login/oauth/access_token",
             "linkedin": "https://www.linkedin.com/oauth/v2/accessToken"
         }
@@ -63,9 +63,9 @@ class OAuthClient:
         
         user_info_urls = {
             "google": "https://www.googleapis.com/oauth2/v2/userinfo",
-            "microsoft": "https://graph.microsoft.com/v1.0/me",
+            "facebook": "https://graph.facebook.com/me?fields=id,name,email,first_name,last_name,picture",
             "github": "https://api.github.com/user",
-            "linkedin": "https://api.linkedin.com/v2/people/~"
+            "linkedin": "https://api.linkedin.com/v2/userinfo"
         }
         
         if provider not in user_info_urls:
@@ -82,9 +82,9 @@ class OAuthClient:
             if response.status_code == 200:
                 user_data = response.json()
                 
-                # Handle LinkedIn email separately
-                if provider == "linkedin":
-                    email_data = await self._get_linkedin_email(access_token)
+                # GitHub users with private emails won't have email on /user
+                if provider == "github" and not user_data.get("email"):
+                    email_data = await self._get_github_email(access_token)
                     if email_data:
                         user_data["email"] = email_data
                 
@@ -112,6 +112,32 @@ class OAuthClient:
         except Exception:
             return None
     
+    async def _get_github_email(self, access_token: str) -> Optional[str]:
+        """Get primary verified email from GitHub (separate API call for private-email users)"""
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+        }
+        try:
+            response = await self.client.get(
+                "https://api.github.com/user/emails",
+                headers=headers
+            )
+            if response.status_code == 200:
+                emails = response.json()
+                # Prefer primary+verified, fall back to any verified, then any
+                primary = next((e["email"] for e in emails if e.get("primary") and e.get("verified")), None)
+                if primary:
+                    return primary
+                verified = next((e["email"] for e in emails if e.get("verified")), None)
+                if verified:
+                    return verified
+                if emails:
+                    return emails[0].get("email")
+            return None
+        except Exception:
+            return None
+
     def _normalize_user_data(self, provider: str, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize user data from different providers to common format"""
         
@@ -126,15 +152,15 @@ class OAuthClient:
                 "verified_email": raw_data.get("verified_email", True)
             }
         
-        elif provider == "microsoft":
+        elif provider == "facebook":
             return {
-                "id": raw_data.get("id"),
-                "email": raw_data.get("mail") or raw_data.get("userPrincipalName"),
-                "name": raw_data.get("displayName"),
-                "first_name": raw_data.get("givenName"),
-                "last_name": raw_data.get("surname"),
-                "avatar_url": None,  # Microsoft Graph requires separate call for photo
-                "verified_email": True
+                "id": str(raw_data.get("id")),
+                "email": raw_data.get("email"),
+                "name": raw_data.get("name"),
+                "first_name": raw_data.get("first_name", ""),
+                "last_name": raw_data.get("last_name", ""),
+                "avatar_url": raw_data.get("picture", {}).get("data", {}).get("url"),
+                "verified_email": True  # Facebook only returns verified emails
             }
         
         elif provider == "github":
@@ -149,27 +175,15 @@ class OAuthClient:
             }
         
         elif provider == "linkedin":
-            first_name = ""
-            last_name = ""
-            
-            if "localizedFirstName" in raw_data:
-                first_name = raw_data["localizedFirstName"]
-            elif "firstName" in raw_data and "localized" in raw_data["firstName"]:
-                first_name = list(raw_data["firstName"]["localized"].values())[0]
-            
-            if "localizedLastName" in raw_data:
-                last_name = raw_data["localizedLastName"]
-            elif "lastName" in raw_data and "localized" in raw_data["lastName"]:
-                last_name = list(raw_data["lastName"]["localized"].values())[0]
-            
+            # OpenID Connect /v2/userinfo returns: sub, email, name, given_name, family_name, picture
             return {
-                "id": raw_data.get("id"),
-                "email": raw_data.get("email"),  # This comes from separate API call
-                "name": f"{first_name} {last_name}".strip(),
-                "first_name": first_name,
-                "last_name": last_name,
-                "avatar_url": None,  # LinkedIn profile pictures require separate API call
-                "verified_email": True
+                "id": raw_data.get("sub"),
+                "email": raw_data.get("email"),
+                "name": raw_data.get("name"),
+                "first_name": raw_data.get("given_name", ""),
+                "last_name": raw_data.get("family_name", ""),
+                "avatar_url": raw_data.get("picture"),
+                "verified_email": raw_data.get("email_verified", True)
             }
         
         return {}
@@ -190,9 +204,9 @@ class OAuthConfig:
                 getattr(settings, 'GOOGLE_CLIENT_ID', None),
                 getattr(settings, 'GOOGLE_CLIENT_SECRET', None)
             ),
-            "microsoft": (
-                getattr(settings, 'MICROSOFT_CLIENT_ID', None),
-                getattr(settings, 'MICROSOFT_CLIENT_SECRET', None)
+            "facebook": (
+                getattr(settings, 'FACEBOOK_CLIENT_ID', None),
+                getattr(settings, 'FACEBOOK_CLIENT_SECRET', None)
             ),
             "github": (
                 getattr(settings, 'GITHUB_CLIENT_ID', None),
@@ -216,7 +230,7 @@ class OAuthConfig:
     def get_configured_providers() -> list[str]:
         """Get list of configured OAuth providers"""
         providers = []
-        for provider in ["google", "microsoft", "github", "linkedin"]:
+        for provider in ["google", "facebook", "github", "linkedin"]:
             if OAuthConfig.is_provider_configured(provider):
                 providers.append(provider)
         return providers

@@ -78,11 +78,11 @@ class OAuthService:
             "user_info_url": "https://www.googleapis.com/oauth2/v2/userinfo",
             "scopes": ["openid", "email", "profile"]
         },
-        "microsoft": {
-            "authorize_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-            "token_url": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-            "user_info_url": "https://graph.microsoft.com/v1.0/me",
-            "scopes": ["openid", "profile", "email"]
+        "facebook": {
+            "authorize_url": "https://www.facebook.com/v18.0/dialog/oauth",
+            "token_url": "https://graph.facebook.com/v18.0/oauth/access_token",
+            "user_info_url": "https://graph.facebook.com/me",
+            "scopes": ["email", "public_profile"]
         },
         "github": {
             "authorize_url": "https://github.com/login/oauth/authorize",
@@ -93,8 +93,8 @@ class OAuthService:
         "linkedin": {
             "authorize_url": "https://www.linkedin.com/oauth/v2/authorization",
             "token_url": "https://www.linkedin.com/oauth/v2/accessToken",
-            "user_info_url": "https://api.linkedin.com/v2/people/~",
-            "scopes": ["r_liteprofile", "r_emailaddress"]
+            "user_info_url": "https://api.linkedin.com/v2/userinfo",
+            "scopes": ["openid", "profile", "email"]
         }
     }
     
@@ -117,9 +117,9 @@ class OAuthService:
             "response_type": "code",
             "state": state
         }
-        
-        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
-        return f"{config['authorize_url']}?{query_string}"
+
+        from urllib.parse import urlencode
+        return f"{config['authorize_url']}?{urlencode(params)}"
     
     @staticmethod
     def generate_state_token() -> str:

@@ -14,38 +14,10 @@ import AdminShell from '../../../components/AdminShell'
 // User Stats Cards Component
 function UserStatsCards() {
   const stats = [
-    {
-      title: 'Total Users',
-      value: '15,847',
-      change: '+12.5%',
-      changeType: 'increase',
-      icon: Users,
-      color: 'from-blue-500 to-blue-600'
-    },
-    {
-      title: 'Active This Week',
-      value: '8,234',
-      change: '+8.2%',
-      changeType: 'increase',
-      icon: UserCheck,
-      color: 'from-green-500 to-green-600'
-    },
-    {
-      title: 'New Registrations',
-      value: '143',
-      change: '+23.1%',
-      changeType: 'increase',
-      icon: Plus,
-      color: 'from-purple-500 to-purple-600'
-    },
-    {
-      title: 'Suspended Accounts',
-      value: '47',
-      change: '-15.3%',
-      changeType: 'decrease',
-      icon: Ban,
-      color: 'from-red-500 to-red-600'
-    }
+    { title: 'Total Users',          value: '15,847', change: '+12.5%', changeType: 'increase', icon: Users,     iconBg: 'bg-primary-50', iconColor: 'text-primary-600', border: 'border-primary-100' },
+    { title: 'Active This Week',     value: '8,234',  change: '+8.2%',  changeType: 'increase', icon: UserCheck, iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    border: 'border-blue-100'    },
+    { title: 'New Registrations',    value: '143',    change: '+23.1%', changeType: 'increase', icon: Plus,      iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-500',  border: 'border-indigo-100'  },
+    { title: 'Suspended Accounts',   value: '47',     change: '-15.3%', changeType: 'decrease', icon: Ban,       iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',     border: 'border-sky-100'     },
   ]
 
   return (
@@ -59,16 +31,14 @@ function UserStatsCards() {
                 <p className="text-gray-500 text-sm font-medium">{stat.title}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                 <div className="flex items-center mt-2">
-                  <span className={`text-sm font-medium ${
-                    stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                  }`}>
+                  <span className={`text-sm font-medium ${stat.changeType === 'increase' ? 'text-primary-500' : 'text-red-500'}`}>
                     {stat.change}
                   </span>
                   <span className="text-gray-400 text-sm ml-1">vs last month</span>
                 </div>
               </div>
-              <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
-                <Icon className="w-6 h-6 text-white" />
+              <div className={`w-12 h-12 ${stat.iconBg} border ${stat.border} rounded-xl flex items-center justify-center`}>
+                <Icon className={`w-6 h-6 ${stat.iconColor}`} />
               </div>
             </div>
           </div>

@@ -197,8 +197,17 @@ async def create_order(
         currency = price_table[key]["currency"]
         plan_tier = PlanTier(body.plan)
         billing_cycle = BillingCycle(cycle)
+
+    elif body.purpose == "ai_credit":
+        # Fixed price: Rs. 99 (or $2.00 USD) for 1 AI website builder regeneration
+        if gateway == "razorpay":
+            amount_minor = 9900   # 99.00 INR (paise)
+            currency = "INR"
+        else:
+            amount_minor = 200    # $2.00 USD (cents)
+            currency = "usd"
     else:
-        raise HTTPException(status_code=400, detail="purpose must be 'offer' or 'subscription'")
+        raise HTTPException(status_code=400, detail="purpose must be 'offer', 'subscription', or 'ai_credit'")
 
     # ---- Create gateway order ---------------------------------------------
     gateway_order_id: str
@@ -309,6 +318,9 @@ async def verify_razorpay_payment(
     # If this was a subscription purchase, upsert UserSubscription
     if payment.purpose == PaymentPurpose.SUBSCRIPTION:
         _upsert_subscription(user.id, payment, db)
+    elif payment.purpose == PaymentPurpose.AI_CREDIT:
+        user.ai_generation_credits = (user.ai_generation_credits or 0) + 1
+        db.add(user)
 
     db.commit()
     return {"success": True, "payment_id": payment.id}

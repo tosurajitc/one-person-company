@@ -12,7 +12,7 @@ class UserRole(str, enum.Enum):
 
 class OAuthProvider(str, enum.Enum):
     GOOGLE = "google"
-    MICROSOFT = "microsoft"
+    FACEBOOK = "facebook"
     GITHUB = "github"
     LINKEDIN = "linkedin"
 
@@ -45,6 +45,10 @@ class User(Base):
     # Additional fields for user management
     last_login = Column(DateTime(timezone=True), nullable=True)
     email_verified = Column(Boolean, default=True, nullable=False)  # OAuth emails are pre-verified
+
+    # AI Website Builder token/generation tracking
+    ai_generations_count = Column(Integer, default=0, nullable=False)
+    ai_generation_credits = Column(Integer, default=0, nullable=False)
     
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', role='{self.role.value}')>"
@@ -70,5 +74,7 @@ class User(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "last_login": self.last_login.isoformat() if self.last_login else None,
-            "email_verified": self.email_verified
+            "email_verified": self.email_verified,
+            "ai_generations_count": self.ai_generations_count or 0,
+            "ai_generation_credits": self.ai_generation_credits or 0,
         }

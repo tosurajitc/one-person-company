@@ -251,10 +251,17 @@ async def chat(
 # Prefill helpers
 # ---------------------------------------------------------------------------
 # Strategy: send the exact JSON skeleton as the prompt — model fills empty strings only.
-# groq/compound-mini: reliable, no OTPM limit issues, parallel calls ≈ 8-10s total.
 # Two skeletons fired in parallel via asyncio.gather → latency = max(A, B).
 
-PREFILL_MODEL = "groq/compound-mini"
+# Default to a robust fallback list if the environment model fails or is scoped
+FALLBACK_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "llama3-70b-8192",
+    "llama3-8b-8192",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
+]
 
 # ---------------------------------------------------------------------------
 # Schema 2.0 prefill instruction + skeletons
@@ -271,6 +278,9 @@ _PREFILL_INSTRUCTION = (
 )
 
 # Skeleton A — identity, positioning, proof, frontDoor, knowledge, brand, channels
+# NOTE: introVideo is intentionally left with empty strings — the LLM must NOT generate
+# URLs. Programmatic defaults (wizard-schema.js / applyProgrammaticDefaults) fill it.
+# FAQs: provide the array so the LLM fills it; backend will guarantee non-empty via defaults.
 _SKELETON_A = (
     '{"identity":{"brandName":"","tagline":"","city":"","country":"","timezone":"Asia/Kolkata",'
     '"ownerName":"","ownerRole":"","email":"","whatsapp":"","photoUrl":"","logoUrl":""},'
@@ -287,7 +297,9 @@ _SKELETON_A = (
     '"formQuestions":["What does your business do?","What problem do you want solved?","When do you need it done?"]},'
     '"knowledge":{"process":[{"title":"Short call","detail":""},{"title":"Fixed proposal","detail":""},'
     '{"title":"Delivery","detail":""},{"title":"Walkthrough","detail":""}],'
-    '"included":[""],"notIncluded":[""],"refundPolicy":"","toolsUsed":"","faqs":[]},'
+    '"included":[""],"notIncluded":[""],"refundPolicy":"","toolsUsed":"",'
+    '"faqs":[{"question":"","answer":""},{"question":"","answer":""},{"question":"","answer":""}],'
+    '"introVideo":{"url":"","title":""}},'
     '"brand":{"style":"minimal","tone":"plain","primaryColor":"#2563eb","referenceSite":"","avoidWords":""},'
     '"channels":{"social":{"linkedin":"","instagram":"","facebook":"","youtube":"","x":"","googleBusiness":""},'
     '"mainPlatform":"linkedin","cadence":"weekly","newsletter":false,'
@@ -319,11 +331,15 @@ def _normalise_json(raw: str) -> dict:
     """Strip fences, fix unicode punctuation, collapse to minified JSON, parse."""
     import json as _json, re as _re
     raw = raw.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
+    if "```" in raw:
+        match = _re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw)
+        if match:
+            raw = match.group(1).strip()
+        else:
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
     for src, dst in [('\u2011','-'),('\u2013','-'),('\u2014','-'),
                      ('\u2018',"'"),('\u2019',"'"),('\u201c','"'),('\u201d','"')]:
         raw = raw.replace(src, dst)
@@ -332,42 +348,119 @@ def _normalise_json(raw: str) -> dict:
         return _json.loads(raw)
     except _json.JSONDecodeError:
         pass
-    # Collapse pretty-printed then retry
+    # Try extracting outermost JSON object `{ ... }` if LLM added explanatory conversational text
+    json_match = _re.search(r"\{[\s\S]*\}", raw)
+    if json_match:
+        try:
+            return _json.loads(json_match.group(0))
+        except _json.JSONDecodeError:
+            pass
+    # Collapse whitespace / trailing newlines then retry
     collapsed = _re.sub(r'\s+', ' ', raw)
+    json_match2 = _re.search(r"\{[\s\S]*\}", collapsed)
+    if json_match2:
+        return _json.loads(json_match2.group(0))
     return _json.loads(collapsed)
+
+
+async def _call_claude_prefill_async(description: str) -> dict:
+    """Fallback prefill using Anthropic Claude (e.g. claude-3-5-haiku-20241022 or claude-3-haiku-20240307)."""
+    import anthropic
+    import asyncio as _asyncio
+
+    aclient = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+    haiku_model = getattr(settings, "ANTHROPIC_HAIKU_MODEL", None) or "claude-3-5-haiku-20241022"
+
+    async def _call(skeleton: str, max_tok: int) -> dict:
+        prompt = (
+            f"{_PREFILL_INSTRUCTION}\n"
+            f"Skeleton JSON:\n{skeleton}\n\n"
+            f"User business description:\n{description}"
+        )
+        resp = await aclient.messages.create(
+            model=haiku_model,
+            max_tokens=max_tok,
+            temperature=0.3,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = resp.content[0].text if resp.content else ""
+        return _normalise_json(text)
+
+    part_a, part_b = await _asyncio.gather(
+        _call(_SKELETON_A, 2500),
+        _call(_SKELETON_B, 2000),
+    )
+    return {**part_b, **part_a}
 
 
 async def _call_groq_prefill_async(description: str) -> dict:
     """
-    Fire two Groq calls in parallel using groq/compound-mini.
-    Skeleton A (identity/positioning/proof/frontDoor/knowledge/brand/channels)
-    and B (start/offers/agents/payments/site) run concurrently via asyncio.gather.
-    Total latency ≈ max(A, B) ≈ 8–10 s.
-    Returns a merged partial DEFAULT_STATE dict (schema 2.0 nested shape).
+    Attempts Groq prefill first. If Groq encounters rate-limits, validation errors,
+    or model issues, seamlessly falls back to Anthropic Claude (Haiku).
     """
     from groq import AsyncGroq
     import asyncio as _asyncio
 
-    aclient = AsyncGroq(api_key=settings.GROQ_API_KEY)
+    # Try Groq if configured
+    if settings.GROQ_API_KEY:
+        aclient = AsyncGroq(api_key=settings.GROQ_API_KEY)
+        models_to_try = []
+        try:
+            model_list = await aclient.models.list()
+            data = getattr(model_list, "data", []) or []
+            available_ids = [m.id for m in data if getattr(m, "id", None)]
+            logger.info("Available Groq models on this key: %s", available_ids)
+            if settings.GROQ_MODEL and settings.GROQ_MODEL.strip() in available_ids:
+                models_to_try.append(settings.GROQ_MODEL.strip())
+            for m_id in available_ids:
+                if m_id not in models_to_try and not any(skip in m_id for skip in ["whisper", "embedding", "guard", "vision", "audio", "orpheus"]):
+                    models_to_try.append(m_id)
+        except Exception as list_err:
+            logger.warning("Could not list Groq models: %s", list_err)
+            if settings.GROQ_MODEL and settings.GROQ_MODEL.strip():
+                models_to_try.append(settings.GROQ_MODEL.strip())
+            for fallback in FALLBACK_MODELS:
+                if fallback not in models_to_try:
+                    models_to_try.append(fallback)
 
-    async def _call(skeleton: str, max_tok: int) -> dict:
-        resp = await aclient.chat.completions.create(
-            model=PREFILL_MODEL,
-            messages=[
-                {"role": "system", "content": _PREFILL_INSTRUCTION + skeleton},
-                {"role": "user",   "content": description},
-            ],
-            temperature=0.3,
-            max_tokens=max_tok,
-        )
-        return _normalise_json(resp.choices[0].message.content)
+        async def _call_groq(skeleton: str, max_tok: int) -> dict:
+            last_err = None
+            for model_name in models_to_try:
+                try:
+                    resp = await aclient.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": _PREFILL_INSTRUCTION + skeleton},
+                            {"role": "user",   "content": description},
+                        ],
+                        response_format={"type": "json_object"},
+                        temperature=0.3,
+                        max_tokens=max_tok,
+                    )
+                    return _normalise_json(resp.choices[0].message.content)
+                except Exception as err:
+                    logger.warning("Groq call failed with model %s: %s", model_name, err)
+                    last_err = err
+                    continue
+            if last_err:
+                raise last_err
+            raise RuntimeError("All Groq model attempts failed.")
 
-    part_a, part_b = await _asyncio.gather(
-        _call(_SKELETON_A, 1800),   # identity / positioning / proof / frontDoor / knowledge / brand / channels
-        _call(_SKELETON_B, 1200),   # start / offers / agents / payments / site
-    )
-    # Merge — part_a wins on collisions (identity/positioning takes priority)
-    return {**part_b, **part_a}
+        try:
+            part_a, part_b = await _asyncio.gather(
+                _call_groq(_SKELETON_A, 2500),
+                _call_groq(_SKELETON_B, 2000),
+            )
+            return {**part_b, **part_a}
+        except Exception as groq_err:
+            logger.warning("Groq prefill failed (%s). Falling back to Anthropic Claude...", groq_err)
+
+    # Fallback to Anthropic Claude
+    if settings.ANTHROPIC_API_KEY:
+        logger.info("Executing prefill via Anthropic Claude fallback...")
+        return await _call_claude_prefill_async(description)
+
+    raise RuntimeError("Both Groq and Anthropic Claude prefill failed or are not configured.")
 
 
 def _call_groq_prefill(description: str) -> dict:

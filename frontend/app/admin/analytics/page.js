@@ -68,48 +68,12 @@ function KeyMetricsOverview() {
   }
 
   const metricCards = [
-    {
-      title: 'Monthly Revenue',
-      value: formatCurrency(metrics.revenue.current),
-      change: metrics.revenue.change,
-      icon: DollarSign,
-      color: 'from-green-500 to-emerald-600'
-    },
-    {
-      title: 'Total Users',
-      value: metrics.users.current.toLocaleString(),
-      change: metrics.users.change,
-      icon: Users,
-      color: 'from-blue-500 to-indigo-600'
-    },
-    {
-      title: 'Course Enrollments',
-      value: metrics.enrollments.current.toLocaleString(),
-      change: metrics.enrollments.change,
-      icon: BookOpen,
-      color: 'from-purple-500 to-pink-600'
-    },
-    {
-      title: 'User Retention',
-      value: formatPercent(metrics.retention.current),
-      change: metrics.retention.change,
-      icon: Target,
-      color: 'from-orange-500 to-red-600'
-    },
-    {
-      title: 'Avg Revenue/User',
-      value: formatCurrency(metrics.avgRevenuePerUser.current),
-      change: metrics.avgRevenuePerUser.change,
-      icon: TrendingUp,
-      color: 'from-cyan-500 to-blue-600'
-    },
-    {
-      title: 'Completion Rate',
-      value: formatPercent(metrics.courseCompletionRate.current),
-      change: metrics.courseCompletionRate.change,
-      icon: Award,
-      color: 'from-yellow-500 to-orange-600'
-    }
+    { title: 'Monthly Revenue',   value: formatCurrency(metrics.revenue.current),             change: metrics.revenue.change,             icon: DollarSign, iconBg: 'bg-primary-50', iconColor: 'text-primary-600', border: 'border-primary-100' },
+    { title: 'Total Users',       value: metrics.users.current.toLocaleString(),               change: metrics.users.change,               icon: Users,      iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    border: 'border-blue-100'    },
+    { title: 'Course Enrollments',value: metrics.enrollments.current.toLocaleString(),         change: metrics.enrollments.change,         icon: BookOpen,   iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-500',  border: 'border-indigo-100'  },
+    { title: 'User Retention',    value: formatPercent(metrics.retention.current),             change: metrics.retention.change,           icon: Target,     iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',     border: 'border-sky-100'     },
+    { title: 'Avg Revenue/User',  value: formatCurrency(metrics.avgRevenuePerUser.current),    change: metrics.avgRevenuePerUser.change,   icon: TrendingUp, iconBg: 'bg-primary-50', iconColor: 'text-primary-600', border: 'border-primary-100' },
+    { title: 'Completion Rate',   value: formatPercent(metrics.courseCompletionRate.current),  change: metrics.courseCompletionRate.change, icon: Award,     iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    border: 'border-blue-100'    },
   ]
 
   return (
@@ -143,8 +107,8 @@ function KeyMetricsOverview() {
           return (
             <div key={index} className="bg-white rounded-2xl p-6 border border-gray-200">
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 bg-gradient-to-br ${metric.color} rounded-xl flex items-center justify-center`}>
-                  <Icon className="w-6 h-6 text-gray-900" />
+                <div className={`w-12 h-12 ${metric.iconBg} border ${metric.border} rounded-xl flex items-center justify-center`}>
+                  <Icon className={`w-6 h-6 ${metric.iconColor}`} />
                 </div>
                 <div className={`flex items-center text-sm font-medium ${metric.change >= 0 ? "text-green-600" : "text-red-600"}`}>
                   <ChangeIcon className="w-4 h-4 mr-1" />
@@ -271,8 +235,8 @@ function RevenueAnalytics() {
             {revenueData.topPerformingOffers.map((offer, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-900 font-bold text-sm">{index + 1}</span>
+                  <div className="w-8 h-8 bg-primary-50 border border-primary-100 rounded-lg flex items-center justify-center">
+                    <span className="text-primary-600 font-bold text-sm">{index + 1}</span>
                   </div>
                   <div>
                     <p className="text-gray-900 font-medium">{offer.name}</p>
@@ -390,7 +354,7 @@ function UserAnalytics() {
             {userMetrics.geographicData.map((location, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                  <div className="w-4 h-4 rounded-full bg-primary-400 border border-primary-200"></div>
                   <span className="text-gray-900 font-medium">{location.country}</span>
                 </div>
                 <div className="text-right">

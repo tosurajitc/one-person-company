@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, FileText, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown, LayoutDashboard } from 'lucide-react'
+import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, FileText, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown, LayoutDashboard, LayoutTemplate, ExternalLink } from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
 
 // Founder site slugs match /[a-z0-9][a-z0-9-]* with no sub-path,
@@ -12,7 +12,7 @@ import { useSiteConfig } from '../hooks/useSiteConfig'
 // own nav renders cleanly at the top of the page.
 // Routes that have their own full-page shell (AdminShell, founder site nav, etc.)
 // and must NOT render the platform header/footer.
-const SUPPRESS_HEADER_PREFIXES = ['/admin']
+const SUPPRESS_HEADER_PREFIXES = ['/admin', '/templates/']
 
 function isFounderSitePath(pathname) {
   // Admin routes have their own AdminShell header
@@ -21,7 +21,7 @@ function isFounderSitePath(pathname) {
   const PLATFORM_ROUTES = new Set([
     'dashboard', 'profile', 'settings', 'platform', 'setup-wizard',
     'login', 'signout', 'pricing', 'resources', 'community',
-    'marketing', 'contact', 'get_started', 'about', 'auth',
+    'marketing', 'contact', 'get_started', 'about', 'auth', 'templates',
   ])
   if (!/^\/[a-z0-9][a-z0-9-]*$/.test(pathname)) return false
   const segment = pathname.slice(1)
@@ -36,6 +36,7 @@ export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [user, setUser] = useState(null)
   const [dynamicPages, setDynamicPages] = useState([])
+  const [websiteSlug, setWebsiteSlug] = useState(null)
 
   useEffect(() => {
     fetch('/api/pages/public')
@@ -68,9 +69,19 @@ export default function Header() {
             ...parsedUser,
             role: userRole || 'user'
           })
+          // Fetch the user's website subdomain
+          fetch('/api/settings/mine', { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then(settings => {
+              const slug = settings?.site?.subdomain || null
+              if (slug) setWebsiteSlug(slug)
+            })
+            .catch(() => {})
         } catch (error) {
           console.error('Error parsing user data:', error)
         }
+      } else {
+        setWebsiteSlug(null)
       }
     }
 
@@ -168,11 +179,11 @@ export default function Header() {
               {/* Platform Dropdown Menu */}
               <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="py-2">
-                    <Link href="/platform/my-website" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                    <Link href="/setup-wizard" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                       <div className="flex items-center">
                         <LayoutDashboard className="w-5 h-5 mr-3 text-green-500" />
                         <div>
-                          <div className="font-medium">My Website</div>
+                          <div className="font-medium">My Website Admin</div>
                           <div className="text-xs text-gray-500">Edit and manage your published site</div>
                         </div>
                       </div>
@@ -210,6 +221,16 @@ export default function Header() {
                         <div>
                           <div className="font-medium">Business Analytics</div>
                           <div className="text-xs text-gray-500">Revenue, visitors & customer insights</div>
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="border-t border-gray-100 my-1" />
+                    <Link href="/templates" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                      <div className="flex items-center">
+                        <LayoutTemplate className="w-5 h-5 mr-3 text-indigo-500" />
+                        <div>
+                          <div className="font-medium">Templates</div>
+                          <div className="text-xs text-gray-500">Browse 16 ready-made website templates</div>
                         </div>
                       </div>
                     </Link>
@@ -315,6 +336,18 @@ export default function Header() {
 
                       {/* Menu Items */}
                       <div className="py-2">
+                        {websiteSlug && (
+                          <a
+                            href={`/${websiteSlug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-3 text-green-600" />
+                            <span>Open Website</span>
+                          </a>
+                        )}
                         <Link
                           href="/dashboard"
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -324,12 +357,12 @@ export default function Header() {
                           Dashboard
                         </Link>
                         <Link
-                          href="/platform/my-website"
+                          href="/setup-wizard"
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           onClick={() => setIsProfileOpen(false)}
                         >
                           <LayoutDashboard className="w-4 h-4 mr-3" />
-                          My Website
+                          My Website Admin
                         </Link>
                         <Link
                           href="/profile"

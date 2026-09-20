@@ -13,38 +13,10 @@ import AdminShell from '../../../components/AdminShell'
 // Support Metrics Component
 function SupportMetrics() {
   const metrics = [
-    {
-      title: 'Open Tickets',
-      value: '47',
-      change: '+5 today',
-      changeType: 'increase',
-      icon: MessageSquare,
-      color: 'text-orange-400'
-    },
-    {
-      title: 'Resolved Today',
-      value: '23',
-      change: '+12%',
-      changeType: 'increase',
-      icon: CheckCircle,
-      color: 'text-green-400'
-    },
-    {
-      title: 'Avg Response Time',
-      value: '2.4h',
-      change: '-0.8h',
-      changeType: 'decrease',
-      icon: Clock,
-      color: 'text-primary-600'
-    },
-    {
-      title: 'Customer Satisfaction',
-      value: '4.8/5',
-      change: '+0.2',
-      changeType: 'increase',
-      icon: Star,
-      color: 'text-yellow-400'
-    }
+    { title: 'Open Tickets',          value: '47',    change: '+5 today', changeType: 'increase', icon: MessageSquare, iconBg: 'bg-primary-50', iconColor: 'text-primary-600', border: 'border-primary-100' },
+    { title: 'Resolved Today',        value: '23',    change: '+12%',     changeType: 'increase', icon: CheckCircle,   iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    border: 'border-blue-100'    },
+    { title: 'Avg Response Time',     value: '2.4h',  change: '-0.8h',    changeType: 'decrease', icon: Clock,         iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-500',  border: 'border-indigo-100'  },
+    { title: 'Customer Satisfaction', value: '4.8/5', change: '+0.2',     changeType: 'increase', icon: Star,          iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',     border: 'border-sky-100'     },
   ]
 
   return (
@@ -57,14 +29,12 @@ function SupportMetrics() {
               <div>
                 <p className="text-gray-500 text-sm font-medium">{metric.title}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{metric.value}</p>
-                <p className={`text-sm mt-1 ${
-                  metric.changeType === 'increase' ? 'text-green-400' : 'text-primary-600'
-                }`}>
+                <p className={`text-sm mt-1 ${metric.changeType === 'increase' ? 'text-primary-500' : 'text-blue-500'}`}>
                   {metric.change}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-xl flex items-center justify-center border border-blue-500/30">
-                <Icon className={`w-6 h-6 ${metric.color}`} />
+              <div className={`w-12 h-12 ${metric.iconBg} border ${metric.border} rounded-xl flex items-center justify-center`}>
+                <Icon className={`w-6 h-6 ${metric.iconColor}`} />
               </div>
             </div>
           </div>
@@ -251,38 +221,10 @@ function TicketList() {
 // Support Channels Component
 function SupportChannels() {
   const channels = [
-    {
-      name: 'Live Chat',
-      description: 'Real-time support chat',
-      status: 'online',
-      active: 12,
-      icon: MessageSquare,
-      color: 'from-green-500 to-emerald-600'
-    },
-    {
-      name: 'Video Call',
-      description: 'Screen sharing support',
-      status: 'available',
-      active: 3,
-      icon: Video,
-      color: 'from-blue-500 to-indigo-600'
-    },
-    {
-      name: 'Phone Support',
-      description: '24/7 phone assistance',
-      status: 'busy',
-      active: 8,
-      icon: Phone,
-      color: 'from-purple-500 to-pink-600'
-    },
-    {
-      name: 'Email Support',
-      description: 'Email ticket system',
-      status: 'online',
-      active: 47,
-      icon: Mail,
-      color: 'from-orange-500 to-red-600'
-    }
+    { name: 'Live Chat',      description: 'Real-time support chat',  status: 'online',     active: 12, icon: MessageSquare, iconBg: 'bg-primary-50', iconColor: 'text-primary-600', border: 'border-primary-100' },
+    { name: 'Video Call',     description: 'Screen sharing support',  status: 'available',  active: 3,  icon: Video,         iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',    border: 'border-blue-100'    },
+    { name: 'Phone Support',  description: '24/7 phone assistance',   status: 'busy',       active: 8,  icon: Phone,         iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-500',  border: 'border-indigo-100'  },
+    { name: 'Email Support',  description: 'Email ticket system',     status: 'online',     active: 47, icon: Mail,          iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',     border: 'border-sky-100'     },
   ]
 
   const getStatusColor = (status) => {
@@ -303,8 +245,8 @@ function SupportChannels() {
           return (
             <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
               <div className="flex items-center space-x-4">
-                <div className={`w-10 h-10 bg-gradient-to-br ${channel.color} rounded-lg flex items-center justify-center`}>
-                  <Icon className="w-5 h-5 text-gray-900" />
+                <div className={`w-10 h-10 ${channel.iconBg} border ${channel.border} rounded-lg flex items-center justify-center`}>
+                  <Icon className={`w-5 h-5 ${channel.iconColor}`} />
                 </div>
                 <div>
                   <h4 className="text-gray-900 font-medium">{channel.name}</h4>
@@ -418,7 +360,7 @@ export default function SupportCenter() {
               <Download className="w-4 h-4 mr-2" />
               Export Reports
             </button>
-            <button className="bg-primary-600 hover:bg-primary-700 text-gray-900 px-4 py-2 rounded-lg font-medium transition-all flex items-center">
+            <button className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-all flex items-center">
               <Plus className="w-4 h-4 mr-2" />
               Create Ticket
             </button>

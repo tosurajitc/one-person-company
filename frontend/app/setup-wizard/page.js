@@ -20,12 +20,14 @@
  * Passwords are never collected here and never written to the JSON.
  */
 
-import { useState, useEffect, useCallback, useContext, createContext } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, useContext, createContext, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowRight, ArrowLeft, Download, CheckCircle, AlertTriangle, Sparkles,
   Building2, Target, Layers, Award, DoorOpen, BookOpen, Palette, Bot,
-  Wallet, Share2, Globe, Rocket, Plus, Trash2, X, RotateCcw, Loader2,
+  Wallet, Share2, Globe, Rocket, Plus, Trash2, X, RotateCcw, Loader2, Save,
+  LayoutTemplate, ChevronDown, MapPin, Briefcase, Users, ShoppingBag,
+  ExternalLink,
 } from 'lucide-react'
 
 // ─────────────────────────────────────────────
@@ -33,10 +35,112 @@ import {
 // ─────────────────────────────────────────────
 const BUILD_ENDPOINT = '/api/sites/build'        // receives buildSitePayload()
 const AI_DRAFT_ENDPOINT = '/api/genie/draft-site' // optional: returns partial wizard state
-const SITE_DOMAIN_SUFFIX = '.yourplatform.com'
+const SITE_DOMAIN_SUFFIX = '.opcgenie.com'
 const DRAFT_STORAGE_KEY = 'opc_site_wizard_draft_v2'
 const SCHEMA_VERSION = '2.0'
 const TEMPLATE_ID = 'opc-template-v1'
+
+// ─────────────────────────────────────────────
+// Template catalogue — mirrors /templates/page.js
+// Extra fields each template needs beyond the shared wizard steps
+// ─────────────────────────────────────────────
+export const TEMPLATE_CATALOGUE = [
+  {
+    id: 'service-based',
+    section: 'Service-Based Solopreneurs',
+    icon: 'Briefcase',
+    templates: [
+      { slug: 'consultant-advisor',  name: 'Consultant / Advisor',        accent: '#1e3a5f', status: 'live',         extraFields: [] },
+      { slug: 'coach-mentor',        name: 'Coach / Mentor',              accent: '#c2693e', status: 'live',         extraFields: [] },
+      { slug: 'freelancer-creative', name: 'Freelancer / Creative',       accent: '#6d28d9', status: 'live',         extraFields: [] },
+      { slug: 'agency-of-one',       name: 'Agency-of-One',               accent: '#334155', status: 'live',         extraFields: [] },
+    ],
+  },
+  {
+    id: 'knowledge-content',
+    section: 'Knowledge & Content Creators',
+    icon: 'BookOpen',
+    templates: [
+      { slug: 'course-creator',       name: 'Course Creator / Educator',       accent: '#0f766e', status: 'live', extraFields: [] },
+      { slug: 'author-speaker',       name: 'Author / Speaker',                accent: '#7f1d1d', status: 'live', extraFields: [] },
+      { slug: 'newsletter-community', name: 'Newsletter / Community Builder',  accent: '#3730a3', status: 'live', extraFields: [] },
+    ],
+  },
+  {
+    id: 'local-trade',
+    section: 'Local & Trade Businesses',
+    icon: 'MapPin',
+    templates: [
+      {
+        slug: 'local-service-pro',
+        name: 'Local Service Pro',
+        accent: '#166534',
+        status: 'live',
+        extraFields: [
+          { group: 'template_data', key: 'service_areas',  label: 'Areas / localities you serve', hint: 'One area per line, e.g. Andheri, Bandra, Juhu',  type: 'stringlist', step: 2 },
+          { group: 'template_data', key: 'jobs_done',      label: 'Jobs completed (e.g. 8,400+)', hint: 'Shown in the hero trust row',                     type: 'text',       step: 2 },
+          { group: 'template_data', key: 'response_time',  label: 'Response time promise',         hint: 'e.g. < 90 min',                                  type: 'text',       step: 6 },
+        ],
+      },
+      {
+        slug: 'clinic-practitioner',
+        name: 'Clinic / Practitioner',
+        accent: '#0369a1',
+        status: 'live',
+        extraFields: [
+          { group: 'template_data', key: 'doctor_title',     label: 'Professional title / qualifications', hint: 'e.g. MBBS, MD (Internal Medicine), FRCP (London)', type: 'text',        step: 2 },
+          { group: 'template_data', key: 'clinic_name',      label: 'Clinic / practice name',             hint: 'e.g. Sharma Wellness Clinic',                        type: 'text',        step: 2 },
+          { group: 'template_data', key: 'reg_number',       label: 'Medical council registration no.',   hint: 'e.g. DMC/R/8342',                                    type: 'text',        step: 2 },
+          { group: 'template_data', key: 'languages',        label: 'Languages spoken',                   hint: 'Comma-separated, e.g. English, Hindi, Punjabi',      type: 'text',        step: 2 },
+          { group: 'template_data', key: 'specialities',     label: 'Specialities / conditions treated',  hint: 'One per line — e.g. Diabetes Management',            type: 'stringlist',  step: 4 },
+          { group: 'template_data', key: 'rating',           label: 'Average patient rating (e.g. 4.9)',  hint: 'Shown in hero and credentials wall',                 type: 'text',        step: 5 },
+          { group: 'template_data', key: 'total_reviews',    label: 'Total verified reviews (e.g. 870)',  hint: 'Shown next to the rating',                           type: 'text',        step: 5 },
+          { group: 'template_data', key: 'consultations',    label: 'Total consultations (e.g. 22,000+)', hint: 'Shown in hero trust row',                            type: 'text',        step: 5 },
+          { group: 'template_data', key: 'consult_modes',    label: 'Consultation modes offered',         hint: 'Select all that apply',
+            type: 'multichoice', step: 6,
+            options: [
+              { value: 'in_clinic',  label: 'In-clinic' },
+              { value: 'video',      label: 'Video consult' },
+              { value: 'home_visit', label: 'Home visit' },
+            ],
+          },
+          { group: 'template_data', key: 'home_visit_areas', label: 'Home visit area (if applicable)', hint: 'e.g. South Delhi, Defence Colony', type: 'text', step: 6 },
+        ],
+      },
+      { slug: 'tutor-training', name: 'Tutor / Training Centre', accent: '#ca8a04', status: 'coming-soon', extraFields: [] },
+    ],
+  },
+  {
+    id: 'product-commerce',
+    section: 'Product & Commerce',
+    icon: 'ShoppingBag',
+    templates: [
+      { slug: 'digital-product-seller', name: 'Digital Product Seller', accent: '#be185d', status: 'coming-soon', extraFields: [] },
+      { slug: 'physical-artisan',        name: 'Physical / Artisan',     accent: '#78350f', status: 'coming-soon', extraFields: [] },
+      { slug: 'saas-tool-maker',         name: 'SaaS / Tool Maker',      accent: '#1e293b', status: 'coming-soon', extraFields: [] },
+    ],
+  },
+  {
+    id: 'hybrid-platform',
+    section: 'Hybrid / Platform Models',
+    icon: 'Users',
+    templates: [
+      { slug: 'community-led',         name: 'Community-Led Business',  accent: '#7e22ce', status: 'coming-soon', extraFields: [] },
+      { slug: 'subscription-retainer', name: 'Subscription / Retainer', accent: '#111827', status: 'coming-soon', extraFields: [] },
+      { slug: 'event-workshop-host',   name: 'Event / Workshop Host',   accent: '#991b1b', status: 'coming-soon', extraFields: [] },
+    ],
+  },
+]
+
+// Flat lookup: slug → template object
+const TEMPLATE_BY_SLUG = Object.fromEntries(
+  TEMPLATE_CATALOGUE.flatMap(s => s.templates).map(t => [t.slug, t])
+)
+
+// Extra fields that belong to a given step for the currently selected template
+function extraFieldsForStep(templateSlug, step) {
+  return (TEMPLATE_BY_SLUG[templateSlug]?.extraFields || []).filter(f => f.step === step)
+}
 
 // Fixed page structure every generated site follows
 const SITE_PAGES = [
@@ -360,9 +464,9 @@ const STEPS = [
   { id: 2,  label: 'You & your business',          short: 'Identity',            icon: Building2 },
   { id: 3,  label: 'Who you help',                 short: 'Positioning',         icon: Target },
   { id: 4,  label: 'Offers & pricing',             short: 'Offers & pricing',    icon: Layers },
-  { id: 5,  label: 'Proof of your work',           short: 'Proof of work',       icon: Award },
+  { id: 5,  label: 'Proof & testimonials',         short: 'Proof & testimonials',icon: Award },
   { id: 6,  label: 'How clients reach you',        short: 'Front door',          icon: DoorOpen },
-  { id: 7,  label: 'Policies & FAQs',              short: 'Knowledge base',      icon: BookOpen },
+  { id: 7,  label: 'FAQ and Policies',             short: 'FAQ and Policies',    icon: BookOpen },
   { id: 8,  label: 'Brand look & voice',           short: 'Brand & style',       icon: Palette },
   { id: 9,  label: 'Your AI team',                 short: 'AI agents',           icon: Bot },
   { id: 10, label: 'Payments & compliance',        short: 'Payments',            icon: Wallet },
@@ -390,14 +494,16 @@ function StepHeader({ step, intro }) {
 }
 
 // ── STEP 1 — Start ─────────────────────────────
-const BUSINESS_TYPES = [
-  { value: 'consulting',  label: 'Consultant / advisor',   hint: 'Strategy, finance, tech, HR, legal' },
-  { value: 'freelance',   label: 'Freelancer / creative',  hint: 'Design, writing, video, development' },
-  { value: 'coaching',    label: 'Coach / trainer',        hint: 'Career, fitness, life, business' },
-  { value: 'creator',     label: 'Creator / educator',     hint: 'Courses, ebooks, templates, community' },
-  { value: 'local',       label: 'Local business',         hint: 'Bakery, salon, studio, tutor, clinic' },
-  { value: 'other',       label: 'Something else',         hint: 'Describe it above' },
-]
+// "Which describes you best?" — one card per template section, derived from the catalogue.
+// value is the section id so selecting a card auto-sets template.sectionId in the panel below.
+const BUSINESS_TYPES = TEMPLATE_CATALOGUE.map(s => ({
+  value: s.id,
+  label: s.section,
+  hint: s.templates
+    .filter(t => t.status === 'live')
+    .map(t => t.name)
+    .join(', ') || s.section,
+}))
 
 const MARKET_LABELS = { india: 'India (₹)', global: 'Outside India ($)', both: 'Both (₹ and $)' }
 const LANGUAGE_LABELS = { en: 'English', hi: 'Hindi', bn: 'Bengali', 'en-hi': 'English + Hindi' }
@@ -414,6 +520,44 @@ function Step1({ onAiDraft, aiState }) {
   const btLabel   = BUSINESS_TYPES.find(o => o.value === data.start.businessType)?.label || data.start.businessType
   const mktLabel  = MARKET_LABELS[data.start.market]  || data.start.market
   const langLabel = LANGUAGE_LABELS[data.start.language] || data.start.language
+
+  // Selecting a section card syncs both start.businessType AND template.sectionId,
+  // and resets the template slug so the panel prompts the user to pick a template.
+  const handleBusinessTypeSelect = (sectionId) => {
+    update('start.businessType', sectionId)
+    update('template.sectionId', sectionId)
+    update('template.slug', '')
+    update('template_data', {})
+  }
+
+  // Inline choice component wired to handleBusinessTypeSelect
+  const BusinessTypeChoice = () => {
+    const cols = 'sm:grid-cols-2 lg:grid-cols-3'
+    return (
+      <Field label="Which describes you best?">
+        <div className={`grid grid-cols-1 ${cols} gap-2`} role="radiogroup">
+          {BUSINESS_TYPES.map(o => {
+            const active = data.start.businessType === o.value
+            return (
+              <button
+                key={o.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => handleBusinessTypeSelect(o.value)}
+                className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  active ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <span className={`block font-medium ${active ? 'text-blue-800' : 'text-gray-900'}`}>{o.label}</span>
+                {o.hint && <span className="block text-xs text-gray-500 mt-0.5">{o.hint}</span>}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -435,7 +579,7 @@ function Step1({ onAiDraft, aiState }) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {btPrefilled
               ? <ConfirmedChip label="You are a" value={btLabel} onEdit={() => prefilledPaths.delete('start.businessType')} />
-              : <Choice path="start.businessType" label="Which describes you best?" options={BUSINESS_TYPES} columns={3} />}
+              : <BusinessTypeChoice />}
             {mktPrefilled
               ? <ConfirmedChip label="Clients are in" value={mktLabel} onEdit={() => prefilledPaths.delete('start.market')} />
               : <Choice path="start.market" label="Where are your clients?" options={[
@@ -453,7 +597,7 @@ function Step1({ onAiDraft, aiState }) {
         </div>
       ) : (
         <>
-          <Choice path="start.businessType" label="Which describes you best?" options={BUSINESS_TYPES} columns={3} />
+          <BusinessTypeChoice />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Choice
               path="start.market"
@@ -544,6 +688,7 @@ function Step2() {
           <Text path="identity.photoUrl" label="Your photo URL" hint="A real photo builds trust on a one-person site" placeholder="https://…" />
         </div>
       </Section>
+      <ExtraFieldsForStep step={2} />
     </div>
   )
 }
@@ -758,6 +903,7 @@ function Step4() {
           />
         </div>
       </Section>
+      <ExtraFieldsForStep step={4} />
     </div>
   )
 }
@@ -827,6 +973,7 @@ function Step5() {
           { key: 'quote', label: 'Quote', type: 'area', wide: true },
         ]}
       />
+      <ExtraFieldsForStep step={5} />
     </div>
   )
 }
@@ -892,6 +1039,7 @@ function Step6() {
         addLabel="Add question"
         max={6}
       />
+      <ExtraFieldsForStep step={6} />
     </div>
   )
 }
@@ -943,6 +1091,26 @@ function Step7() {
           { key: 'answer', label: 'Answer', type: 'area', wide: true },
         ]}
       />
+
+      <Section title="Intro video (optional)">
+        <p className="text-xs text-gray-500 mb-4">
+          Paste a YouTube embed URL (e.g. <code className="bg-gray-100 px-1 rounded">https://www.youtube.com/embed/VIDEO_ID</code>).
+          This appears as a full-width video section on your website. Leave blank to hide the section.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Text
+            path="knowledge.introVideo.url"
+            label="YouTube embed URL"
+            placeholder="https://www.youtube.com/embed/dQw4w9WgXcQ"
+            hint="Use the /embed/ format, not the regular watch URL"
+          />
+          <Text
+            path="knowledge.introVideo.title"
+            label="Video title (shown above the player)"
+            placeholder="Watch: How I Can Help You"
+          />
+        </div>
+      </Section>
     </div>
   )
 }
@@ -1278,7 +1446,7 @@ function formatPrice(tier, market) {
   return shown.length ? shown.join(' · ') : 'No price'
 }
 
-function Step13({ issues, onGoToStep, onBuild, onDownload, build }) {
+function Step13({ issues, onGoToStep, onBuild, onDownload, build, onSave, save, siteExists }) {
   const { data } = useWizard()
   const p = data.positioning
   const required = issues.filter(i => i.level === 'required')
@@ -1341,25 +1509,47 @@ function Step13({ issues, onGoToStep, onBuild, onDownload, build }) {
 
       {/* Actions */}
       <div className="space-y-3">
-        <button
-          type="button"
-          onClick={onBuild}
-          disabled={required.length > 0 || build.status === 'building'}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {build.status === 'building'
-            ? <><Loader2 className="w-5 h-5 animate-spin" />Building your website…</>
-            : <><Rocket className="w-5 h-5" />Build my website</>}
-        </button>
+        {siteExists ? (
+          /* ── Already has a site: show Save Changes button ── */
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={save?.status === 'saving'}
+            className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              save?.status === 'saved'
+                ? 'bg-green-50 border-2 border-green-400 text-green-700'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {save?.status === 'saving'
+              ? <><Loader2 className="w-5 h-5 animate-spin" />Saving changes…</>
+              : save?.status === 'saved'
+              ? <><CheckCircle className="w-5 h-5 text-green-600" />Changes saved</>
+              : <><Save className="w-5 h-5" />Save changes</>}
+          </button>
+        ) : (
+          /* ── First-time build: show Build my website button ── */
+          <button
+            type="button"
+            onClick={onBuild}
+            disabled={required.length > 0 || build.status === 'building'}
+            className="w-full flex items-center justify-center gap-2 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {build.status === 'building'
+              ? <><Loader2 className="w-5 h-5 animate-spin" />Building your website…</>
+              : <><Rocket className="w-5 h-5" />Build my website</>}
+          </button>
+        )}
         <button type="button" onClick={onDownload} className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
           <Download className="w-4 h-4" />Download my answers (setup.json)
         </button>
         {build.status === 'done' && (
           <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
             <strong>Your website is being built.</strong>{' '}
-            {build.url ? <>Preview it at <a href={build.url} className="underline font-medium">{build.url}</a>.</> : 'We’ll email you when the preview is ready.'}
+            {build.url ? <>Preview it at <a href={build.url} className="underline font-medium">{build.url}</a>.</> : "We'll email you when the preview is ready."}
           </div>
         )}
+        {save?.status === 'error' && <Warning>{save.message}</Warning>}
         {build.status === 'error' && <Warning>{build.message}</Warning>}
       </div>
     </div>
@@ -1458,6 +1648,8 @@ function buildSitePayload(d) {
   return {
     schemaVersion: SCHEMA_VERSION,
     template: TEMPLATE_ID,
+    templateSlug: d.template?.slug || null,
+    templateSection: d.template?.sectionId || null,
     createdAt: new Date().toISOString(),
 
     site: {
@@ -1546,6 +1738,10 @@ function buildSitePayload(d) {
       refundPolicy: d.knowledge.refundPolicy || null,
       toolsUsed: d.knowledge.toolsUsed,
       faqs: d.knowledge.faqs.filter(f => f.question && f.answer),
+      introVideo: {
+        url: (d.knowledge.introVideo?.url || '').trim(),
+        title: (d.knowledge.introVideo?.title || '').trim(),
+      },
     },
 
     brand: {
@@ -1589,6 +1785,9 @@ function buildSitePayload(d) {
       publishedWork: d.channels.publishedWork.filter(w => w.title && w.url),
     },
 
+    // Template-specific extra data collected by ExtraFieldsForStep
+    template_data: d.template_data || {},
+
     // Rules the site generator must follow (from the book's honesty standard)
     generation: {
       writeCopyFor: ['hero', 'tagline_if_empty', 'about', 'offer_pages', 'faq_additions', 'cta_label_if_empty', 'legal_drafts', 'meta_seo'],
@@ -1610,7 +1809,7 @@ function buildSitePayload(d) {
 // Default state
 // ─────────────────────────────────────────────
 const DEFAULT_STATE = {
-  start: { description: '', businessType: 'consulting', market: 'india', language: 'en' },
+  start: { description: '', businessType: 'service-based', market: 'india', language: 'en' },
   identity: {
     brandName: '', tagline: '', city: '', country: 'India', logoUrl: '', timezone: 'Asia/Kolkata',
     ownerName: '', ownerRole: '', email: '', whatsapp: '', photoUrl: '',
@@ -1648,6 +1847,7 @@ const DEFAULT_STATE = {
       { title: 'Walkthrough & handover', detail: '' },
     ],
     included: [''], notIncluded: [''], refundPolicy: '', toolsUsed: '', faqs: [],
+    introVideo: { url: '', title: '' },
   },
   brand: { style: 'minimal', tone: 'plain', primaryColor: '#2563eb', referenceSite: '', avoidWords: '' },
   agents: {
@@ -1668,6 +1868,10 @@ const DEFAULT_STATE = {
     contentTopics: ['', '', ''], publishedWork: [],
   },
   site: { subdomain: '', customDomain: '', notifyEmail: '', analyticsId: '' },
+  // ── Template selection ────────────────────────
+  template: { sectionId: '', slug: '' },
+  // ── Template-specific extra data (keyed by field.key from extraFields) ─
+  template_data: {},
 }
 
 // ─────────────────────────────────────────────
@@ -1688,72 +1892,353 @@ function ProgressBar({ step }) {
   )
 }
 
-function NavButtons({ step, setStep, stepIssues }) {
+function NavButtons({ step, setStep, stepIssues, save, onSave, siteExists }) {
   const required = stepIssues.filter(i => i.level === 'required')
+  const isSaving = save?.status === 'saving'
+  const isSaved  = save?.status === 'saved'
+  const saveError = save?.status === 'error' ? save.message : null
+
   return (
     <div className="space-y-3 pt-6 mt-8 border-t border-gray-200">
       {required.length > 0 && step < STEPS.length && (
         <Warning>Still needed before building: <strong>{required.map(i => i.label).join(', ')}</strong>. You can continue and come back.</Warning>
       )}
-      <div className="flex justify-between">
+      {saveError && <Warning>{saveError}</Warning>}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* Back */}
         {step > 1 ? (
           <button type="button" onClick={() => setStep(s => s - 1)} className="inline-flex items-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
             <ArrowLeft className="w-4 h-4 mr-2" />Back
           </button>
         ) : <div />}
-        {step < STEPS.length && (
-          <button type="button" onClick={() => setStep(s => s + 1)} className="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm">
-            {step === STEPS.length - 1 ? 'Review' : 'Next'}<ArrowRight className="w-4 h-4 ml-2" />
-          </button>
-        )}
+
+        {/* Right side: Save (always visible on steps 1–12) + Next/Review */}
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Save button — shown on steps 1–12 only (step 13 has its own save/build buttons) */}
+          {step < STEPS.length && (
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={isSaving}
+              className={`inline-flex items-center px-4 py-2.5 rounded-lg font-medium text-sm border transition-colors ${
+                isSaved
+                  ? 'bg-green-50 border-green-300 text-green-700'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              } disabled:opacity-50`}
+            >
+              {isSaving
+                ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Saving…</>
+                : isSaved
+                ? <><CheckCircle className="w-4 h-4 mr-1.5 text-green-600" />Saved</>
+                : <><Save className="w-4 h-4 mr-1.5" />Save</>}
+            </button>
+          )}
+
+          {/* Next / Review */}
+          {step < STEPS.length && (
+            <button type="button" onClick={() => setStep(s => s + 1)} className="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm">
+              {step === STEPS.length - 1 ? 'Review' : 'Next'}<ArrowRight className="w-4 h-4 ml-2" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
+// ─── Template Panel ───────────────────────────────────────────────────────────
+// Shown at the top of the left sidebar. Section dropdown → template dropdown.
+function TemplatePanel() {
+  const { data, update } = useWizard()
+  const [open, setOpen] = useState(true)
+
+  const selectedSection = TEMPLATE_CATALOGUE.find(s => s.id === data.template.sectionId)
+  const selectedTemplate = TEMPLATE_BY_SLUG[data.template.slug]
+
+  const handleSectionChange = (e) => {
+    const sectionId = e.target.value
+    update('template.sectionId', sectionId)
+    update('template.slug', '')         // reset template when section changes
+    update('template_data', {})         // clear any previous extra data
+    // Keep Step 1 "Which describes you best?" in sync
+    update('start.businessType', sectionId)
+  }
+
+  const handleTemplateChange = (e) => {
+    const slug = e.target.value
+    update('template.slug', slug)
+    update('template_data', {})         // reset extra data on template change
+    // Auto-sync brand colour to the chosen template's accent
+    if (slug && TEMPLATE_BY_SLUG[slug]?.accent) {
+      update('brand.primaryColor', TEMPLATE_BY_SLUG[slug].accent)
+    }
+    // Keep Step 1 "Which describes you best?" in sync with the template's section
+    const parentSection = TEMPLATE_CATALOGUE.find(s => s.templates.some(t => t.slug === slug))
+    if (parentSection) update('start.businessType', parentSection.id)
+  }
+
+  return (
+    <div className="mb-3 rounded-xl border border-gray-200 bg-white overflow-hidden">
+      {/* Header row */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+          <LayoutTemplate className="w-4 h-4 text-blue-600" />
+          Template
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 space-y-3 border-t border-gray-100 pt-3">
+
+          {/* Section dropdown */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+            <select
+              className="w-full text-sm px-2.5 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              value={data.template.sectionId}
+              onChange={handleSectionChange}
+            >
+              <option value="">— Choose a category —</option>
+              {TEMPLATE_CATALOGUE.map(s => (
+                <option key={s.id} value={s.id}>{s.section}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Template dropdown — shown only once a section is selected */}
+          {selectedSection && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Template</label>
+              <select
+                className="w-full text-sm px-2.5 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                value={data.template.slug}
+                onChange={handleTemplateChange}
+              >
+                <option value="">— Choose a template —</option>
+                {selectedSection.templates.map(t => (
+                  <option key={t.slug} value={t.slug} disabled={t.status !== 'live'}>
+                    {t.name}{t.status !== 'live' ? ' (soon)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Selected template chip + preview link */}
+          {selectedTemplate && (
+            <div className="rounded-lg p-2.5 border flex items-center gap-2.5"
+              style={{ borderColor: `${selectedTemplate.accent}30`, background: `${selectedTemplate.accent}08` }}>
+              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: selectedTemplate.accent }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate" style={{ color: selectedTemplate.accent }}>{selectedTemplate.name}</p>
+                {selectedTemplate.extraFields.length > 0 && (
+                  <p className="text-[10px] text-gray-500">{selectedTemplate.extraFields.length} extra fields in steps</p>
+                )}
+              </div>
+              {selectedTemplate.status === 'live' && (
+                <a
+                  href={`/templates/${selectedTemplate.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Preview template"
+                  className="flex-shrink-0 text-gray-400 hover:text-gray-700"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Prompt when nothing selected yet */}
+          {!data.template.slug && (
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Choose a template to unlock template-specific fields inside each step.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── ExtraFieldRenderer ───────────────────────────────────────────────────────
+// Renders the extra fields for the selected template within the current step.
+function ExtraFieldsForStep({ step }) {
+  const { data, update } = useWizard()
+  const slug = data.template?.slug || ''
+  const fields = extraFieldsForStep(slug, step)
+  if (!fields.length) return null
+
+  const tpl = TEMPLATE_BY_SLUG[slug]
+
+  return (
+    <section className="space-y-4 mt-6 pt-5 border-t-2 border-dashed border-blue-100">
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: tpl.accent }} />
+        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: tpl.accent }}>
+          {tpl.name} — extra fields
+        </p>
+      </div>
+      {fields.map(f => {
+        const path = `template_data.${f.key}`
+        const value = data.template_data?.[f.key]
+
+        if (f.type === 'stringlist') {
+          const list = Array.isArray(value) ? value : ['']
+          return (
+            <Field key={f.key} label={f.label} hint={f.hint}>
+              <div className="space-y-2">
+                {list.map((v, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      className={inputCls}
+                      value={v}
+                      placeholder={`e.g. ${f.hint?.split(',')[0] || 'Item ' + (i + 1)}`}
+                      onChange={e => {
+                        const next = [...list]
+                        next[i] = e.target.value
+                        update(path, next)
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label="Remove"
+                      onClick={() => update(path, list.filter((_, idx) => idx !== i))}
+                      className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {list.length < 20 && (
+                  <button
+                    type="button"
+                    onClick={() => update(path, [...list, ''])}
+                    className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />Add
+                  </button>
+                )}
+              </div>
+            </Field>
+          )
+        }
+
+        if (f.type === 'multichoice') {
+          const current = Array.isArray(value) ? value : []
+          const toggle = v => update(path, current.includes(v) ? current.filter(x => x !== v) : [...current, v])
+          return (
+            <Field key={f.key} label={f.label} hint={f.hint}>
+              <div className="flex flex-wrap gap-2">
+                {(f.options || []).map(o => {
+                  const active = current.includes(o.value)
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggle(o.value)}
+                      className={`px-3 py-1.5 rounded-full border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        active ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+          )
+        }
+
+        // default: text input
+        return (
+          <Field key={f.key} label={f.label} hint={f.hint}>
+            <input
+              type="text"
+              className={inputCls}
+              value={value || ''}
+              placeholder={f.hint || ''}
+              onChange={e => update(path, e.target.value)}
+            />
+          </Field>
+        )
+      })}
+    </section>
+  )
+}
+
+// ─── StepSidebar ─────────────────────────────────────────────────────────────
 function StepSidebar({ step, setStep, issues, onReset }) {
   return (
-    <aside className="sticky top-6 bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
-        <p className="text-sm font-semibold text-gray-800">Build your website</p>
-        <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{step}/{STEPS.length}</span>
+    <aside className="sticky top-6 space-y-0 overflow-y-auto max-h-[calc(100vh-3rem)]">
+      {/* ── Template panel (above steps) ── */}
+      <TemplatePanel />
+
+      {/* ── Steps list ── */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+          <p className="text-sm font-semibold text-gray-800">Build your website</p>
+          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{step}/{STEPS.length}</span>
+        </div>
+        <nav className="space-y-0.5" aria-label="Wizard steps">
+          {STEPS.map(s => {
+            const Icon = s.icon
+            const active = s.id === step
+            const hasRequired = issues.some(i => i.step === s.id && i.level === 'required')
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setStep(s.id)}
+                aria-current={active ? 'step' : undefined}
+                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
+                  active ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5 truncate">
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-gray-400'}`} />
+                  <span className="truncate">{s.short}</span>
+                </span>
+                {hasRequired && !active && <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" aria-label="Has required fields" />}
+              </button>
+            )
+          })}
+        </nav>
+        <button type="button" onClick={onReset} className="mt-4 w-full inline-flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-red-600">
+          <RotateCcw className="w-3.5 h-3.5" />Start over
+        </button>
       </div>
-      <nav className="space-y-0.5" aria-label="Wizard steps">
-        {STEPS.map(s => {
-          const Icon = s.icon
-          const active = s.id === step
-          const hasRequired = issues.some(i => i.step === s.id && i.level === 'required')
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setStep(s.id)}
-              aria-current={active ? 'step' : undefined}
-              className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
-                active ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-            >
-              <span className="flex items-center gap-2.5 truncate">
-                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-gray-400'}`} />
-                <span className="truncate">{s.short}</span>
-              </span>
-              {hasRequired && !active && <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" aria-label="Has required fields" />}
-            </button>
-          )
-        })}
-      </nav>
-      <button type="button" onClick={onReset} className="mt-4 w-full inline-flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-red-600">
-        <RotateCcw className="w-3.5 h-3.5" />Start over
-      </button>
     </aside>
   )
 }
 
 // ─────────────────────────────────────────────
-// Main page
+// Main page wrapper with Suspense (required for useSearchParams in static/SSR builds)
 // ─────────────────────────────────────────────
 export default function SetupWizardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">Loading setup wizard…</p>
+        </div>
+      </div>
+    }>
+      <SetupWizardPageContent />
+    </Suspense>
+  )
+}
+
+function SetupWizardPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
@@ -1776,10 +2261,33 @@ export default function SetupWizardPage() {
   })()
 
   const [step, setStep] = useState(initialStep)
+
+  // Parse step parameter from URL whenever searchParams change to handle client-side navigations smoothly
+  useEffect(() => {
+    const s = Number(searchParams.get('step'))
+    if (s >= 1 && s <= STEPS.length) {
+      setStep(s)
+    }
+  }, [searchParams])
+
+  // Sync step changes back to browser URL query parameter smoothly
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (Number(params.get('step')) !== step) {
+        params.set('step', step)
+        const newUrl = `${window.location.pathname}?${params.toString()}`
+        window.history.replaceState(null, '', newUrl)
+      }
+    }
+  }, [step])
+
   const [data, setData] = useState(DEFAULT_STATE)
   const [hydrated, setHydrated] = useState(false)
   const [aiState, setAiState] = useState({ status: 'idle' })
   const [build, setBuild] = useState({ status: 'idle' })
+  const [save, setSave] = useState({ status: 'idle' })   // 'idle' | 'saving' | 'saved' | 'error'
+  const [siteExists, setSiteExists] = useState(false)     // true when user already has a built site
   const [notice, setNotice] = useState(null)
   // Set of dotted paths that were loaded from the DB saved draft (not typed by user)
   const [prefilledPaths] = useState(() => new Set())
@@ -1830,6 +2338,28 @@ export default function SetupWizardPage() {
 
           merged = preferUserInput(draft, next)
 
+          // Normalise legacy businessType values (pre-template-catalogue) to section IDs,
+          // and ensure template.sectionId is kept in sync with start.businessType.
+          const LEGACY_BT_MAP = {
+            consulting: 'service-based', coaching: 'service-based',
+            freelance: 'service-based',  'agency-of-one': 'service-based',
+            creator: 'knowledge-content', author: 'knowledge-content',
+            local: 'local-trade', clinic: 'local-trade',
+            other: 'service-based',
+          }
+          const rawBt = (getIn(merged, 'start.businessType') || '').trim()
+          const validSectionIds = TEMPLATE_CATALOGUE.map(s => s.id)
+          if (rawBt && !validSectionIds.includes(rawBt)) {
+            const normalised = LEGACY_BT_MAP[rawBt] || 'service-based'
+            merged = setIn(merged, 'start.businessType', normalised)
+          }
+          // Sync template.sectionId ← start.businessType when template panel has no section yet
+          const currentSectionId = getIn(merged, 'template.sectionId') || ''
+          const resolvedBt = (getIn(merged, 'start.businessType') || '')
+          if (!currentSectionId && resolvedBt && validSectionIds.includes(resolvedBt)) {
+            merged = setIn(merged, 'template.sectionId', resolvedBt)
+          }
+
           // Record which paths came from the DB draft (non-empty in draft, empty in next)
           const DB_TRACKED_PATHS = [
             'start.description', 'start.businessType', 'start.market', 'start.language',
@@ -1843,6 +2373,7 @@ export default function SetupWizardPage() {
             'offers.tiers.2.name', 'offers.tiers.2.priceInr', 'offers.tiers.2.priceUsd',
             'frontDoor.primaryCta', 'frontDoor.responseTime',
             'channels.social.linkedin', 'channels.social.instagram',
+            'knowledge.introVideo.url', 'knowledge.introVideo.title',
           ]
           DB_TRACKED_PATHS.forEach(p => {
             const draftVal = getIn(draft, p)
@@ -1858,6 +2389,11 @@ export default function SetupWizardPage() {
           })
 
           noticeMsg = 'Your profile data has been loaded. Fields marked "From your profile" came from your Genie draft — confirm them before building.'
+
+          // Detect whether this user already has a built site
+          const hasSub = (getIn(draft, 'site.subdomain') || '').trim()
+          const hasBrand = (getIn(draft, 'identity.brandName') || '').trim()
+          if (hasSub || hasBrand) setSiteExists(true)
         }
         if (userProfile) {
           if (!merged.identity?.ownerName && userProfile.full_name) {
@@ -1906,6 +2442,42 @@ export default function SetupWizardPage() {
 
   const getToken = () => {
     try { return localStorage.getItem('auth_token') || localStorage.getItem('token') || '' } catch (_) { return '' }
+  }
+
+  const handleSave = async () => {
+    setSave({ status: 'saving' })
+    try {
+      const token = getToken()
+      if (!token) { setSave({ status: 'error', message: 'Sign in to save your changes.' }); return }
+      // Save each domain group to user_site_settings via /api/settings/setup
+      const payload = buildSitePayload(data)
+      // Also persist the raw wizard-schema groups so the wizard can reload them
+      const wizardGroups = {
+        start: data.start, identity: data.identity, positioning: data.positioning,
+        offers: data.offers, proof: data.proof, frontDoor: data.frontDoor,
+        knowledge: data.knowledge, brand: data.brand, agents: data.agents,
+        payments: data.payments, channels: data.channels, site: data.site,
+        template: data.template, template_data: data.template_data,
+      }
+      const [settingsRes, buildRes] = await Promise.all([
+        fetch('/api/settings/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(wizardGroups),
+        }),
+        // Also rebuild site_build_payload so /[username] reflects the edits immediately
+        fetch('/api/sites/build', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload),
+        }),
+      ])
+      if (!settingsRes.ok && !buildRes.ok) throw new Error(`Save failed (${settingsRes.status})`)
+      setSave({ status: 'saved' })
+      setTimeout(() => setSave({ status: 'idle' }), 3000)
+    } catch (err) {
+      setSave({ status: 'error', message: err.message || 'Could not save. Try again.' })
+    }
   }
 
   const handleAiDraft = async () => {
@@ -1984,7 +2556,7 @@ export default function SetupWizardPage() {
       case 10: return <Step10 />
       case 11: return <Step11 />
       case 12: return <Step12 />
-      case 13: return <Step13 issues={issues} onGoToStep={setStep} onBuild={handleBuild} onDownload={handleDownload} build={build} />
+      case 13: return <Step13 issues={issues} onGoToStep={setStep} onBuild={handleBuild} onSave={handleSave} onDownload={handleDownload} build={build} save={save} siteExists={siteExists} />
       default: return null
     }
   }
@@ -1996,7 +2568,9 @@ export default function SetupWizardPage() {
     <PrefilledContext.Provider value={prefilledPaths}>
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         <div className="bg-blue-600 text-white text-center py-3 px-4 text-sm font-medium">
-          Answer a few questions about your business. Our AI builds your website from them.
+          {siteExists
+            ? 'Editing your website — changes are saved when you click Save on any step.'
+            : 'Answer a few questions about your business. Our AI builds your website from them.'}
         </div>
 
         {notice && (
@@ -2015,7 +2589,7 @@ export default function SetupWizardPage() {
               <ProgressBar step={step} />
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-8 lg:p-10">
                 {renderStep()}
-                <NavButtons step={step} setStep={setStep} stepIssues={stepIssues} />
+                <NavButtons step={step} setStep={setStep} stepIssues={stepIssues} save={save} onSave={handleSave} siteExists={siteExists} />
               </div>
             </div>
           </div>

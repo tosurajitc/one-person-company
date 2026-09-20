@@ -9,7 +9,7 @@ import bcrypt as _bcrypt
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.auth import AuthService, SecurityService, AuthenticationError
+from app.core.auth import AuthService, SecurityService, AuthenticationError, OAuthService
 from app.core.oauth import OAuthClient, OAuthConfig
 from app.core.config import settings
 from app.models.user import User, UserRole, OAuthProvider
@@ -52,11 +52,13 @@ async def login(payload: UserLoginRequest, response: Response, db: Session = Dep
 
     token = AuthService.create_user_token(user)
 
-    # Set HttpOnly cookie so Next.js middleware can read it
+    # JS-readable cookie — Next.js middleware reads it server-side,
+    # and the frontend login page sets it via document.cookie too.
+    # httponly=False so the frontend JS can write/read the same cookie name.
     response.set_cookie(
         key="token",
         value=token,
-        httponly=True,
+        httponly=False,
         samesite="lax",
         secure=False,   # Set True in production (HTTPS)
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -116,7 +118,7 @@ async def register(payload: UserRegisterRequest, response: Response, db: Session
     response.set_cookie(
         key="token",
         value=token,
-        httponly=True,
+        httponly=False,
         samesite="lax",
         secure=False,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -169,7 +171,7 @@ async def signup(payload: UserSignupRequest, response: Response, db: Session = D
     response.set_cookie(
         key="token",
         value=token,
-        httponly=True,
+        httponly=False,
         samesite="lax",
         secure=False,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -344,7 +346,7 @@ async def oauth_callback(
     response.set_cookie(
         key="token",
         value=token,
-        httponly=True,
+        httponly=False,
         samesite="lax",
         secure=False,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -355,3 +357,28 @@ async def oauth_callback(
         token_type="bearer",
         user=UserResponse.model_validate(user),
     )
+
+
+# ─────────────────────────────────────────────
+# POST /api/auth/oauth/{provider}/url  — generate authorization redirect URL
+# ─────────────────────────────────────────────
+class OAuthUrlRequest(BaseModel):
+    state: str
+
+@router.post("/oauth/{provider}/url")
+async def get_oauth_url(provider: str, payload: OAuthUrlRequest):
+    """Return the OAuth authorization URL for the requested provider."""
+    client_id, _ = OAuthConfig.get_client_credentials(provider)
+    if not client_id:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"OAuth provider '{provider}' is not configured on this server",
+        )
+    redirect_uri = f"{settings.FRONTEND_URL}/auth/callback"
+    url = OAuthService.get_authorization_url(
+        provider=provider,
+        client_id=client_id,
+        redirect_uri=redirect_uri,
+        state=payload.state,
+    )
+    return {"authorization_url": url}

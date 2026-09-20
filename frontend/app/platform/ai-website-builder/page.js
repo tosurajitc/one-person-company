@@ -3,27 +3,22 @@
 /**
  * AI Website Builder — Genie intake page
  * ------------------------------------------------------------------
- * Collects the answers Genie needs, sends them to the prefill API, shows a
- * review of what Genie drafted, and hands the result to /setup-wizard.
+ * Collects the answers Genie needs, sends them to /api/genie/intake, shows a
+ * review of what Genie drafted, then saves the result DIRECTLY to the user's
+ * profile via /api/genie/save-wizard — bypassing the 13-step setup wizard.
  *
- * In sync with setup-wizard/page.jsx (schema 2.0):
- *   - Handoff key:   sessionStorage 'genie_prefill'              → partial wizard state
- *   - Review flags:  sessionStorage 'genie_needs_confirmation'   → array of field paths
+ * The user is redirected to /setup-wizard after saving, where they can
+ * edit any field. The /setup-wizard is never shown unless the user navigates
+ * there manually.
  *
- * API CONTRACT (backend must follow this)
- *   POST /api/chat/prefill            (guest)
- *   POST /api/chat/prefill-and-save   (logged in, Bearer token)
- *   Request:  { schemaVersion, start, basics, answers, links, pastedMaterial, description }
- *   Response: {
- *     prefill: <partial wizard state, same shape as DEFAULT_STATE in the wizard>,
- *     needsConfirmation: ['offers.tiers.0.name', ...],   // fields Genie inferred
- *     followUps: ['Which kind of small business?'],     // optional clarifying questions
- *     saved: boolean
- *   }
+ * Programmatic defaults (social links, YouTube video, FAQs) are applied both
+ * client-side (via applyProgrammaticDefaults from wizard-schema.js) and
+ * server-side (in _apply_programmatic_defaults in genie_routes.py) so the
+ * website is always complete even when the LLM leaves fields blank.
  *
- * Honesty rules (from The One-Person Company) are also enforced here, client-side:
- * prices, numbers and testimonials that do not appear in the user's own input are
- * removed and moved to the "only you can add" list.
+ * API CONTRACT
+ *   POST /api/genie/intake     — generate prefill from user answers
+ *   POST /api/genie/save-wizard — save completed state directly (skips wizard)
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -33,6 +28,8 @@ import {
   Sparkles, ArrowRight, CheckCircle, Loader2, Wand2, AlertCircle, AlertTriangle,
   ChevronDown, ChevronUp, Link2, ClipboardList, RotateCcw, HelpCircle, User, Menu, X,
 } from 'lucide-react'
+import { applyProgrammaticDefaults } from '../../../lib/wizard-schema'
+import { TEMPLATE_CATALOGUE } from '../../setup-wizard/page'
 
 const SCHEMA_VERSION = '2.0'
 const ANSWERS_STORAGE_KEY = 'genie_intake_answers_v2'
@@ -120,18 +117,18 @@ const QUESTIONS = [
   },
 ]
 
-const BUSINESS_TYPES = [
-  { value: 'consulting', label: 'Consultant' },
-  { value: 'freelance',  label: 'Freelancer' },
-  { value: 'coaching',   label: 'Coach / trainer' },
-  { value: 'creator',    label: 'Creator / educator' },
-  { value: 'local',      label: 'Local business' },
-  { value: 'other',      label: 'Other' },
-]
+const BUSINESS_TYPES = TEMPLATE_CATALOGUE.map(s => ({
+  value: s.id,
+  label: s.section,
+  hint: s.templates
+    .filter(t => t.status === 'live')
+    .map(t => t.name)
+    .join(', ') || s.section,
+}))
 
 const createEmptyIntake = () => ({
   basics: { ownerName: '', brandName: '', email: '', whatsapp: '' },
-  start: { businessType: 'consulting', market: 'india', language: 'en' },
+  start: { businessType: 'service-based', market: 'india', language: 'en' },
   answers: Object.fromEntries(QUESTIONS.map(q => [q.key, ''])),
   links: { website: '', linkedin: '', instagram: '', other: '' },
   pastedMaterial: '',
@@ -367,14 +364,13 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={onMobileToggle} />
       )}
 
-      {/* ── Desktop: fixed left panel | Mobile: slide-up sheet ── */}
+      {/* ── Desktop: sticky inline sidebar | Mobile: slide-up sheet ── */}
       <aside
         className={[
-          /* shared */
           'bg-white z-40 transition-transform duration-300',
-          /* desktop */
-          'lg:fixed lg:top-20 lg:left-0 lg:bottom-0 lg:w-60 lg:border-r lg:border-gray-200 lg:translate-y-0 lg:translate-x-0 lg:flex lg:flex-col',
-          /* mobile */
+          /* desktop — sticky inline column */
+          'lg:static lg:translate-y-0 lg:translate-x-0 lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden lg:flex lg:flex-col',
+          /* mobile — slide-up sheet */
           'fixed bottom-0 left-0 right-0 rounded-t-2xl shadow-2xl px-4 pt-3 pb-6',
           mobileOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
         ].join(' ')}
@@ -385,16 +381,16 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
         </div>
 
         {/* header */}
-        <div className="hidden lg:flex items-center justify-between px-5 pt-6 pb-3 border-b border-gray-100 shrink-0">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Sections</span>
-          <span className="text-[11px] text-gray-400">
-            {answeredKeys.size}/{QUESTIONS.length} done
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 shrink-0">
+          <span className="text-sm font-semibold text-gray-800">Your intake</span>
+          <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
+            {answeredKeys.size}/{QUESTIONS.length}
           </span>
         </div>
         <p className="lg:hidden text-xs font-semibold text-gray-700 mb-3">Jump to a section</p>
 
         {/* scrollable nav list */}
-        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
           {NAV_SECTIONS.map(sec => {
             const isActive = activeId === sec.id
             const answered = sec.key ? answeredKeys.has(sec.key) : false
@@ -412,33 +408,31 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
                   if (mobileOpen) onMobileToggle()
                 }}
                 className={[
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-xs group',
+                  'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors text-sm',
                   isActive
-                    ? 'bg-primary-50 text-primary-700 font-semibold shadow-sm'
+                    ? 'bg-primary-600 text-white font-medium'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                 ].join(' ')}
               >
-                {/* active bar */}
-                <span className={`shrink-0 w-1 h-5 rounded-full ${isActive ? 'bg-primary-500' : 'bg-transparent group-hover:bg-gray-200'}`} />
                 {/* number / status dot */}
-                <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${dot}`}>
+                <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${isActive ? 'bg-white/20 text-white' : dot}`}>
                   {answered ? '✓' : sec.short ?? '●'}
                 </span>
                 {/* label */}
-                <span className="leading-snug line-clamp-2 flex-1">{sec.label}</span>
+                <span className="leading-snug truncate flex-1 text-xs">{sec.label}</span>
                 {/* required pill */}
                 {sec.required && !answered && (
-                  <span className="shrink-0 text-[9px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">req</span>
+                  <span className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'text-red-500 bg-red-50'}`}>req</span>
                 )}
               </button>
             )
           })}
         </nav>
 
-        {/* footer CTA (desktop) */}
-        <div className="hidden lg:block px-5 py-4 border-t border-gray-100 shrink-0">
+        {/* footer hint */}
+        <div className="px-4 py-3 border-t border-gray-100 shrink-0">
           <p className="text-[11px] text-gray-500 leading-relaxed">
-            Answer all required questions, then click <strong className="text-gray-700">Draft my website</strong> at the bottom.
+            Answer all required questions, then click <strong className="text-gray-700">Draft my website</strong>.
           </p>
         </div>
       </aside>
@@ -452,6 +446,7 @@ function GenieIntakeWidget() {
   const [hydrated, setHydrated] = useState(false)
   const [showExtras, setShowExtras] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null) // { prefill, needsConfirmation, removed, followUps, saved }
   const [quotaInfo, setQuotaInfo] = useState(null)
@@ -589,12 +584,17 @@ function GenieIntakeWidget() {
       const merged = deepMerge(raw, userOwned)
       const honest = enforceHonesty(merged, intake, Array.isArray(data.needsConfirmation) ? data.needsConfirmation : [])
 
+      // Apply programmatic defaults: social links, YouTube video, FAQs, process,
+      // CTA label, invitation, refund policy. These never overwrite non-blank values.
+      const withDefaults = applyProgrammaticDefaults(honest.prefill, intake)
+
       setResult({
-        prefill: honest.prefill,
+        prefill: withDefaults,
         needsConfirmation: honest.needsConfirmation,
         removed: honest.removed,
         followUps: Array.isArray(data.followUps) ? data.followUps.filter(Boolean) : [],
         saved: !!data.saved,
+        intake,   // keep intake so save-wizard can send basics + start + userSocialLinks
       })
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
@@ -604,13 +604,53 @@ function GenieIntakeWidget() {
     }
   }
 
-  const handleOpenWizard = () => {
+  /**
+   * Save the Genie-generated state directly to the user's profile and redirect
+   * to /setup-wizard. The user never visits the 13-step setup wizard.
+   */
+  const handleSaveAndGoToDashboard = async () => {
     if (!result) return
+    setSaving(true)
+    setError(null)
     try {
-      sessionStorage.setItem(PREFILL_KEY, JSON.stringify(result.prefill))
-      sessionStorage.setItem(CONFIRM_KEY, JSON.stringify(result.needsConfirmation))
-    } catch (_) { /* ignore */ }
-    router.push('/setup-wizard')
+      const token = (typeof window !== 'undefined' && (localStorage.getItem('auth_token') || localStorage.getItem('token'))) || ''
+      if (!token) {
+        // Not logged in — fall back to wizard flow (keeps backward compat)
+        try {
+          sessionStorage.setItem(PREFILL_KEY, JSON.stringify(result.prefill))
+          sessionStorage.setItem(CONFIRM_KEY, JSON.stringify(result.needsConfirmation))
+        } catch (_) { /* ignore */ }
+        router.push('/setup-wizard')
+        return
+      }
+
+      const srcIntake = result.intake || intake
+      const userSocialLinks = {}
+      if ((srcIntake.links?.linkedin || '').trim()) userSocialLinks.linkedin = srcIntake.links.linkedin.trim()
+      if ((srcIntake.links?.instagram || '').trim()) userSocialLinks.instagram = srcIntake.links.instagram.trim()
+
+      const res = await fetch('/api/genie/save-wizard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          prefill: result.prefill,
+          basics: srcIntake.basics || {},
+          start: srcIntake.start || {},
+          userSocialLinks,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(typeof data.detail === 'string' ? data.detail : 'Could not save your website data. Please try again.')
+      }
+
+      // Clear local draft — data is now in the DB
+      try { localStorage.removeItem(ANSWERS_STORAGE_KEY) } catch (_) { /* ignore */ }
+      router.push('/setup-wizard')
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
   }
 
   const handleStartOver = () => {
@@ -685,38 +725,56 @@ function GenieIntakeWidget() {
     }
   }
 
-  const handleUseSavedDraft = () => {
+  const handleUseSavedDraft = async () => {
     if (!quotaInfo?.saved_draft) return
-    try {
-      sessionStorage.setItem(PREFILL_KEY, JSON.stringify(quotaInfo.saved_draft))
-      sessionStorage.setItem(CONFIRM_KEY, JSON.stringify([]))
-    } catch (_) {}
+    const token = (typeof window !== 'undefined' && (localStorage.getItem('auth_token') || localStorage.getItem('token'))) || ''
+    if (!token) {
+      // Not logged in — fall back to wizard
+      try {
+        sessionStorage.setItem(PREFILL_KEY, JSON.stringify(quotaInfo.saved_draft))
+        sessionStorage.setItem(CONFIRM_KEY, JSON.stringify([]))
+      } catch (_) {}
+      router.push('/setup-wizard')
+      return
+    }
+    // Saved draft already went through save-wizard on its original generation,
+    // so just navigate to the edit page directly.
     router.push('/setup-wizard')
   }
 
   if (result) {
     return (
-      <ReviewPanel
-        result={result}
-        onOpenWizard={handleOpenWizard}
-        onEdit={() => setResult(null)}
-        onStartOver={handleStartOver}
-      />
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-8">
+        <ReviewPanel
+          result={result}
+          onSaveAndContinue={handleSaveAndGoToDashboard}
+          saving={saving}
+          onEdit={() => setResult(null)}
+          onStartOver={handleStartOver}
+        />
+      </div>
     )
   }
 
   return (
-    <div className="relative">
-      {/* Floating fixed side nav */}
-      <SideNav
-        activeId={activeSection}
-        onNavigate={scrollToSection}
-        mobileOpen={mobileNavOpen}
-        onMobileToggle={() => setMobileNavOpen(o => !o)}
-        answeredKeys={answeredKeys}
-      />
+    <div className="lg:grid lg:grid-cols-12 gap-8">
+      {/* ── Sticky sidebar (desktop) ── */}
+      <div className="hidden lg:block lg:col-span-3 self-start sticky top-24">
+        <div>
+          <SideNav
+            activeId={activeSection}
+            onNavigate={scrollToSection}
+            mobileOpen={mobileNavOpen}
+            onMobileToggle={() => setMobileNavOpen(o => !o)}
+            answeredKeys={answeredKeys}
+          />
+        </div>
+      </div>
 
-      {/* Main form */}
+      {/* ── Main content ── */}
+      <div className="lg:col-span-9">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-8">
+      {/* Mobile FAB is rendered inside SideNav */}
       <form onSubmit={handleGenerate} className="space-y-6">
         {/* Quota Banner */}
         {quotaInfo?.has_saved_draft && (
@@ -724,7 +782,7 @@ function GenieIntakeWidget() {
             <div>
               <p className="font-semibold text-blue-950">You have a saved AI website draft.</p>
               <p className="text-xs text-blue-800 mt-0.5">
-                Editing your saved draft in the wizard is 100% free. Generating a brand-new AI draft is ₹99.
+                Your website is ready to edit. Generating a brand-new AI draft costs ₹99.
               </p>
             </div>
             <button
@@ -732,7 +790,7 @@ function GenieIntakeWidget() {
               onClick={handleUseSavedDraft}
               className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-sm"
             >
-              Continue with saved draft &rarr;
+              Go to my website &rarr;
             </button>
           </div>
         )}
@@ -761,30 +819,49 @@ function GenieIntakeWidget() {
             <input className={inputCls} aria-label="Business email" type="email" placeholder="Business email" value={intake.basics.email} onChange={e => update('basics.email', e.target.value)} />
             <input className={inputCls} aria-label="WhatsApp number" placeholder="WhatsApp number (optional)" value={intake.basics.whatsapp} onChange={e => update('basics.whatsapp', e.target.value)} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label className="text-xs text-gray-600">
-              You are a
-              <select className={`${inputCls} mt-1`} value={intake.start.businessType} onChange={e => update('start.businessType', e.target.value)}>
-                {BUSINESS_TYPES.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select>
-            </label>
-            <label className="text-xs text-gray-600">
-              Your clients are in
-              <select className={`${inputCls} mt-1`} value={intake.start.market} onChange={e => update('start.market', e.target.value)}>
-                <option value="india">India (₹)</option>
-                <option value="global">Outside India ($)</option>
-                <option value="both">Both (₹ and $)</option>
-              </select>
-            </label>
-            <label className="text-xs text-gray-600">
-              Website language
-              <select className={`${inputCls} mt-1`} value={intake.start.language} onChange={e => update('start.language', e.target.value)}>
-                <option value="en">English</option>
-                <option value="hi">Hindi</option>
-                <option value="bn">Bengali</option>
-                <option value="en-hi">English + Hindi</option>
-              </select>
-            </label>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-2">Which describes you best?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup">
+                {BUSINESS_TYPES.map(b => {
+                  const active = intake.start.businessType === b.value
+                  return (
+                    <button
+                      key={b.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => update('start.businessType', b.value)}
+                      className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                        active ? 'border-primary-600 bg-primary-50 ring-1 ring-primary-600' : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <span className={`block font-medium ${active ? 'text-primary-800' : 'text-gray-900'}`}>{b.label}</span>
+                      {b.hint && <span className="block text-xs text-gray-500 mt-0.5">{b.hint}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="text-xs text-gray-600">
+                Your clients are in
+                <select className={`${inputCls} mt-1`} value={intake.start.market} onChange={e => update('start.market', e.target.value)}>
+                  <option value="india">India (₹)</option>
+                  <option value="global">Outside India ($)</option>
+                  <option value="both">Both (₹ and $)</option>
+                </select>
+              </label>
+              <label className="text-xs text-gray-600">
+                Website language
+                <select className={`${inputCls} mt-1`} value={intake.start.language} onChange={e => update('start.language', e.target.value)}>
+                  <option value="en">English</option>
+                  <option value="hi">Hindi</option>
+                  <option value="bn">Bengali</option>
+                  <option value="en-hi">English + Hindi</option>
+                </select>
+              </label>
+            </div>
           </div>
         </fieldset>
 
@@ -932,7 +1009,7 @@ function GenieIntakeWidget() {
                     onClick={handleUseSavedDraft}
                     className="inline-flex items-center px-3.5 py-2 bg-white border border-gray-300 text-gray-700 font-medium text-xs rounded-lg hover:bg-gray-50"
                   >
-                    Continue with previous draft (Free)
+                    Go to my website (Free)
                   </button>
                 )}
               </div>
@@ -958,6 +1035,8 @@ function GenieIntakeWidget() {
           </button>
         </div>
       </form>
+      </div>
+      </div>
     </div>
   )
 }
@@ -965,7 +1044,7 @@ function GenieIntakeWidget() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Review panel — what Genie drafted, what to check, what only the user can add
 // ─────────────────────────────────────────────────────────────────────────────
-function ReviewPanel({ result, onOpenWizard, onEdit, onStartOver }) {
+function ReviewPanel({ result, onSaveAndContinue, saving, onEdit, onStartOver }) {
   const { prefill: p, needsConfirmation, removed, followUps, saved } = result
   const flagged = path => needsConfirmation.some(f => f === path || f.startsWith(`${path}.`))
   const pos = p.positioning || {}
@@ -995,9 +1074,9 @@ function ReviewPanel({ result, onOpenWizard, onEdit, onStartOver }) {
       <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-sm">
         <CheckCircle className="w-5 h-5 mt-0.5 shrink-0 text-green-600" />
         <div>
-          <p className="font-semibold text-green-900">Genie drafted your website. Review it below, then finish in the setup wizard.</p>
+          <p className="font-semibold text-green-900">Genie drafted your website. Review it below, then click <strong>Save &amp; go to my website</strong>.</p>
           <p className="text-xs text-green-800 mt-0.5">
-            {saved ? 'Draft saved to your account.' : <>Draft kept on this device only. <a href="/login" className="underline">Log in</a> to save it to your account.</>}
+            {saved ? 'Draft saved to your account. You can edit every field from your dashboard.' : <>Draft kept on this device only. <a href="/login" className="underline">Log in</a> to save it to your account.</>}
           </p>
         </div>
       </div>
@@ -1136,15 +1215,18 @@ function ReviewPanel({ result, onOpenWizard, onEdit, onStartOver }) {
       <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-200">
         <button
           type="button"
-          onClick={onOpenWizard}
-          className="inline-flex items-center justify-center px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-sm transition-colors flex-1"
+          onClick={onSaveAndContinue}
+          disabled={saving}
+          className="inline-flex items-center justify-center px-8 py-3.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-colors flex-1"
         >
-          Continue in the setup wizard<ArrowRight className="w-4 h-4 ml-2" />
+          {saving
+            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving your website…</>
+            : <>Save &amp; go to my website<ArrowRight className="w-4 h-4 ml-2" /></>}
         </button>
-        <button type="button" onClick={onEdit} className="inline-flex items-center justify-center px-6 py-3.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-50">
+        <button type="button" onClick={onEdit} disabled={saving} className="inline-flex items-center justify-center px-6 py-3.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-50 disabled:opacity-50">
           Edit my answers
         </button>
-        <button type="button" onClick={onStartOver} className="inline-flex items-center justify-center px-4 py-3.5 text-gray-500 hover:text-red-600 text-sm">
+        <button type="button" onClick={onStartOver} disabled={saving} className="inline-flex items-center justify-center px-4 py-3.5 text-gray-500 hover:text-red-600 text-sm disabled:opacity-50">
           Start over
         </button>
       </div>
@@ -1175,33 +1257,31 @@ export default function AIWebsiteBuilderPage() {
   if (!authChecked) return null
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      {/* Content area — on desktop, left edge starts after the 240px fixed sidebar */}
-      <div className="lg:pl-60 min-h-[calc(100vh-5rem)]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          {/* Page header */}
-          <div className="mb-8">
-            <div className="inline-flex items-center px-3 py-1.5 bg-primary-50 border border-primary-100 rounded-full text-xs font-medium mb-4 text-primary-700">
-              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-              {feature.status || 'Available'}
-            </div>
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 leading-tight">
-              {feature.title || 'AI Website Builder'}
-            </h1>
-            <p className="text-base text-gray-600 max-w-xl leading-relaxed">
-              Answer a few questions about your business. Genie drafts your positioning, offers and pages, and you confirm the details before anything goes live.
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Takes about 10 minutes. Keep your price list and LinkedIn link handy.
-            </p>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Top banner */}
+      <div className="bg-blue-600 text-white text-center py-3 px-4 text-sm font-medium">
+        Answer a few questions about your business. Our AI drafts your positioning, offers and pages.
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page header */}
+        <div className="mb-6">
+          <div className="inline-flex items-center px-3 py-1.5 bg-primary-50 border border-primary-100 rounded-full text-xs font-medium mb-3 text-primary-700">
+            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+            {feature.status || 'Available'}
           </div>
-
-          <GenieIntakeWidget />
-
-          <p className="text-center text-xs text-gray-400 mt-6 pb-8">
-            Your answers are saved on this device as you type. Genie never invents prices, numbers or testimonials.
+          <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 leading-tight">
+            {feature.title || 'AI Website Builder'}
+          </h1>
+          <p className="text-sm text-gray-600 max-w-xl leading-relaxed">
+            Takes about 10 minutes. Keep your price list and LinkedIn link handy.
           </p>
         </div>
+
+        <GenieIntakeWidget />
+        <p className="text-center text-xs text-gray-400 mt-4 pb-8">
+          Your answers are saved on this device as you type. Genie never invents prices, numbers or testimonials.
+        </p>
       </div>
     </div>
   )

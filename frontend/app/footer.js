@@ -11,14 +11,14 @@ import {
 } from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
 
-const SUPPRESS_HEADER_PREFIXES = ['/admin']
+const SUPPRESS_HEADER_PREFIXES = ['/admin', '/templates']
 
 function isFounderSitePath(pathname) {
   if (SUPPRESS_HEADER_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) return true
   const PLATFORM_ROUTES = new Set([
     'dashboard', 'profile', 'settings', 'platform', 'setup-wizard',
     'login', 'signout', 'pricing', 'resources', 'community',
-    'marketing', 'contact', 'get_started', 'about', 'auth',
+    'marketing', 'contact', 'get_started', 'about', 'auth', 'templates',
   ])
   if (!/^\/[a-z0-9][a-z0-9-]*$/.test(pathname)) return false
   const segment = pathname.slice(1)

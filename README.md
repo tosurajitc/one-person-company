@@ -56,7 +56,8 @@ The platform ships a **three-tier pricing model** (Free Starter → Pro Founder 
 | `/platform/ai-website-builder` | AI Website Builder & custom site generation |
 | `/platform/content-studio` | ✅ Specialist Content Creation Studio — **20 specialist agents** across 5 categories (Marketing & Content, Sales & Clients, Strategy & Planning, Money & Compliance, Operations & Productivity) with sticky left-nav, per-minute live timer, Voice-to-Text, and FB Marketing agent wired to Claude Sonnet |
 | `/platform/offers-payments` | Offers & Payments (Products, services, courses & multi-currency checkout) |
-| `/setup-wizard` | ✅ 12-Step Website & Business Setup Wizard (full responsive layout, JSON export, prefill sync) |
+| `/setup-wizard` | ✅ 13-Step Website & Business Setup Wizard (schema 2.0, Genie prefill sync, template selection, ConfirmedChip, submits to `/api/sites/build`) |
+| `/templates` | ✅ Template Gallery — **16 templates** across 5 categories; 11 live with full preview pages at `/templates/{slug}` |
 
 > The header **Features** dropdown, footer Platform links, and `site.config.js` feature cards point directly to these platform routes.
 
@@ -128,14 +129,14 @@ The admin panel is for **platform operators only** — not founders. Access requ
 | Language | Python 3.12 |
 | Web framework | FastAPI 0.115 |
 | ORM | SQLAlchemy 2.0 (async-ready) |
-| Migrations | Alembic 1.20 — nine migration scripts applied (`aabc0f0a2cfd` → `f7e3dc7821f6` → `b9e4dc8910ab` → `c3a1e9f02b4d` → `a1b2c3d4e5f6` → `a3f9b1c2d4e5` → `d4e5f6a7b8c9` → `e5f6a7b8c9d0` → `f1a2b3c4d5e6`) |
+| Migrations | Alembic 1.20 — **17 migration scripts applied** (`aabc0f0a2cfd` → `f7e3dc7821f6` → `b9e4dc8910ab` → `c3a1e9f02b4d` → `a1b2c3d4e5f6` → `a3f9b1c2d4e5` → `d4e5f6a7b8c9` → `e5f6a7b8c9d0` → `f1a2b3c4d5e6` → `80d89c47ebd9` → `c4d5e6f7a8b9` → `d2e3f4a5b6c7` → `e3f4a5b6c7d8` → `g2h3i4j5k6l7` → `b7c8d9e0f1a2` → `h3i4j5k6l7m8`) |
 | Database | PostgreSQL 14+ (`ai_services_platform` DB) |
 | Auth | `python-jose` (JWT HS256) + `passlib`/`bcrypt` for password hashing |
 | OAuth | `httpx` (direct token exchange with Google / Microsoft / GitHub / LinkedIn) |
 | Validation | Pydantic v2 + `pydantic-settings` |
 | File handling | `python-multipart`, `aiofiles` |
 | Templates | Jinja2 (email templates) |
-| AI integration | Groq SDK (`groq==0.4.1`) — wired to `POST /api/chat` (general Genie) and `POST /api/genie/draft-site` (wizard prefill); Anthropic SDK (`anthropic`) for Claude Sonnet — wired to Facebook Marketing specialist agent |
+| AI integration | Groq SDK (`groq==0.4.1`) — wired to `POST /api/chat`, `POST /api/genie/draft-site`, and **`POST /api/genie/intake`** (schema 2.0 structured intake); Anthropic SDK (`anthropic`) for Claude Sonnet — wired to Facebook Marketing specialist agent. AI credit tracking via `ai_generations_count` / `ai_generation_credits` columns on `User`. |
 | Payments | Razorpay (`razorpay==1.4.2`) primary + Stripe (`stripe==11.3.0`) international — order creation, HMAC verification, webhook handlers |
 | Server | Uvicorn with standard extras |
 
@@ -177,6 +178,7 @@ one-person-company/
 │   │   ├── providers.js                     # React context providers wrapper
 │   │   ├── header.js / footer.js            # Global nav + footer (config-driven, auth-aware)
 │   │   ├── [username]/
+│   │   │   ├── page.js                      # ✅ Founder's public website — dynamically loads template or GenericSite fallback
 │   │   │   ├── [offer-slug]/                # ✅ Public offer landing page
 │   │   │   │   ├── layout.js
 │   │   │   │   └── page.js
@@ -209,13 +211,27 @@ one-person-company/
 │   │   ├── login/                           # Public login (OAuth + email/password)
 │   │   ├── marketing/                       # ✅ High-converting sales funnel landing page
 │   │   ├── platform/
-│   │   │   ├── ai-website-builder/          # ✅ AI Website Builder feature page
+│   │   │   ├── ai-website-builder/          # ✅ Genie intake → review → save (Phase 1 replacement)
 │   │   │   ├── content-studio/              # ✅ Specialist Content Studio (20 agents, 5 categories)
 │   │   │   └── offers-payments/             # ✅ Offers & Payments feature page
+│   │   │   # my-website/ deleted — users go to /{username} directly after build
 │   │   ├── pricing/                         # Pricing plans + FAQ
 │   │   ├── profile/                         # User profile management
 │   │   ├── resources/                       # Founder playbooks & guides
-│   │   ├── setup-wizard/                    # ✅ 12-step business setup wizard
+│   │   ├── setup-wizard/                    # ✅ 13-step schema 2.0 wizard (Phase 1) — exports TEMPLATE_CATALOGUE
+│   │   ├── templates/
+│   │   │   ├── page.js                      # ✅ Template gallery — 16 templates across 5 categories (Phase 2)
+│   │   │   ├── agency-of-one/page.js        # ✅ Slate + Cyan — process-driven, deliverables ladder
+│   │   │   ├── author-speaker/page.js       # ✅ Burgundy + Blush — book showcase, media kit
+│   │   │   ├── clinic-practitioner/page.js  # ✅ Medical Blue + Lavender — appointment, credentials, FAQ
+│   │   │   ├── coach-mentor/page.js         # ✅ Terracotta + Cream — transformation story, testimonials
+│   │   │   ├── consultant-advisor/page.js   # ✅ Navy + Gold — authority, case studies
+│   │   │   ├── course-creator/page.js       # ✅ Deep Teal + Amber — curriculum preview, enrolment
+│   │   │   ├── digital-product-seller/page.js # ✅ Hot Pink + Dark — instant download, price anchor
+│   │   │   ├── freelancer-creative/page.js  # ✅ Electric Violet + Lime — portfolio-led
+│   │   │   ├── local-service-pro/page.js    # ✅ Forest + Saffron — WhatsApp CTA, GST badges
+│   │   │   ├── newsletter-community/page.js # ✅ Indigo + Mint — subscriber-first, free → paid
+│   │   │   └── tutor-training/page.js       # ✅ Sunflower + Sky — batch schedule, subject grid
 │   │   └── signout/                         # Sign-out handler
 │   ├── components/
 │   │   ├── AdminShell.js                    # ✅ Shared admin sidebar + header
@@ -225,6 +241,8 @@ one-person-company/
 │   ├── hooks/
 │   │   ├── useAuth.js                       # Auth state hook
 │   │   └── useSiteConfig.js                 # Config hook: static defaults → DB override
+│   ├── lib/
+│   │   └── wizard-schema.js                 # ✅ Schema 2.0 blank template + applyProgrammaticDefaults (Phase 1)
 │   ├── middleware.js                         # JWT cookie check — protects /dashboard, /admin
 │   ├── site.config.js                       # ⚡ Single source of truth for brand/feature defaults
 │   ├── next.config.js                       # API proxy + platform URL redirects + standalone output
@@ -239,8 +257,8 @@ one-person-company/
 │   │   │   │   ├── auth_routes.py           # Login, register, OAuth, me, verify, logout
 │   │   │   │   ├── chat_routes.py           # ✅ POST /api/chat — AI Genie (Groq-backed)
 │   │   │   │   ├── agent_session_routes.py  # ✅ Specialist agent sessions + per-min billing
-│   │   │   │   ├── genie_routes.py          # ✅ POST /api/genie/draft-site (wizard AI prefill)
-│   │   │   │   ├── site_build_routes.py     # ✅ POST /api/sites/build (wizard → site generation)
+│   │   │   │   ├── genie_routes.py          # ✅ /draft-site + /intake + /save-wizard + /status (Phase 1)
+│   │   │   │   ├── site_build_routes.py     # ✅ POST /api/sites/build + GET /api/sites/public/{slug} (Phase 1)
 │   │   │   │   ├── fb_agent_routes.py       # ✅ POST /api/agent/fb-marketing/chat (Claude Sonnet)
 │   │   │   │   ├── lead_routes.py           # ✅ POST /api/leads, GET list, funnel stats
 │   │   │   │   ├── subscriber_routes.py     # ✅ Newsletter subscribe (public) + admin CRUD
@@ -257,13 +275,14 @@ one-person-company/
 │   │   │   ├── config.py                    # Settings (DB, Razorpay, Stripe, Groq, Anthropic)
 │   │   │   ├── auth.py                      # JWT helpers, password hashing
 │   │   │   ├── dependencies.py              # get_current_user, get_current_admin_user
-│   │   │   ├── middleware.py
+│   │   │   ├── middleware.py                # ✅ Phase 0 rewrite — exact (method,path) matching + rate limits
+│   │   │   ├── middleware_old.py            # Archived pre-Phase-0 version — do not use
 │   │   │   └── oauth.py                     # OAuth token exchange helpers
 │   │   ├── models/
 │   │   │   ├── user.py                      # User, UserRole, OAuthProvider
 │   │   │   ├── lead.py                      # ✅ Lead — email capture & conversion tracking
 │   │   │   ├── newsletter_subscriber.py     # ✅ NewsletterSubscriber
-│   │   │   ├── offer.py                     # Offer — offer_type includes "community"
+│   │   │   ├── offer.py                     # Offer — Phase 1 adds tier, price_usd, deliverables, is_highlighted, sort_order, founder_site_id
 │   │   │   ├── chat.py                      # ✅ ChatMessage — session history
 │   │   │   ├── agent_session.py             # ✅ AgentSession + AgentSessionMessage
 │   │   │   ├── subscription.py              # ✅ UserSubscription + Payment
@@ -272,11 +291,14 @@ one-person-company/
 │   │   │   ├── content_asset.py             # ContentAsset (media assets)
 │   │   │   ├── resource.py                  # Resource (playbooks/guides)
 │   │   │   ├── site_settings.py             # SiteSetting (JSONB key-value store)
-│   │   │   ├── user_site_settings.py        # ✅ UserSiteSettings (per-founder wizard config)
+│   │   │   ├── user_site_settings.py        # ✅ UserSiteSettings (per-founder wizard config, unique user_id+key)
+│   │   │   ├── founder_site.py              # ✅ FounderSite + FounderSiteSlugHistory (Phase 1)
 │   │   │   ├── page.py                      # CMS page model
 │   │   │   └── contact.py                   # ContactSubmission
 │   │   ├── schemas/                         # Pydantic request/response schemas
-│   │   ├── services/                        # Business logic layer
+│   │   ├── services/
+│   │   │   ├── reserved_names.py            # ✅ Reserved username/slug validation (Phase 1)
+│   │   │   └── offer_sync_service.py        # ✅ Wizard tiers → Offer rows, never deletes (Phase 1)
 │   │   └── db/                              # DB init helpers + playbook seed data
 │   ├── alembic/
 │   │   └── versions/
@@ -288,7 +310,14 @@ one-person-company/
 │   │       ├── a3f9b1c2d4e5_*.py            # ✅ fb_agent_states table
 │   │       ├── d4e5f6a7b8c9_*.py            # ✅ user_site_settings table
 │   │       ├── e5f6a7b8c9d0_*.py            # ✅ extend offer_type enum
-│   │       └── f1a2b3c4d5e6_*.py            # ✅ schema_version on user_site_settings
+│   │       ├── f1a2b3c4d5e6_*.py            # ✅ schema_version on user_site_settings
+│   │       ├── 80d89c47ebd9_*.py            # ✅ merge heads before founder_sites (Phase 1)
+│   │       ├── c4d5e6f7a8b9_*.py            # ✅ founder_sites + slug history table (Phase 1 / Mig 10)
+│   │       ├── d2e3f4a5b6c7_*.py            # ✅ offer tier fields (Phase 1 / Mig 11)
+│   │       ├── e3f4a5b6c7d8_*.py            # ✅ unique (user_id, key) on user_site_settings (Phase 1 / Mig 12)
+│   │       ├── g2h3i4j5k6l7_*.py            # ✅ template_slug + template_section on user_site_settings (Phase 2 / Mig 13)
+│   │       ├── b7c8d9e0f1a2_*.py            # ✅ ai_generations_count + ai_generation_credits on users (Phase 2 / Mig 14)
+│   │       └── h3i4j5k6l7m8_*.py            # ✅ merge heads (bookkeeping only — no DDL) (Phase 2 / Mig 15)
 │   ├── Dockerfile/
 │   │   └── Dockerfile                       # ✅ Python 3.12 slim; runs alembic then uvicorn
 │   ├── push_config.py                       # Utility: push site.config.js defaults to DB
@@ -310,15 +339,17 @@ one-person-company/
 
 | Model | Table | Purpose |
 |-------|-------|---------|
-| `User` | `users` | All registered users; roles: `user`, `admin`, `super_admin`; `username` field for public offer/community URLs |
+| `User` | `users` | All registered users; roles: `user`, `admin`, `super_admin`; `username` field for public offer/community URLs; **Phase 2** adds `ai_generations_count` and `ai_generation_credits` columns |
 | `Lead` | `leads` | Captured leads — `email`, `source`, UTM parameters, `referrer_url`, `converted_to_user_id` |
 | `NewsletterSubscriber` | `newsletter_subscribers` | ✅ Footer newsletter subscriptions — `email`, `name`, `source`, `is_active`, `subscribed_at`, `unsubscribed_at` |
-| `Offer` | `offers` | Offer catalogue — `slug`, `price`, `currency`, `creator_id`; `offer_type` ∈ `course`, `digital_product`, `coaching`, `service`, `video`, `audio`, `book`, `event`, `physical`, `bundle`, **`community`**, `other` |
+| `FounderSite` | `founder_sites` | ✅ Phase 1 — one row per founder's public website; `user_id` unique, `slug` unique, `theme`, `status`, `custom_domain`, `published_at` |
+| `FounderSiteSlugHistory` | `founder_site_slug_history` | ✅ Phase 1 — every old slug a founder ever used; prevents re-claiming; drives 301 redirects |
+| `Offer` | `offers` | Offer catalogue — `slug`, `price`, `currency`, `creator_id`; `offer_type` ∈ `course`, `digital_product`, `coaching`, `service`, `video`, `audio`, `book`, `event`, `physical`, `bundle`, **`community`**, `other`; Phase 1 adds `tier`, `price_usd`, `deliverables`, `is_highlighted`, `sort_order`, `founder_site_id` |
 | `ChatMessage` | `chat_messages` | AI Genie conversation history — `user_id` (nullable), `session_id`, `role`, `content` |
 | `AgentSession` | `agent_sessions` | ✅ Specialist Agent live sessions — `session_id`, `agent_id`, `rate_per_minute`, `free_seconds` (60s), `total_seconds`, `billable_minutes`, `total_charged`, `status` |
 | `AgentSessionMessage` | `agent_session_messages` | ✅ Live specialist chat & voice history — `session_id`, `role`, `content`, `input_type` (`text`/`voice`) |
 | `UserSubscription` | `user_subscriptions` | One row per user — active plan (`free`/`pro`/`enterprise`), billing cycle, gateway IDs, period dates |
-| `UserSiteSettings` | `user_site_settings` | ✅ Per-founder site & brand configuration generated by setup-wizard or customizer |
+| `UserSiteSettings` | `user_site_settings` | ✅ Per-founder site & brand configuration generated by setup-wizard or customizer; **Phase 2** adds `template_slug` and `template_section` denormalised columns + composite index |
 | `Payment` | `payments` | Every payment transaction — gateway-agnostic; records order ID, payment ID, signature, amount, raw webhook payload |
 | `Community` | `communities` | ✅ Tenant root — one per founder community; backed by an `Offer` row; unique `(owner_id, slug)` |
 | `CommunitySettings` | `community_settings` | ✅ 1:1 per community — welcome message, categories, rules, feature flags |
@@ -461,7 +492,11 @@ one-person-company/
 |--------|------|--------|-------------|
 | `POST` | `/api/chat` | Public (quota-limited) | Send a message to the general AI Genie (Groq-backed). Anonymous: 5/day · Free: 20/day · Pro: 200/day · Enterprise: unlimited. |
 | `POST` | `/api/genie/draft-site` | Public | Wizard Step 1 AI prefill — receives business description, returns partial schema 2.0 wizard state. |
-| `POST` | `/api/sites/build` | Auth | Receives full setup wizard payload (schema 2.0), persists to `user_site_settings`, returns preview URL. |
+| `POST` | `/api/genie/intake` | Public (rate-limited) | **Phase 1** — structured schema 2.0 intake; receives answers + links + pasted material; returns `{ prefill, needsConfirmation, followUps, saved, remaining_credits }`. |
+| `GET` | `/api/genie/status` | Auth | **Phase 1** — returns the logged-in user's last saved Genie draft (for wizard reload). |
+| `POST` | `/api/genie/save-wizard` | Auth | **Phase 1** — saves completed Genie state directly to `user_site_settings` (skips the 13-step wizard). |
+| `POST` | `/api/sites/build` | Auth | **Phase 1** — requires login; validates slug (reserved_names.py), creates/updates `founder_sites` row + slug history, syncs offers via `offer_sync_service`, persists to `user_site_settings`; returns preview URL. |
+| `GET` | `/api/sites/public/{slug}` | Public | **Phase 1** — returns full `site_build_payload` for a slug; 404 if no `founder_sites` row exists. |
 | `POST` | `/api/agent-session/start` | Public / Auth | Initialize a live Specialist Agent session (starts timer, grants first 60s free). |
 | `POST` | `/api/agent-session/heartbeat` | Public / Auth | Heartbeat every 15s — computes elapsed duration and billable minute units. |
 | `POST` | `/api/agent-session/stop` | Public / Auth | Stop session clock, finalize billable time, compute total charged. |
@@ -678,7 +713,7 @@ docker compose up --build
 | **Auth state desync on same-tab navigation** | After admin login, navigating to `/dashboard` in the same tab may show the header as logged-out because the `storage` event only fires across tabs. The dashboard reads `localStorage` on mount correctly, but the header may lag by one render cycle. | `header.js` → `checkUserAuth` — switch to `AuthContext` or call `window.dispatchEvent(new Event('storage'))` after login writes. Full fix tracked in Scope of Improvement §2. |
 | **`SECRET_KEY` not set** | All JWTs invalidated on every restart | `config.py` / `.env` |
 | **Platform directories renamed** | All platform directories now use clean descriptive names: `ai-website-builder/`, `content-studio/`, `offers-payments/` | `frontend/app/platform/` |
-| **Public path prefix matching** | `startswith()` check makes all sub-paths of a route public | `AuthenticationMiddleware` |
+| ~~**Public path prefix matching**~~ | **Fixed in Phase 0** — `AuthenticationMiddleware` rewritten with exact `(method, path)` compiled regex matching; `"/"` no longer leaks. `middleware_old.py` is the archived pre-fix version. | `AuthenticationMiddleware` |
 | **venv path is hardcoded** | `venv/Scripts/` launchers embed the creation-time absolute path — copying the project breaks them | Recreate with `py -3 -m venv venv` at the new location |
 | **Subscription tier from payment amount** | `_upsert_subscription()` defaults every successful payment to `PlanTier.PRO` — add a `plan` field to `Payment` before going live | `payment_routes.py` → `_upsert_subscription()` |
 | **Stripe amounts use a placeholder FX rate** | `create-order` converts INR → USD cents with a hardcoded multiplier — replace with a live FX lookup before enabling Stripe in production | `payment_routes.py` → `create_order()` |
@@ -686,6 +721,25 @@ docker compose up --build
 | **Community creation needs Pro/Enterprise** | Free-tier users get a 403 from `POST /api/communities`. The frontend shows an upgrade prompt, but `UserSubscription` must exist for the user — new OAuth signups have no subscription row until they upgrade. | `community_routes.py` → `_require_pro_or_enterprise()` |
 
 ---
+
+
+## Build Phase Tracker
+
+Eight phases from the build plan. A phase is **Done** only when its "Done when" test passes end-to-end.
+
+| Phase | Goal | Status |
+|-------|------|--------|
+| **Phase 0** — Security Fix | API auth closed; nothing breaks; unauthenticated call to protected route → 401 | ✅ Done |
+| **Phase 1** — Foundation | Genie → wizard → build saves `founder_sites`, `user_site_settings` (v2.0), and `offers` rows | ✅ Done |
+| **Phase 2** — Template (samples) | 11 live template preview pages at `/templates/{slug}`; gallery at `/templates`; `/{username}` dynamically loads correct template; `template_slug` persisted to DB | ✅ Done |
+| **Phase 3** — Real data + copy | Build → Claude copy → validated → `/username` shows the live site at its slug | 🔲 Not started |
+| **Phase 4** — Theme gallery | Theme switch via `/templates` + live preview; switching keeps content | 🔲 Not started |
+| **Phase 5** — Site admin | Every wizard field editable from `/dashboard/site`; changes appear on live site | 🔲 Not started |
+| **Phase 6** — Sales Desk | Enquiry arrives → agent drafts reply → owner approves → reply sends | 🔲 Not started |
+| **Phase 7** — Subdomains & domains | Site loads at its subdomain; verified custom domain works | 🔲 Not started |
+
+---
+
 
 ## Scope of Improvement
 

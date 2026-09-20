@@ -1804,22 +1804,28 @@ export default function SystemSettings() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200">
-          <div className="flex overflow-x-auto border-b border-gray-200">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${
-                    activeTab === tab.id ? 'text-primary-600 border-b-2 border-blue-400 bg-blue-500/5' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 mr-2" />{tab.name}
-                </button>
-              )
-            })}
+        <div className="flex gap-6 items-start">
+          {/* Left sidebar nav */}
+          <div className="w-56 shrink-0 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <nav className="flex flex-col py-2">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors text-left ${
+                      activeTab === tab.id
+                        ? 'text-blue-600 bg-blue-500/8 border-r-2 border-blue-500'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 mr-3 shrink-0" />{tab.name}
+                  </button>
+                )
+              })}
+            </nav>
           </div>
-          <div className="p-6">
+          {/* Right content panel */}
+          <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 p-6">
             {renderTabContent()}
           </div>
         </div>

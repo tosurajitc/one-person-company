@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, ForeignKey, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey, Enum as SAEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 import enum
 from app.core.database import Base
@@ -44,6 +45,19 @@ class Offer(Base):
     lessons_count = Column(Integer, default=0, nullable=False)
     thumbnail_url = Column(String(500), nullable=True)
 
+    # --- Added by Migration 11, for the setup wizard's pricing ladder ---
+    tier = Column(String(50), nullable=True)                       # "front_door" | "core" | "recurring"
+    price_usd = Column(Numeric(10, 2), nullable=True)               # USD price, kept alongside price/currency
+    deliverables = Column(JSONB, nullable=True)                     # list of strings, e.g. ["Item one", "Item two"]
+    is_highlighted = Column(Boolean, default=False, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    founder_site_id = Column(
+        Integer,
+        ForeignKey("founder_sites.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -66,6 +80,12 @@ class Offer(Base):
             "duration": self.duration,
             "lessons_count": self.lessons_count,
             "thumbnail_url": self.thumbnail_url,
+            "tier": self.tier,
+            "price_usd": float(self.price_usd) if self.price_usd is not None else None,
+            "deliverables": self.deliverables,
+            "is_highlighted": self.is_highlighted,
+            "sort_order": self.sort_order,
+            "founder_site_id": self.founder_site_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

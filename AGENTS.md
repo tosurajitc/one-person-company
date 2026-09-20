@@ -47,8 +47,8 @@ app.add_middleware(RequestLoggingMiddleware)   # executes second
 app.add_middleware(AuthenticationMiddleware)   # executes first
 ```
 
-### Public paths are prefix-matched, not exact
-`AuthenticationMiddleware.PUBLIC_PATHS` uses `path.startswith()` — adding `/api/contact` makes ALL `/api/contact*` paths public. Be precise.
+### ~~Public paths are prefix-matched, not exact~~ — FIXED (Phase 0)
+`AuthenticationMiddleware` was rewritten in Phase 0. It now uses **exact `(method, path)` matching** via a compiled regex per route — `"/"` no longer leaks to every route. The old `PUBLIC_PATHS` list is gone; the new `PUBLIC_ROUTES` list is a list of `(method, path)` tuples where `{param}` matches one URL segment. Rate limiting (per-client-IP, sliding window) is also wired in the same middleware. The `middleware_old.py` file is the archived pre-Phase-0 version — do not use it.
 
 ### Password hashing uses two incompatible implementations
 - `app/core/auth.py` (`SecurityService.hash_password`) uses `passlib.CryptContext` with bcrypt
@@ -69,8 +69,8 @@ These are not in sync. A user can be authenticated in-app but the middleware won
 ### `next.config.js` has hardcoded legacy redirects
 Old paths like `/platform/ai-genie`, `/platform/website-builder` redirect to the real current routes. The live platform directories are `ai-website-builder/`, `content-studio/`, `offers-payments/` — do not add pages at the old names.
 
-### Alembic has 9 applied migrations
-`alembic.ini` is fully configured. Nine migration scripts are in `alembic/versions/` — always run `alembic upgrade head` from `backend/` before starting the server. If you add a new model, import it in `alembic/env.py` before running `--autogenerate`.
+### Alembic has 17 applied migrations
+`alembic.ini` is fully configured. Migration scripts are in `alembic/versions/` — always run `alembic upgrade head` from `backend/` before starting the server. If you add a new model, import it in `alembic/env.py` before running `--autogenerate`.
 
 Current migration chain (oldest → newest):
 1. `aabc0f0a2cfd` — Rename Course→Offer, Resource→ContentAsset
@@ -79,21 +79,78 @@ Current migration chain (oldest → newest):
 4. `c3a1e9f02b4d` — Community tenant rearchitecture
 5. `a1b2c3d4e5f6` — newsletter_subscribers table
 6. `a3f9b1c2d4e5` — fb_agent_states table
-7. `d4e5f6a7b8c9` — user_site_settings table
+7. `d4e5f6a7b8c9` — user_site_settings table (with unique `(user_id, key)` constraint)
 8. `e5f6a7b8c9d0` — extend offer_type enum
-9. `f1a2b3c4d5e6` — schema_version on user_site_settings
+9. `f1a2b3c4d5e6` — schema_version column on user_site_settings
+10. `80d89c47ebd9` — merge heads before founder_sites (Phase 1 prep)
+11. `c4d5e6f7a8b9` — founder_sites table + founder_site_slug_history (Phase 1 / Migration 10)
+12. `d2e3f4a5b6c7` — offer tier fields: tier, price_usd, deliverables, is_highlighted, sort_order, founder_site_id (Phase 1 / Migration 11)
+13. `e3f4a5b6c7d8` — unique (user_id, key) constraint on user_site_settings (Phase 1 / Migration 12)
+14. `g2h3i4j5k6l7` — add `template_slug` + `template_section` columns to user_site_settings + composite index (Phase 2 / Template system)
+15. `b7c8d9e0f1a2` — add `ai_generations_count` + `ai_generation_credits` columns to users (Phase 2 / AI credit tracking)
+16. `h3i4j5k6l7m8` — merge heads: `b7c8d9e0f1a2`, `e3f4a5b6c7d8`, `g2h3i4j5k6l7` (bookkeeping only — no DDL)
+
+> ⚠️ Migration 12 (`e3f4a5b6c7d8`) adds a unique constraint on `user_site_settings(user_id, key)`. Before running it on a DB that had the old wizard, de-duplicate any rows with the same `(user_id, key)` first.
+
+> ℹ️ Migration 14 (`g2h3i4j5k6l7`) adds `template_slug` / `template_section` as **nullable** columns — safe to apply to existing rows. Existing `user_site_settings` rows with `key = 'template'` will have `NULL` until they are re-saved through the wizard or the build endpoint.
 
 ### New route files added (not in older docs)
-- `genie_routes.py` — `POST /api/genie/draft-site`: wizard AI prefill via Groq; returns partial schema 2.0 state
-- `site_build_routes.py` — `POST /api/sites/build`: receives full wizard payload, persists to `user_site_settings`, returns preview URL
+- `genie_routes.py` — `POST /api/genie/draft-site` (Groq wizard prefill); **`POST /api/genie/intake`** (Phase 1 — schema 2.0 intake, returns `{prefill, needsConfirmation, followUps, saved, remaining_credits}`); **`POST /api/genie/save-wizard`** (Phase 1 — saves completed Genie state directly, skipping the 13-step wizard); **`GET /api/genie/status`** (returns saved draft for the logged-in user)
+- `site_build_routes.py` — `POST /api/sites/build` (Phase 1 — requires login, validates slug via `reserved_names.py`, creates/updates `founder_sites` row, syncs offers, returns preview URL); **`GET /api/sites/public/{slug}`** (Phase 1 — returns published site payload including `templateSlug`; no auth required)
 - `fb_agent_routes.py` — `POST /api/agent/fb-marketing/chat`: Facebook Marketing specialist via Anthropic Claude Sonnet
 - `agent_session_routes.py` — live specialist session lifecycle: start / heartbeat / stop / message / get
+
+### New service files added (Phase 1)
+- `services/reserved_names.py` — single source of truth for reserved usernames and site slugs; used by registration, `content_routes.py`, and `site_build_routes.py`. Call `is_available(name, db=db, check_site_slug=True)` — returns `(True, None)` or `(False, reason)`.
+- `services/offer_sync_service.py` — turns wizard `offers.tiers` into real `Offer` rows matched by `(creator_id, tier)`; never deletes offers; call `sync_offers_from_wizard(db, user, offers_payload, founder_site=...)`.
+
+### New model files added (Phase 1)
+- `models/founder_site.py` — `FounderSite` (one row per founder's public site: `user_id` unique, `slug` unique, `theme`, `status`, `custom_domain`, `published_at`) and `FounderSiteSlugHistory` (every old slug preserved for 301 redirects and to block re-claiming).
+
+### New frontend files added (Phase 1)
+- `frontend/lib/wizard-schema.js` — exports `WIZARD_SCHEMA` (full blank schema 2.0 template) and `applyProgrammaticDefaults(prefill, userInput)` (fills social links, YouTube slot, FAQs — never overwrites user-supplied or LLM values). Import from `@/lib/wizard-schema`.
+- `frontend/app/platform/ai-website-builder/page.js` — **replaced** (Phase 1): now calls `POST /api/genie/intake`, shows structured review of the Genie draft, saves via `POST /api/genie/save-wizard`, redirects to `/setup-wizard` (not `/platform/my-website`).
+- `frontend/app/setup-wizard/page.js` — **replaced** (Phase 1): 13-step schema 2.0 wizard; reads Genie prefill from `sessionStorage('genie_prefill')` and saved DB draft from `GET /api/genie/status`; shows `ConfirmedChip` for pre-filled fields; submits to `POST /api/sites/build`. `SITE_DOMAIN_SUFFIX` is set to `.opcgenie.com`. Exports `TEMPLATE_CATALOGUE` — imported by `ai-website-builder/page.js` for the template selection step.
+- `frontend/app/setup-wizard-legacy/page.js` — **new** (Phase 1): placeholder redirect → `/setup-wizard`. Remove at start of Phase 3.
+
+### New frontend files added (Phase 2)
+- `frontend/app/templates/page.js` — **new** (Phase 2): Template gallery at `/templates`; 16 templates across 5 categories (11 live, 5 coming soon); sticky left sidebar with `IntersectionObserver`; each live card links to `/templates/{slug}`.
+- `frontend/app/templates/{slug}/page.js` — **new** (Phase 2): 11 fully-built template preview pages, each a self-contained static founder website with sample data:
+  - **Service-Based**: `consultant-advisor` (Navy + Gold), `coach-mentor` (Terracotta + Cream), `freelancer-creative` (Electric Violet + Lime), `agency-of-one` (Slate + Cyan)
+  - **Knowledge & Content**: `course-creator` (Deep Teal + Amber), `author-speaker` (Burgundy + Blush), `newsletter-community` (Indigo + Mint)
+  - **Local & Trade**: `local-service-pro` (Forest + Saffron), `clinic-practitioner` (Medical Blue + Lavender), `tutor-training` (Sunflower + Sky)
+  - **Product & Commerce**: `digital-product-seller` (Hot Pink + Dark)
+  - Coming soon (no page file yet): `physical-artisan`, `saas-tool-maker`, `community-led`, `subscription-retainer`, `event-workshop-host`
+- `frontend/app/[username]/page.js` — **updated** (Phase 2): now dynamically imports the matching template component when `payload.templateSlug` is set; falls back to the built-in `GenericSite` renderer for legacy sites (no `templateSlug`).
+
+### `UserSiteSettings` — new `template_slug` / `template_section` columns (Phase 2)
+Migration `g2h3i4j5k6l7` adds two nullable columns to `user_site_settings`:
+- `template_slug` (VARCHAR 100) — denormalised copy of `value['slug']` when `key = 'template'`, e.g. `"clinic-practitioner"`. Used by `GET /api/sites/public/{slug}` to return `templateSlug` in the payload without parsing JSONB.
+- `template_section` (VARCHAR 100) — denormalised copy of `value['sectionId']`, e.g. `"local-trade"`.
+- A composite index `ix_user_site_settings_template_slug` on `(user_id, template_slug)` enables fast per-user template lookups.
+
+### `User` — new AI credit tracking columns (Phase 2)
+Migration `b7c8d9e0f1a2` adds two integer columns to `users` (both default to 0):
+- `ai_generations_count` — total number of AI site generations the user has run
+- `ai_generation_credits` — purchased/granted credits for additional AI generations
 
 ### `site_settings` DB rows are seeded once and never auto-updated
 `seed_default_settings()` in `settings_routes.py` only inserts rows that **don't exist yet**. Changing `DEFAULT_SETTINGS` in the source file will NOT update already-seeded rows in the DB. To update live data, run a direct SQL `UPDATE` or use the admin settings UI at `/admin/settings`.
 
 ### `UserSiteSettings` is per-founder, not global
-`user_site_settings` table stores setup-wizard config scoped to `user_id`. Each row has a `key` (e.g. `"brand"`, `"hero"`) and a `schema_version` field (`"1.0"` or `"2.0"`). Do not confuse with the global `site_settings` table (platform-wide JSONB key-value store).
+`user_site_settings` table stores setup-wizard config scoped to `user_id`. Each row has a `key` (e.g. `"brand"`, `"hero"`, `"site_build_payload"`) and a `schema_version` field (`"1.0"` or `"2.0"`). Do not confuse with the global `site_settings` table (platform-wide JSONB key-value store). Phase 1 loaders must filter `schema_version = '2.0'` to ignore old v1 keys.
+
+### `FounderSite` — one row per founder's public website (Phase 1)
+Created by `POST /api/sites/build`. Columns: `user_id` (unique FK → users), `slug` (unique, 3-100 chars, no reserved words), `theme` (string, default `"professional"`), `status` (`"draft"` | `"published"`), `custom_domain` (nullable), `published_at` (nullable). Old slugs are preserved in `founder_site_slug_history` for 301 redirects and to prevent re-claiming.
+
+### `Offer` tier fields (Phase 1 additions)
+`offers` table gained: `tier` (`"front_door"` | `"core"` | `"recurring"`), `price_usd` (Numeric), `deliverables` (JSONB list of strings), `is_highlighted` (Boolean), `sort_order` (Integer), `founder_site_id` (FK → founder_sites, nullable, CASCADE). Wizard tiers are synced into these rows by `offer_sync_service.py`.
+
+### Auth middleware new env variables (Phase 0)
+```
+AUTH_MIDDLEWARE_MODE=enforce   # "enforce" (default) blocks requests; "report" logs but never blocks
+RATE_LIMIT_ENABLED=true        # "false" disables per-IP rate limiting for local dev
+```
 
 ## Code Style
 

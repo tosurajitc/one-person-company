@@ -3,19 +3,23 @@
 /**
  * /[username] — Founder's generated website preview
  *
- * Fetches GET /api/sites/public/:slug using the URL segment as the slug,
- * then renders a full one-page website from the stored site_build_payload.
+ * Fetches GET /api/sites/public/:slug, reads payload.templateSlug, then
+ * dynamically imports and renders the matching template component, passing
+ * the full payload as the `data` prop.
+ *
+ * If no templateSlug is set (legacy sites), falls back to the built-in
+ * GenericSite renderer below so existing sites are never broken.
  *
  * The page is publicly accessible (no auth required).
  * If the slug is not found the Next.js 404 page is shown.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useParams } from 'next/navigation'
-import { notFound } from 'next/navigation'
 import {
   CheckCircle, Phone, Mail, Calendar, MessageCircle, ExternalLink,
-  Star, Award, Users, Clock, ChevronDown, ChevronUp,
+  Star, Award, Clock, ChevronDown, ChevronUp, Play, Shield,
+  ArrowRight, Linkedin, Instagram, Facebook, Youtube, Twitter,
 } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,16 +54,17 @@ function HeroSection({ payload }) {
   const fd  = frontDoor  || {}
   const biz = business   || {}
 
-  const ctaHref = fd.primaryCta === 'book_call'    ? (fd.bookingUrl || '#contact')
-                : fd.primaryCta === 'whatsapp'      ? `https://wa.me/${(biz.owner?.whatsapp || '').replace(/\D/g, '')}`
-                : fd.primaryCta === 'enquiry_form'  ? '#contact'
-                : '#contact'
-
-  const ctaLabel = fd.ctaLabel ||
-    (fd.primaryCta === 'book_call'   ? 'Book a free call'
-   : fd.primaryCta === 'whatsapp'   ? 'Chat on WhatsApp'
-   : fd.primaryCta === 'buy_tier1'  ? 'Get started'
+  const primaryCta = fd.primaryCta || fd.primaryAction
+  const ctaLabel = fd.ctaLabel || fd.buttonLabel ||
+    (primaryCta === 'book_call'   ? 'Book a free call'
+   : primaryCta === 'whatsapp'   ? 'Chat on WhatsApp'
+   : primaryCta === 'buy_tier1'  ? 'Get started'
    : 'Get in touch')
+
+  const ctaHref = primaryCta === 'book_call'    ? (fd.bookingUrl || '#contact')
+                : primaryCta === 'whatsapp'      ? `https://wa.me/${(biz.owner?.whatsapp || '').replace(/\D/g, '')}`
+                : primaryCta === 'enquiry_form'  ? '#contact'
+                : '#contact'
 
   const headline = pos.buyer && pos.outcome
     ? `Helping ${pos.buyer} get ${pos.outcome}`
@@ -85,7 +90,7 @@ function HeroSection({ payload }) {
         )}
         <a
           href={ctaHref}
-          target={fd.primaryCta === 'whatsapp' || fd.primaryCta === 'book_call' ? '_blank' : undefined}
+          target={primaryCta === 'whatsapp' || primaryCta === 'book_call' ? '_blank' : undefined}
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-md transition-colors"
         >
@@ -232,6 +237,115 @@ function ProofSection({ payload }) {
   )
 }
 
+// ─── How it works (process steps) ────────────────────────────────────────────
+function ProcessSection({ payload }) {
+  const process = (payload.knowledge?.process || []).filter(s => s?.title)
+  if (!process.length) return null
+  return (
+    <section className="py-16 px-4 bg-white" id="process">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-3xl font-black text-gray-900 text-center mb-3">How we work together</h2>
+        <p className="text-center text-gray-500 text-sm mb-10">A simple, predictable process from first call to final delivery.</p>
+        <div className={`grid grid-cols-1 sm:grid-cols-${Math.min(process.length, 4)} gap-6`}>
+          {process.map((step, i) => (
+            <div key={i} className="flex flex-col items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-base shrink-0">
+                {i + 1}
+              </div>
+              <div>
+                <p className="font-bold text-gray-900 text-sm">{step.title}</p>
+                {step.detail && <p className="text-gray-600 text-sm mt-1 leading-relaxed">{step.detail}</p>}
+              </div>
+              {i < process.length - 1 && (
+                <ArrowRight className="hidden sm:block w-4 h-4 text-gray-300 absolute right-0 top-3" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Included / Not included */}
+        {(() => {
+          const included    = (payload.knowledge?.included    || []).filter(Boolean)
+          const notIncluded = (payload.knowledge?.notIncluded || []).filter(Boolean)
+          if (!included.length && !notIncluded.length) return null
+          return (
+            <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {included.length > 0 && (
+                <div className="bg-green-50 rounded-xl p-5 border border-green-100">
+                  <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-3">What's included</p>
+                  <ul className="space-y-2">
+                    {included.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-800">
+                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />{item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {notIncluded.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Not included</p>
+                  <ul className="space-y-2">
+                    {notIncluded.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                        <span className="text-gray-400 shrink-0 mt-0.5">–</span>{item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Refund policy */}
+        {payload.knowledge?.refundPolicy && (
+          <div className="mt-8 flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800">
+            <Shield className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold mb-0.5">Satisfaction guarantee</p>
+              <p className="leading-relaxed">{payload.knowledge.refundPolicy}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ─── YouTube intro video ──────────────────────────────────────────────────────
+function VideoSection({ payload }) {
+  const video = payload.knowledge?.introVideo
+  if (!video?.url) return null
+  // Only render for real YouTube embed URLs (not the placeholder rick-roll)
+  // Comment out the line below if you want to show the placeholder too
+  // if (video.url.includes('dQw4w9WgXcQ')) return null
+  return (
+    <section className="py-16 px-4 bg-gray-900" id="video">
+      <div className="max-w-3xl mx-auto text-center">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Play className="w-5 h-5 text-red-500 fill-red-500" />
+          <h2 className="text-2xl font-black text-white">{video.title || 'See how I work'}</h2>
+        </div>
+        <p className="text-gray-400 text-sm mb-8">Watch a quick overview before we talk.</p>
+        <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+          <iframe
+            src={video.url}
+            title={video.title || 'Intro video'}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full rounded-2xl shadow-2xl border border-gray-700"
+          />
+        </div>
+        <p className="text-gray-500 text-xs mt-4">
+          Replace this video from your <a href="/setup-wizard" className="text-blue-400 underline">website dashboard</a>.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
 function FaqSection({ payload }) {
   const faqs = (payload.knowledge?.faqs || []).filter(f => f?.question && f?.answer)
   const [open, setOpen] = useState(null)
@@ -239,7 +353,8 @@ function FaqSection({ payload }) {
   return (
     <section className="py-16 px-4 bg-gray-50" id="faq">
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-3xl font-black text-gray-900 text-center mb-8">Frequently asked questions</h2>
+        <h2 className="text-3xl font-black text-gray-900 text-center mb-3">Frequently asked questions</h2>
+        <p className="text-center text-gray-500 text-sm mb-8">Everything you need to know before we start working together.</p>
         <div className="space-y-2">
           {faqs.map((f, i) => (
             <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -264,23 +379,24 @@ function ContactSection({ payload }) {
   const { business, frontDoor } = payload
   const fd  = frontDoor || {}
   const owner = business?.owner || {}
+  const primaryCta = fd.primaryCta || fd.primaryAction
   return (
     <section className="py-16 px-4 bg-blue-600 text-white" id="contact">
       <div className="max-w-2xl mx-auto text-center">
         <h2 className="text-3xl font-black mb-4">Let's talk</h2>
         {fd.invitation && <p className="text-blue-100 mb-8 text-lg leading-relaxed">"{fd.invitation}"</p>}
         <div className="flex flex-wrap gap-3 justify-center">
-          {fd.primaryCta === 'book_call' && fd.bookingUrl && (
+          {primaryCta === 'book_call' && fd.bookingUrl && (
             <a href={fd.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-colors">
               <Calendar className="w-4 h-4" />Book a call
             </a>
           )}
-          {(fd.channels?.whatsapp || fd.primaryCta === 'whatsapp') && owner.whatsapp && (
+          {(fd.channels?.whatsapp || primaryCta === 'whatsapp') && owner.whatsapp && (
             <a href={`https://wa.me/${owner.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold transition-colors">
               <MessageCircle className="w-4 h-4" />WhatsApp
             </a>
           )}
-          {(fd.channels?.email || fd.primaryCta === 'enquiry_form') && owner.email && (
+          {(fd.channels?.email || primaryCta === 'enquiry_form') && owner.email && (
             <a href={`mailto:${owner.email}`} className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-bold border border-blue-400 transition-colors">
               <Mail className="w-4 h-4" />{owner.email}
             </a>
@@ -294,24 +410,59 @@ function ContactSection({ payload }) {
 
 function SiteFooter({ payload }) {
   const { business, channels } = payload
-  const biz = business || {}
+  const biz    = business || {}
   const social = channels?.social || {}
-  const SOCIAL = [
-    ['linkedin', 'LinkedIn'], ['instagram', 'Instagram'],
-    ['facebook', 'Facebook'], ['youtube', 'YouTube'], ['x', 'X'],
+
+  // Platform config: key → label + icon component
+  const SOCIAL_PLATFORMS = [
+    { key: 'linkedin',       label: 'LinkedIn',  Icon: Linkedin  },
+    { key: 'instagram',      label: 'Instagram', Icon: Instagram },
+    { key: 'facebook',       label: 'Facebook',  Icon: Facebook  },
+    { key: 'youtube',        label: 'YouTube',   Icon: Youtube   },
+    { key: 'x',              label: 'X',         Icon: Twitter   },
+    { key: 'googleBusiness', label: 'Google',    Icon: ExternalLink },
   ]
+
+  // Show links that have a URL (includes placeholders so footer is never empty)
+  const activeSocial = SOCIAL_PLATFORMS.filter(p => social[p.key])
+
   return (
-    <footer className="py-10 px-4 bg-gray-900 text-gray-400 text-sm">
-      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <p className="font-semibold text-white">{biz.brandName}</p>
-          {biz.owner?.name && <p className="text-xs mt-0.5">{biz.owner.name}{biz.owner.role ? ` · ${biz.owner.role}` : ''}</p>}
-          {biz.city && <p className="text-xs">{biz.city}{biz.country ? `, ${biz.country}` : ''}</p>}
+    <footer className="py-12 px-4 bg-gray-900 text-gray-400 text-sm">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-8 border-b border-gray-800">
+          {/* Brand */}
+          <div>
+            <p className="font-bold text-white text-lg">{biz.brandName}</p>
+            {biz.owner?.name && <p className="text-xs mt-0.5 text-gray-400">{biz.owner.name}{biz.owner.role ? ` · ${biz.owner.role}` : ''}</p>}
+            {biz.city && <p className="text-xs text-gray-500">{biz.city}{biz.country ? `, ${biz.country}` : ''}</p>}
+          </div>
+          {/* Social icons */}
+          {activeSocial.length > 0 && (
+            <div className="flex items-center gap-4 flex-wrap">
+              {activeSocial.map(({ key, label, Icon }) => (
+                <a
+                  key={key}
+                  href={social[key]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={label}
+                  className="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors text-xs"
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{label}</span>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="flex gap-3">
-          {SOCIAL.map(([key, label]) => social[key] ? (
-            <a key={key} href={social[key]} target="_blank" rel="noopener noreferrer" className="hover:text-white text-xs">{label}</a>
-          ) : null)}
+        {/* Bottom row */}
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+          <p>© {new Date().getFullYear()} {biz.brandName || biz.owner?.name}. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="#contact" className="hover:text-gray-400 transition-colors">Contact</a>
+            <a href="#faq" className="hover:text-gray-400 transition-colors">FAQ</a>
+            <a href="#offers" className="hover:text-gray-400 transition-colors">Services</a>
+          </div>
         </div>
       </div>
     </footer>
@@ -319,16 +470,20 @@ function SiteFooter({ payload }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Nav
+// Nav — update links to include How-it-works and Video
 // ─────────────────────────────────────────────────────────────────────────────
 function SiteNav({ payload }) {
-  const biz = payload.business || {}
+  const biz    = payload.business  || {}
+  const hasVideo   = !!(payload.knowledge?.introVideo?.url)
+  const hasProcess = (payload.knowledge?.process || []).some(s => s?.title)
   const links = [
-    { label: 'Services', href: '#offers' },
-    { label: 'Results',  href: '#proof' },
-    { label: 'FAQ',      href: '#faq' },
-    { label: 'Contact',  href: '#contact' },
-  ]
+    { label: 'Services',    href: '#offers'  },
+    { label: 'Results',     href: '#proof'   },
+    hasProcess && { label: 'How it works', href: '#process' },
+    hasVideo   && { label: 'Video',        href: '#video'   },
+    { label: 'FAQ',         href: '#faq'     },
+    { label: 'Contact',     href: '#contact' },
+  ].filter(Boolean)
   return (
     <nav className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200 px-4 py-3">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -341,6 +496,42 @@ function SiteNav({ payload }) {
         </a>
       </div>
     </nav>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Template registry — slug → dynamic import
+// ─────────────────────────────────────────────────────────────────────────────
+const TEMPLATE_COMPONENTS = {
+  'consultant-advisor':   lazy(() => import('../templates/consultant-advisor/page')),
+  'coach-mentor':         lazy(() => import('../templates/coach-mentor/page')),
+  'freelancer-creative':  lazy(() => import('../templates/freelancer-creative/page')),
+  'agency-of-one':        lazy(() => import('../templates/agency-of-one/page')),
+  'course-creator':       lazy(() => import('../templates/course-creator/page')),
+  'author-speaker':       lazy(() => import('../templates/author-speaker/page')),
+  'newsletter-community': lazy(() => import('../templates/newsletter-community/page')),
+  'local-service-pro':    lazy(() => import('../templates/local-service-pro/page')),
+  'clinic-practitioner':  lazy(() => import('../templates/clinic-practitioner/page')),
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GenericSite — the original built-in renderer, used as fallback when
+// payload.templateSlug is absent or not yet in TEMPLATE_COMPONENTS.
+// ─────────────────────────────────────────────────────────────────────────────
+function GenericSite({ payload }) {
+  return (
+    <div className="min-h-screen bg-white">
+      <SiteNav      payload={payload} />
+      <HeroSection  payload={payload} />
+      <ForWhoSection payload={payload} />
+      <OffersSection payload={payload} />
+      <ProofSection  payload={payload} />
+      <ProcessSection payload={payload} />
+      <VideoSection  payload={payload} />
+      <FaqSection    payload={payload} />
+      <ContactSection payload={payload} />
+      <SiteFooter    payload={payload} />
+    </div>
   )
 }
 
@@ -395,17 +586,22 @@ export default function FounderSitePage() {
   }
 
   const payload = siteData.payload
+  const templateSlug = payload.templateSlug || null
+  const TemplateComponent = templateSlug ? TEMPLATE_COMPONENTS[templateSlug] : null
 
-  return (
-    <div className="min-h-screen bg-white">
-      <SiteNav payload={payload} />
-      <HeroSection payload={payload} />
-      <ForWhoSection payload={payload} />
-      <OffersSection payload={payload} />
-      <ProofSection payload={payload} />
-      <FaqSection payload={payload} />
-      <ContactSection payload={payload} />
-      <SiteFooter payload={payload} />
-    </div>
-  )
+  // If a known template is selected, render it with live data
+  if (TemplateComponent) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }>
+        <TemplateComponent data={payload} />
+      </Suspense>
+    )
+  }
+
+  // Fallback: generic renderer (legacy sites or templates not yet wired up)
+  return <GenericSite payload={payload} />
 }

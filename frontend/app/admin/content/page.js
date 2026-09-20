@@ -14,38 +14,10 @@ import AdminShell from '../../../components/AdminShell'
 // Content Stats Component
 function ContentStats() {
   const stats = [
-    {
-      title: 'Total Offers',
-      value: '—',
-      change: 'Live from API',
-      changeType: 'increase',
-      icon: BookOpen,
-      color: 'from-blue-500 to-blue-600'
-    },
-    {
-      title: 'Playbooks',
-      value: '—',
-      change: 'Live from API',
-      changeType: 'increase',
-      icon: Target,
-      color: 'from-green-500 to-green-600'
-    },
-    {
-      title: 'Media Assets',
-      value: '—',
-      change: 'Live from API',
-      changeType: 'increase',
-      icon: Video,
-      color: 'from-purple-500 to-purple-600'
-    },
-    {
-      title: 'Total Sales',
-      value: '—',
-      change: 'Live from API',
-      changeType: 'increase',
-      icon: Users,
-      color: 'from-orange-500 to-orange-600'
-    }
+    { title: 'Total Offers',  value: '—', change: 'Live from API', icon: BookOpen, iconBg: 'bg-primary-50',  iconColor: 'text-primary-600',  border: 'border-primary-100' },
+    { title: 'Playbooks',     value: '—', change: 'Live from API', icon: Target,   iconBg: 'bg-blue-50',    iconColor: 'text-blue-500',     border: 'border-blue-100'    },
+    { title: 'Media Assets',  value: '—', change: 'Live from API', icon: Video,    iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-500',   border: 'border-indigo-100'  },
+    { title: 'Total Sales',   value: '—', change: 'Live from API', icon: Users,    iconBg: 'bg-sky-50',     iconColor: 'text-sky-500',      border: 'border-sky-100'     },
   ]
 
   return (
@@ -58,10 +30,10 @@ function ContentStats() {
               <div>
                 <p className="text-gray-500 text-sm font-medium">{stat.title}</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                <p className="text-green-400 text-sm mt-2">{stat.change}</p>
+                <p className="text-primary-500 text-sm mt-2">{stat.change}</p>
               </div>
-              <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
-                <Icon className="w-6 h-6 text-gray-900" />
+              <div className={`w-12 h-12 ${stat.iconBg} border ${stat.border} rounded-xl flex items-center justify-center`}>
+                <Icon className={`w-6 h-6 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
@@ -227,7 +199,7 @@ function CourseManagement() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </button>
-            <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-gray-900 rounded-lg font-medium transition-all">
+            <button onClick={() => setShowCreateModal(true)} className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-all">
               <Plus className="w-4 h-4 mr-2" />
               New Offer
             </button>
@@ -246,11 +218,11 @@ function CourseManagement() {
             <div className="col-span-3 text-center py-12 text-gray-400">No offers found. Create your first offer!</div>
           )}
           {filteredCourses.map((course) => (
-            <div key={course.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:bg-white/15 transition-all group">
-              <div className="relative aspect-video bg-gradient-to-br from-blue-900/50 to-purple-900/50">
+            <div key={course.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-sm transition-all group">
+              <div className="relative aspect-video bg-primary-50 border-b border-primary-100">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                    <Play className="w-8 h-8 text-gray-900" />
+                  <div className="w-14 h-14 bg-white border border-primary-200 rounded-full flex items-center justify-center">
+                    <Play className="w-6 h-6 text-primary-500" />
                   </div>
                 </div>
                 <div className="absolute top-3 left-3">
@@ -803,34 +775,10 @@ function PlaybookManagement() {
 // Quick Actions Component
 function QuickActions() {
   const actions = [
-    {
-      title: 'Bulk Upload',
-      description: 'Upload multiple assets at once',
-      icon: Upload,
-      href: '/admin/content/upload',
-      color: 'from-blue-500 to-indigo-600'
-    },
-    {
-      title: 'Content Analytics',
-      description: 'View detailed performance metrics',
-      icon: BarChart3,
-      href: '/admin/content/analytics',
-      color: 'from-green-500 to-teal-600'
-    },
-    {
-      title: 'AI Copy Generator',
-      description: 'Generate offer copy with AI',
-      icon: Zap,
-      href: '/admin/content/ai-generator',
-      color: 'from-purple-500 to-pink-600'
-    },
-    {
-      title: 'Scheduled Publishing',
-      description: 'Manage content release schedule',
-      icon: Calendar,
-      href: '/admin/content/schedule',
-      color: 'from-orange-500 to-red-600'
-    }
+    { title: 'Bulk Upload',          description: 'Upload multiple assets at once',       icon: Upload,   href: '/admin/content/upload',       iconBg: 'bg-primary-50',  iconColor: 'text-primary-600', border: 'border-primary-100' },
+    { title: 'Content Analytics',    description: 'View detailed performance metrics',    icon: BarChart3, href: '/admin/content/analytics',    iconBg: 'bg-blue-50',     iconColor: 'text-blue-500',    border: 'border-blue-100'    },
+    { title: 'AI Copy Generator',    description: 'Generate offer copy with AI',          icon: Zap,      href: '/admin/content/ai-generator',  iconBg: 'bg-indigo-50',   iconColor: 'text-indigo-500',  border: 'border-indigo-100'  },
+    { title: 'Scheduled Publishing', description: 'Manage content release schedule',      icon: Calendar, href: '/admin/content/schedule',      iconBg: 'bg-sky-50',      iconColor: 'text-sky-500',     border: 'border-sky-100'     },
   ]
 
   return (
@@ -843,10 +791,10 @@ function QuickActions() {
             <Link
               key={index}
               href={action.href}
-              className="p-4 bg-white rounded-xl border border-gray-200 hover:bg-gray-100 transition-all group"
+              className="p-4 bg-white rounded-xl border border-gray-200 hover:bg-primary-50 hover:border-primary-200 transition-all group"
             >
-              <div className={`w-8 h-8 bg-gradient-to-br ${action.color} rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
-                <Icon className="w-4 h-4 text-gray-900" />
+              <div className={`w-8 h-8 ${action.iconBg} border ${action.border} rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
+                <Icon className={`w-4 h-4 ${action.iconColor}`} />
               </div>
               <h4 className="text-gray-900 font-medium text-sm">{action.title}</h4>
               <p className="text-gray-400 text-xs mt-1">{action.description}</p>
