@@ -41,8 +41,7 @@ const TEMPLATE_SECTIONS = [
     icon: ShoppingBag,
     templates: [
       { slug: 'digital-product-seller', name: 'Digital Product Seller', description: 'Instant download, before/after, price anchor.',             theme: 'Bold',         accent: '#be185d', tag: 'Hot Pink + Dark',     status: 'live' },
-      { slug: 'physical-artisan',        name: 'Physical / Artisan',     description: 'Story-led, craft photography slots, custom order form.',  theme: 'Warm',         accent: '#78350f', tag: 'Earthy Brown + Linen', status: 'coming-soon' },
-      { slug: 'saas-tool-maker',         name: 'SaaS / Tool Maker',      description: 'Feature grid, demo CTA, pricing table.',                  theme: 'Professional', accent: '#1e293b', tag: 'Charcoal + Emerald',  status: 'coming-soon' },
+      { slug: 'physical-artisan',        name: 'Physical / Artisan',     description: 'Story-led, craft photography slots, custom order form.',  theme: 'Warm',         accent: '#78350f', tag: 'Earthy Brown + Linen', status: 'live' },
     ],
   },
   {
@@ -96,7 +95,7 @@ export default function TemplatesPage() {
           Pick your template,&nbsp;<span className="text-blue-600">launch in minutes</span>
         </h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-          Every template is built for a specific one-person business model — with the right sections, copy structure, and CTAs pre-wired.
+          Every template is built for a specific one-person business model, with the right sections, copy structure, and CTAs pre-wired.
         </p>
       </div>
 

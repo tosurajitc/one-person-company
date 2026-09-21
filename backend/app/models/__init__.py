@@ -15,6 +15,8 @@ from .lead import Lead
 from .newsletter_subscriber import NewsletterSubscriber
 from .user_site_settings import UserSiteSettings
 from .agent_session import AgentSession, AgentSessionMessage, SessionStatus, AgentSessionMessageRole
+from .founder_site import FounderSite, FounderSiteSlugHistory
+from .enquiry import Enquiry, EnquiryStatus
 
 __all__ = [
     "User", "UserRole", "OAuthProvider",
@@ -36,4 +38,8 @@ __all__ = [
     "AgentSessionMessage",
     "SessionStatus",
     "AgentSessionMessageRole",
+    "FounderSite",
+    "FounderSiteSlugHistory",
+    "Enquiry",
+    "EnquiryStatus",
 ]

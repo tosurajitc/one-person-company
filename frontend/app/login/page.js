@@ -722,12 +722,12 @@ export default function LoginPage() {
     },
     {
       icon: Award,
-      title: 'Offers & Payments',
-      description: 'Create and sell offers with smart pricing pages, payment links, and automated follow-ups'
+      title: 'Referral & Earnings',
+      description: 'Refer friends and earn 20% lifetime commission for every paid subscriber you bring in'
     },
     {
       icon: Workflow,
-      title: 'Content Studio',
+      title: 'Digital Workforce',
       description: 'AI writes your blog posts, social copy, and email sequences — branded to your voice'
     }
   ]

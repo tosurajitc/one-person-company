@@ -118,11 +118,12 @@ def _slugify(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 class CreateOrderRequest(BaseModel):
-    purpose: str                     # "offer" | "subscription"
+    purpose: str                     # "offer" | "subscription" | "ai_credit" | "wallet_topup"
     offer_id: Optional[int] = None
     plan: Optional[str] = None       # "pro" | "enterprise"
     billing_cycle: Optional[str] = "monthly"   # "monthly" | "annual"
     gateway: str = "razorpay"        # "razorpay" | "stripe"
+    amount: Optional[float] = None   # for custom amount top-ups like wallet_topup (e.g. >= 99 INR)
 
 
 class VerifyPaymentRequest(BaseModel):
@@ -206,8 +207,23 @@ async def create_order(
         else:
             amount_minor = 200    # $2.00 USD (cents)
             currency = "usd"
+
+    elif body.purpose == "wallet_topup":
+        # Minimum Rs. 99 / $2.00
+        req_amount = float(body.amount or 0.0)
+        if gateway == "razorpay":
+            if req_amount < 99.0:
+                raise HTTPException(status_code=400, detail="Minimum wallet recharge amount is Rs. 99")
+            amount_minor = int(round(req_amount * 100))
+            currency = "INR"
+        else:
+            if req_amount < 2.0:
+                raise HTTPException(status_code=400, detail="Minimum wallet recharge amount is $2.00")
+            amount_minor = int(round(req_amount * 100))
+            currency = "usd"
+
     else:
-        raise HTTPException(status_code=400, detail="purpose must be 'offer', 'subscription', or 'ai_credit'")
+        raise HTTPException(status_code=400, detail="purpose must be 'offer', 'subscription', 'ai_credit', or 'wallet_topup'")
 
     # ---- Create gateway order ---------------------------------------------
     gateway_order_id: str
@@ -321,6 +337,9 @@ async def verify_razorpay_payment(
     elif payment.purpose == PaymentPurpose.AI_CREDIT:
         user.ai_generation_credits = (user.ai_generation_credits or 0) + 1
         db.add(user)
+    elif payment.purpose == PaymentPurpose.WALLET_TOPUP:
+        user.wallet_balance = (user.wallet_balance or 0.0) + float(payment.amount)
+        db.add(user)
 
     db.commit()
     return {"success": True, "payment_id": payment.id}
@@ -370,6 +389,11 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
                     offer = db.query(Offer).filter(Offer.id == row.offer_id).first()
                     if offer and offer.offer_type == OfferType.COMMUNITY:
                         grant_community_membership_for_offer(row.offer_id, row.user_id, row.id, db)
+                elif row.purpose == PaymentPurpose.WALLET_TOPUP and row.user_id:
+                    user = db.query(User).filter(User.id == row.user_id).first()
+                    if user:
+                        user.wallet_balance = (user.wallet_balance or 0.0) + float(row.amount)
+                        db.add(user)
                 db.add(row)
                 db.commit()
 
@@ -445,6 +469,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 offer = db.query(Offer).filter(Offer.id == row.offer_id).first()
                 if offer and offer.offer_type == OfferType.COMMUNITY:
                     grant_community_membership_for_offer(row.offer_id, row.user_id, row.id, db)
+            elif row.purpose == PaymentPurpose.WALLET_TOPUP and row.user_id:
+                user = db.query(User).filter(User.id == row.user_id).first()
+                if user:
+                    user.wallet_balance = (user.wallet_balance or 0.0) + float(row.amount)
+                    db.add(user)
             db.add(row)
             db.commit()
 

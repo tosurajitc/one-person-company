@@ -12,15 +12,27 @@ export default function AuthCallback() {
     if (didRun.current) return
     didRun.current = true
 
-    const code = params.get('code')
-    const state = params.get('state')
-    const provider = localStorage.getItem('oauth_provider') || 'google'
+    const code        = params.get('code')
+    const state       = params.get('state')
+    const oauthError  = params.get('error')          // Google sends this on denial/mismatch
+    const provider    = localStorage.getItem('oauth_provider') || 'google'
     const storedState = localStorage.getItem('oauth_state')
 
     localStorage.removeItem('oauth_state')
     localStorage.removeItem('oauth_provider')
 
-    if (!code || state !== storedState) {
+    // Google returned an error (e.g. access_denied, redirect_uri_mismatch)
+    if (oauthError) {
+      const msg = oauthError === 'access_denied'
+        ? 'Sign-in was cancelled. Please try again.'
+        : `Sign-in failed: ${oauthError}. Check your Google OAuth settings.`
+      router.push('/login?error=' + encodeURIComponent(msg))
+      return
+    }
+
+    // storedState is null when localStorage was cleared (e.g. after a logout).
+    // Only block if both are present but mismatched.
+    if (!code || (storedState && state !== storedState)) {
       router.push('/login?error=' + encodeURIComponent('OAuth verification failed. Please try again.'))
       return
     }
@@ -35,9 +47,9 @@ export default function AuthCallback() {
         redirect_uri: `${window.location.origin}/auth/callback`,
       }),
     })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.access_token) {
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}))
+        if (r.ok && data.access_token) {
           localStorage.setItem('auth_token', data.access_token)
           localStorage.setItem('user_role', data.user?.role ?? '')
           localStorage.setItem('user_data', JSON.stringify(data.user ?? {}))
@@ -47,10 +59,14 @@ export default function AuthCallback() {
           const redirectTo = params.get('next') || params.get('redirect')
           router.push(redirectTo || (role === 'admin' || role === 'super_admin' ? '/admin' : '/dashboard'))
         } else {
-          router.push('/login?error=' + encodeURIComponent(data.detail || 'Login failed'))
+          const msg = data.detail || `Sign-in failed (${r.status}). Please try again.`
+          router.push('/login?error=' + encodeURIComponent(msg))
         }
       })
-      .catch(() => router.push('/login?error=' + encodeURIComponent('OAuth error. Please try again.')))
+      .catch((err) => {
+        console.error('OAuth callback fetch error:', err)
+        router.push('/login?error=' + encodeURIComponent('Could not reach the sign-in server. Please try again.'))
+      })
   }, [])
 
   return (

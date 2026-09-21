@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {
-  ArrowRight, CheckCircle, Star, ChevronDown, Phone, Mail,
+  ArrowRight, CheckCircle, XCircle, Star, ChevronDown, Phone, Mail,
   Play, Briefcase, LayoutGrid, RefreshCw, Layers, BarChart2,
   Globe, Clock, Repeat, Package, Zap, Shield
 } from 'lucide-react'
@@ -56,6 +56,18 @@ const SAMPLE = {
     { icon: BarChart2, title: 'Analytics & BI',       desc: 'GA4, Mixpanel, or custom Looker dashboards — you always know exactly what your numbers mean.' },
     { icon: Briefcase, title: 'Fractional CMO',       desc: 'Attend your leadership meetings, align teams, and own the marketing function end-to-end as your part-time CMO.' },
   ],
+  fitCriteria: {
+    forWho: [
+      'Founders with traction ($10k+ MRR or ₹1 Cr+ ARR) wanting dedicated growth leadership',
+      'Companies spending ₹50L+ in monthly ad budget needing rigorous ROAS optimization',
+      'Teams wanting direct founder-to-operator contact without account manager friction',
+    ],
+    notFor: [
+      'Pre-revenue ideas looking for free equity or revenue-share marketing',
+      'Companies wanting 20-person daily micro-management or on-site physical office presence',
+      'Businesses without product-market fit or proven unit economics',
+    ],
+  },
   process: [
     { step: '01', title: 'Audit & Brief',   desc: 'I audit your current funnel, ad accounts, and analytics in 48 hours and deliver a written assessment with quick wins.' },
     { step: '02', title: 'Sprint Planning', desc: 'Together we prioritise the highest-leverage activities for the next 90 days. You approve the plan before work begins.' },
@@ -191,6 +203,10 @@ function payloadToData(payload) {
     },
     stats:        SAMPLE.stats,
     deliverables: SAMPLE.deliverables,
+    fitCriteria: {
+      forWho: (pos.forWho && pos.forWho.filter(Boolean).length > 0) ? pos.forWho.filter(Boolean) : SAMPLE.fitCriteria.forWho,
+      notFor: (pos.notFor && pos.notFor.filter(Boolean).length > 0) ? pos.notFor.filter(Boolean) : SAMPLE.fitCriteria.notFor,
+    },
     process:      mappedProcess.length ? mappedProcess : SAMPLE.process,
     offers:       mappedOffers.length ? mappedOffers : SAMPLE.offers,
     caseStudies:  mappedCaseStudies.length ? mappedCaseStudies : SAMPLE.caseStudies,
@@ -386,6 +402,40 @@ function DeliverablesSection() {
             </div>
           ))}
         </div>
+
+        {/* Fit Criteria: For Who & Not For */}
+        {useData().fitCriteria && (
+          <div className="mt-14 grid md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-2xl border" style={{ background: T.card, borderColor: T.border }}>
+              <h3 className="font-bold text-base mb-4 flex items-center gap-2" style={{ color: T.text }}>
+                <CheckCircle className="w-5 h-5" style={{ color: T.cyan }} />
+                Who this is built for
+              </h3>
+              <ul className="space-y-3">
+                {useData().fitCriteria.forWho.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5 text-sm" style={{ color: T.muted }}>
+                    <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: T.cyan }} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="p-6 rounded-2xl border" style={{ background: T.card, borderColor: T.border }}>
+              <h3 className="font-bold text-base mb-4 flex items-center gap-2" style={{ color: T.muted }}>
+                <XCircle className="w-5 h-5 text-gray-400" />
+                Who this is NOT for
+              </h3>
+              <ul className="space-y-3">
+                {useData().fitCriteria.notFor.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5 text-sm" style={{ color: T.muted }}>
+                    <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

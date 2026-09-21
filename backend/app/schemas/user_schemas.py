@@ -58,6 +58,12 @@ class UserResponse(BaseModel):
     email_verified: bool
     created_at: datetime
     last_login: Optional[datetime]
+    ai_tokens_used: Optional[int] = 0
+    ai_generations_count: Optional[int] = 0
+    wallet_balance: Optional[float] = 0.0
+    wallet_consumed: Optional[float] = 0.0
+    referral_code: Optional[str] = None
+    referred_by_code: Optional[str] = None
 
     class Config:
         from_attributes = True  # SQLAlchemy → Pydantic
@@ -77,6 +83,12 @@ class UserResponse(BaseModel):
                 "email_verified": obj.email_verified,
                 "created_at": obj.created_at,
                 "last_login": obj.last_login,
+                "ai_tokens_used": getattr(obj, "ai_tokens_used", 0) or 0,
+                "ai_generations_count": getattr(obj, "ai_generations_count", 0) or 0,
+                "wallet_balance": float(getattr(obj, "wallet_balance", 0.0) or 0.0),
+                "wallet_consumed": float(getattr(obj, "wallet_consumed", 0.0) or 0.0),
+                "referral_code": getattr(obj, "referral_code", None),
+                "referred_by_code": getattr(obj, "referred_by_code", None),
             }
             return cls(**obj_dict)
         return super().model_validate(obj, **kwargs)

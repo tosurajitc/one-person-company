@@ -33,6 +33,8 @@ from app.models.chat import ChatMessage  # noqa: F401, E402
 from app.models.subscription import UserSubscription, Payment  # noqa: F401, E402
 from app.models.lead import Lead  # noqa: F401, E402
 from app.api.routes.fb_agent_routes import FbAgentState  # noqa: F401, E402
+from app.models.founder_site import FounderSite, FounderSiteSlugHistory  # noqa: F401, E402
+from app.models.enquiry import Enquiry  # noqa: F401, E402
 
 target_metadata = Base.metadata
 

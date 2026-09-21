@@ -380,14 +380,50 @@ function ContactSection({ payload }) {
   const fd  = frontDoor || {}
   const owner = business?.owner || {}
   const primaryCta = fd.primaryCta || fd.primaryAction
+
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!formData.name || !formData.email) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/enquiries/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          subdomain: payload?.site?.subdomain || business?.brandName || '',
+          business: business?.brandName || '',
+        }),
+      })
+      if (res.ok) {
+        setSubmitted(true)
+        setFormData({ name: '', email: '', phone: '', message: '' })
+      } else {
+        setError('Failed to send enquiry. Please try again.')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
-    <section className="py-16 px-4 bg-blue-600 text-white" id="contact">
+    <section className="py-16 px-4 bg-slate-900 text-white" id="contact">
       <div className="max-w-2xl mx-auto text-center">
         <h2 className="text-3xl font-black mb-4">Let's talk</h2>
-        {fd.invitation && <p className="text-blue-100 mb-8 text-lg leading-relaxed">"{fd.invitation}"</p>}
-        <div className="flex flex-wrap gap-3 justify-center">
+        {fd.invitation && <p className="text-slate-300 mb-8 text-lg leading-relaxed">"{fd.invitation}"</p>}
+        
+        {/* Quick Contact Buttons */}
+        <div className="flex flex-wrap gap-3 justify-center mb-10">
           {primaryCta === 'book_call' && fd.bookingUrl && (
-            <a href={fd.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-colors">
+            <a href={fd.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-100 transition-colors">
               <Calendar className="w-4 h-4" />Book a call
             </a>
           )}
@@ -397,12 +433,83 @@ function ContactSection({ payload }) {
             </a>
           )}
           {(fd.channels?.email || primaryCta === 'enquiry_form') && owner.email && (
-            <a href={`mailto:${owner.email}`} className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-bold border border-blue-400 transition-colors">
+            <a href={`mailto:${owner.email}`} className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold border border-slate-700 transition-colors">
               <Mail className="w-4 h-4" />{owner.email}
             </a>
           )}
         </div>
-        {fd.workingHours && <p className="text-blue-200 text-sm mt-5"><Clock className="w-3.5 h-3.5 inline mr-1" />{fd.workingHours}</p>}
+
+        {/* Lead Capture Form */}
+        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 sm:p-8 text-left max-w-lg mx-auto shadow-xl">
+          <h3 className="text-lg font-bold text-white mb-1">Send a Project Enquiry</h3>
+          <p className="text-xs text-slate-400 mb-5">Share your requirements and we'll get back to you with a tailored plan.</p>
+          
+          {submitted ? (
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm text-center font-medium">
+              ✓ Thank you! Your enquiry has been received. We'll be in touch shortly.
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Your Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. Sarah Jenkins"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Your Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="sarah@company.com"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1 555-0199"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">What are you looking for?</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  placeholder="Tell us about your project goals, timeline, and questions..."
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {error && <p className="text-xs text-red-400">{error}</p>}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all shadow-md"
+              >
+                {submitting ? 'Sending Enquiry...' : 'Submit Enquiry'}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {fd.workingHours && <p className="text-slate-400 text-xs mt-6"><Clock className="w-3.5 h-3.5 inline mr-1" />{fd.workingHours}</p>}
       </div>
     </section>
   )
@@ -503,15 +610,18 @@ function SiteNav({ payload }) {
 // Template registry — slug → dynamic import
 // ─────────────────────────────────────────────────────────────────────────────
 const TEMPLATE_COMPONENTS = {
-  'consultant-advisor':   lazy(() => import('../templates/consultant-advisor/page')),
-  'coach-mentor':         lazy(() => import('../templates/coach-mentor/page')),
-  'freelancer-creative':  lazy(() => import('../templates/freelancer-creative/page')),
-  'agency-of-one':        lazy(() => import('../templates/agency-of-one/page')),
-  'course-creator':       lazy(() => import('../templates/course-creator/page')),
-  'author-speaker':       lazy(() => import('../templates/author-speaker/page')),
-  'newsletter-community': lazy(() => import('../templates/newsletter-community/page')),
-  'local-service-pro':    lazy(() => import('../templates/local-service-pro/page')),
-  'clinic-practitioner':  lazy(() => import('../templates/clinic-practitioner/page')),
+  'consultant-advisor':     lazy(() => import('../templates/consultant-advisor/page')),
+  'coach-mentor':           lazy(() => import('../templates/coach-mentor/page')),
+  'freelancer-creative':    lazy(() => import('../templates/freelancer-creative/page')),
+  'agency-of-one':          lazy(() => import('../templates/agency-of-one/page')),
+  'course-creator':         lazy(() => import('../templates/course-creator/page')),
+  'author-speaker':         lazy(() => import('../templates/author-speaker/page')),
+  'newsletter-community':   lazy(() => import('../templates/newsletter-community/page')),
+  'local-service-pro':      lazy(() => import('../templates/local-service-pro/page')),
+  'clinic-practitioner':    lazy(() => import('../templates/clinic-practitioner/page')),
+  'physical-artisan':       lazy(() => import('../templates/physical-artisan/page')),
+  'digital-product-seller': lazy(() => import('../templates/digital-product-seller/page')),
+  'tutor-training':         lazy(() => import('../templates/tutor-training/page')),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

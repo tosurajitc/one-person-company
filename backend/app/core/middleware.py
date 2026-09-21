@@ -102,6 +102,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         ("GET", "/api/contact/health"),
         ("POST", "/api/leads"),
         ("POST", "/api/subscribers"),
+        ("POST", "/api/enquiries/submit"),
         # AI for guests (rate limited below)
         ("POST", "/api/chat"),
         ("POST", "/api/chat/prefill"),
@@ -128,6 +129,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         ("POST", "/api/chat/prefill-and-save", 10, 600),
         ("POST", "/api/genie/draft-site", 10, 600),
         ("POST", "/api/contact", 5, 600),
+        ("POST", "/api/enquiries/submit", 10, 600),
         ("POST", "/api/leads", 10, 600),
         ("POST", "/api/subscribers", 5, 600),
         ("POST", "/api/auth/login", 10, 600),

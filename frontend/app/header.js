@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, FileText, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown, LayoutDashboard, LayoutTemplate, ExternalLink } from 'lucide-react'
+import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, FileText, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown, LayoutDashboard, LayoutTemplate, ExternalLink, Wallet, Share2 } from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
 
 // Founder site slugs match /[a-z0-9][a-z0-9-]* with no sub-path,
@@ -98,10 +98,12 @@ export default function Header() {
   }, [])
 
   const handleSignOut = () => {
-    // Clear localStorage immediately so the UI updates
+    // Clear all auth-related localStorage keys immediately so the UI updates
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_role')
     localStorage.removeItem('user_data')
+    localStorage.removeItem('oauth_state')
+    localStorage.removeItem('oauth_provider')
     window.dispatchEvent(new Event('authchange'))
     setUser(null)
     setIsProfileOpen(false)
@@ -179,15 +181,6 @@ export default function Header() {
               {/* Platform Dropdown Menu */}
               <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="py-2">
-                    <Link href="/setup-wizard" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                      <div className="flex items-center">
-                        <LayoutDashboard className="w-5 h-5 mr-3 text-green-500" />
-                        <div>
-                          <div className="font-medium">My Website Admin</div>
-                          <div className="text-xs text-gray-500">Edit and manage your published site</div>
-                        </div>
-                      </div>
-                    </Link>
                     <Link href="/platform/ai-website-builder" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                       <div className="flex items-center">
                         <Globe className="w-5 h-5 mr-3 text-blue-500" />
@@ -201,8 +194,8 @@ export default function Header() {
                       <div className="flex items-center">
                         <FileText className="w-5 h-5 mr-3 text-purple-500" />
                         <div>
-                          <div className="font-medium">Offers & Payments</div>
-                          <div className="text-xs text-gray-500">Create packages, products & payment links</div>
+                          <div className="font-medium">Referral Programme</div>
+                          <div className="text-xs text-gray-500">Earn 20% lifetime commission on referrals</div>
                         </div>
                       </div>
                     </Link>
@@ -210,7 +203,7 @@ export default function Header() {
                       <div className="flex items-center">
                         <PenTool className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
-                          <div className="font-medium">Content Studio</div>
+                          <div className="font-medium">Digital Workforce</div>
                           <div className="text-xs text-gray-500">AI-generated copy, posts & emails</div>
                         </div>
                       </div>
@@ -373,6 +366,22 @@ export default function Header() {
                           Profile Settings
                         </Link>
                         <Link
+                          href="/profile/wallet"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <Wallet className="w-4 h-4 mr-3" />
+                          Wallet & Funds
+                        </Link>
+                        <Link
+                          href="/platform/offers-payments"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <Share2 className="w-4 h-4 mr-3" />
+                          Referral Program
+                        </Link>
+                        <Link
                           href="/settings"
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           onClick={() => setIsProfileOpen(false)}
@@ -520,6 +529,20 @@ export default function Header() {
                     >
                       Profile Settings
                     </Link>
+                    <Link
+                      href="/profile/wallet"
+                      className="block py-2 text-gray-600 hover:text-blue-600 transition-colors font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Wallet & Funds
+                    </Link>
+                    <Link
+                      href="/platform/offers-payments"
+                      className="block py-2 text-gray-600 hover:text-blue-600 transition-colors font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Referral Program
+                    </Link>
                     
                     {/* Mobile Admin Links */}
                     {isAdmin && (
@@ -590,14 +613,14 @@ export default function Header() {
                     className="block py-2 pl-2 text-gray-600 hover:text-blue-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Offers &amp; Payments
+                    Referral Programme
                   </Link>
                   <Link
                     href="/platform/content-studio"
                     className="block py-2 pl-2 text-gray-600 hover:text-blue-600 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Content Studio
+                    Digital Workforce
                   </Link>
                 </div>
                 <Link

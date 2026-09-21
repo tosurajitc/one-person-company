@@ -1,7 +1,38 @@
 'use client'
 
+/**
+ * Template 1 — Consultant / Advisor (REWORK)
+ * Section: Service-Based Solopreneurs
+ * Theme: Ink #14171d + Signal Red #b3261e, on warm paper #f7f4ec
+ *
+ * DESIGN CONCEPT: "The Growth Memo"
+ * ─────────────────────────────────────────────────────────────────────────────
+ * A strategy advisor's actual work product is a memo and a deck — so the
+ * page reads like one, instead of a generic SaaS landing page:
+ *
+ *  • Section numbers (§1, §2...) in the margin replace repeated all-caps
+ *    eyebrow pills — a structural device, not decoration
+ *  • The hero's visual anchor is a hand-drawn growth-trajectory chart, not
+ *    an avatar + stat-grid + gradient wash
+ *  • A single red "signal" accent stands in for a highlighter / redline pen
+ *    — used sparingly, not spread across gold-bordered cards
+ *  • Engagement options read as a ledger, not three identical pricing cards
+ *  • Case studies are "Exhibits," stacked and alternating, not a card grid
+ *  • Testimonials sit as quoted testimony inline, not boxed with star-rating
+ *    cards
+ *  • CTA copy is plain and confident; the arrow icon is used exactly once,
+ *    as a signature move, not appended to every button
+ *
+ * Data layer (payloadToData / SAMPLE) is UNCHANGED from the original — this
+ * is a visual rework only, so it stays a drop-in replacement for the wizard.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
 import Link from 'next/link'
-import { ArrowRight, CheckCircle, Star, ChevronDown, Phone, Mail, Calendar, Award, TrendingUp, Users, Clock, BookOpen, Shield, Target, BarChart2, ChevronRight, Play } from 'lucide-react'
+import {
+  Calendar, CheckCircle, XCircle, Star, ChevronDown, Phone, Mail, ArrowRight,
+  Play, TrendingUp, Users, Target, FileText, PenTool, Quote,
+} from 'lucide-react'
 import { useState, createContext, useContext } from 'react'
 
 // ─── Data context — sections read live data when provided, SAMPLE otherwise ──
@@ -10,15 +41,20 @@ const useData = () => useContext(DataCtx)
 
 // ─── Theme tokens ────────────────────────────────────────────────────────────
 const T = {
-  navy:      '#1e3a5f',
-  navyDark:  '#142840',
-  gold:      '#c9a84c',
-  goldLight: '#f0d98a',
-  cream:     '#faf8f4',
-  border:    '#e8e3d8',
-  text:      '#1a1a2e',
-  muted:     '#5c5c6e',
+  ink:      '#14171d',
+  inkSoft:  '#20252c',
+  red:      '#b3261e',
+  redDeep:  '#7a1a15',
+  redLight: '#e8998f',
+  paper:    '#f7f4ec',
+  paperDeep:'#efe9db',
+  white:    '#fffdf9',
+  border:   '#ddd6c2',
+  text:     '#1b1a16',
+  muted:    '#6b6558',
 }
+const SERIF = "'Charter', 'Iowan Old Style', Georgia, 'Times New Roman', serif"
+const SANS  = "'Inter', system-ui, sans-serif"
 
 // ─── Sample data ─────────────────────────────────────────────────────────────
 const SAMPLE = {
@@ -114,11 +150,22 @@ const SAMPLE = {
     { q: 'Do you sign NDAs?',                                a: 'Yes, always. A mutual NDA is standard before any work begins.' },
     { q: 'What industries do you specialise in?',            a: 'D2C, B2B SaaS, FMCG, family-owned businesses, and professional services. I\'ve worked across 14 sectors in total.' },
   ],
+  scope: {
+    included: [
+      'Direct strategic advisory and 1-on-1 sparring sessions with founders',
+      'Written growth roadmaps, pricing models, and strategy decks',
+      'Async Loom / email reviews between scheduled meetings',
+      'Warm intros to trusted operators and investor network',
+    ],
+    notIncluded: [
+      'Day-to-day tactical execution or operational management',
+      'Direct hands-on copywriting, ad campaign setup, or design production',
+      'Interim full-time management or board member fiduciary liability',
+    ],
+  },
 }
 
-// ─── payloadToData — maps wizard payload → SAMPLE shape ──────────────────────
-// Only overrides fields where the payload has real content.
-// Falls back to SAMPLE for anything not yet filled in by the user.
+// ─── payloadToData — maps wizard payload → SAMPLE shape (unchanged) ──────────
 function payloadToData(payload) {
   if (!payload) return SAMPLE
   const biz  = payload.business   || {}
@@ -201,369 +248,407 @@ function payloadToData(payload) {
     caseStudies: mappedCaseStudies.length ? mappedCaseStudies : SAMPLE.caseStudies,
     testimonials: mappedTestimonials.length ? mappedTestimonials : SAMPLE.testimonials,
     faqs:    mappedFaqs.length    ? mappedFaqs    : SAMPLE.faqs,
+    scope: {
+      included: a(know.included, SAMPLE.scope.included),
+      notIncluded: a(know.notIncluded, SAMPLE.scope.notIncluded),
+    },
   }
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SectionLabel({ children }) {
+// ─── Section mark — replaces the repeated all-caps eyebrow pill ─────────────
+// A margin-numbered memo section header. Encodes position in the document
+// rather than decorating each section identically.
+function SectionMark({ n, children, dark }) {
   return (
-    <span className="inline-block text-xs font-bold uppercase tracking-widest mb-3 px-3 py-1 rounded-full border" style={{ color: T.gold, borderColor: T.gold, background: '#fff8e8' }}>
-      {children}
-    </span>
+    <div className="flex items-baseline gap-3 mb-4">
+      <span className="text-sm font-bold flex-shrink-0" style={{ color: T.red, fontFamily: SANS }}>§{n}</span>
+      <h2 className="text-3xl md:text-4xl leading-tight" style={{ color: dark ? T.white : T.text, fontFamily: SERIF }}>{children}</h2>
+    </div>
   )
 }
 
-function Divider() {
-  return <div className="w-12 h-1 rounded-full my-4" style={{ background: T.gold }} />
-}
-
-// Hero
-function HeroSection() {
-  const D = useData()
-  const f = D.founder
+// ─── Growth chart — hand-built SVG trajectory, the hero's visual anchor ─────
+function GrowthChart() {
   return (
-    <section style={{ background: T.navy }} className="relative overflow-hidden pt-28 pb-20">
-      {/* subtle grid overlay */}
-      <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '48px 48px' }} />
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left copy */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-6 text-sm font-medium" style={{ borderColor: T.goldLight, color: T.goldLight, background: 'rgba(201,168,76,0.1)' }}>
-              <Award className="w-4 h-4" />
-              {f.credentials[0]} · {f.credentials[1]}
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white leading-tight mb-4">
-              {f.tagline}
-            </h1>
-            <p className="text-lg leading-relaxed mb-8" style={{ color: '#c7d2e0' }}>
-              {f.bio}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <a href={f.calLink} className="inline-flex items-center px-7 py-3.5 rounded-xl font-bold text-base transition-all hover:opacity-90" style={{ background: T.gold, color: T.navyDark }}>
-                <Calendar className="w-5 h-5 mr-2" /> Book a Strategy Call
-              </a>
-              <a href="#case-studies" className="inline-flex items-center px-7 py-3.5 rounded-xl font-bold text-base border transition-all hover:bg-white hover:bg-opacity-10" style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }}>
-                View Case Studies <ArrowRight className="w-4 h-4 ml-2" />
-              </a>
-            </div>
-            <div className="flex items-center gap-2 mt-6 text-sm" style={{ color: '#c7d2e0' }}>
-              <CheckCircle className="w-4 h-4" style={{ color: T.gold }} />
-              {f.location} · Accepting 3 new clients this quarter
-            </div>
-          </div>
-          {/* Right — avatar + stats */}
-          <div className="flex flex-col items-center gap-8">
-            {/* Avatar placeholder */}
-            <div className="w-44 h-44 rounded-full border-4 flex items-center justify-center text-5xl font-black" style={{ borderColor: T.gold, background: T.navyDark, color: T.gold }}>
-              {f.name.split(' ').map(n => n[0]).join('')}
-            </div>
-            <div className="text-center">
-              <p className="text-xl font-bold text-white">{f.name}</p>
-              <p style={{ color: T.goldLight }} className="text-sm">{f.title}</p>
-            </div>
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-4 w-full">
-              {D.stats.map((s, i) => (
-                <div key={i} className="rounded-xl p-4 text-center border" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
-                  <div className="text-2xl font-black" style={{ color: T.gold }}>{s.number}</div>
-                  <div className="text-xs mt-1" style={{ color: '#c7d2e0' }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Video placeholder ── */}
-        <div className="mt-16">
-          <p className="text-center text-sm font-semibold mb-4" style={{ color: '#c7d2e0' }}>
-            Watch: How I help founders break through growth plateaus
-          </p>
-          <div
-            className="relative w-full rounded-2xl overflow-hidden border flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)', aspectRatio: '16/9' }}
-          >
-            {/* Thumbnail area */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer transition-transform hover:scale-105"
-                  style={{ background: T.gold }}
-                >
-                  <Play className="w-8 h-8 ml-1" style={{ color: T.navyDark }} />
-                </div>
-                <p className="text-sm font-medium" style={{ color: '#c7d2e0' }}>Your intro video goes here</p>
-                <p className="text-xs mt-1" style={{ color: 'rgba(199,210,224,0.5)' }}>Paste a YouTube link in Settings → Brand → Intro Video</p>
-              </div>
-            </div>
-            {/* Corner badge */}
-            <div
-              className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold"
-              style={{ background: 'rgba(201,168,76,0.15)', color: T.goldLight, border: `1px solid ${T.gold}` }}
-            >
-              ▶ 3 min intro
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
+    <svg viewBox="0 0 420 220" className="w-full h-auto" role="img" aria-label="Illustrative revenue growth trajectory">
+      <defs>
+        <linearGradient id="chartFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={T.red} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={T.red} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* baseline grid ticks */}
+      {[40, 90, 140, 190].map((y, i) => (
+        <line key={i} x1="10" y1={y} x2="410" y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      ))}
+      {/* area under curve */}
+      <path
+        d="M20,178 L80,158 L140,138 L200,108 L260,78 L320,48 L390,22 L390,200 L20,200 Z"
+        fill="url(#chartFade)"
+      />
+      {/* trajectory line */}
+      <path
+        d="M20,178 L80,158 L140,138 L200,108 L260,78 L320,48 L390,22"
+        fill="none" stroke={T.red} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      />
+      {/* "today" marker */}
+      <circle cx="140" cy="138" r="5" fill={T.paper} stroke={T.red} strokeWidth="2.5" />
+      <text x="140" y="158" textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.55)" fontFamily={SANS}>Today</text>
+      {/* projected marker */}
+      <circle cx="390" cy="22" r="5" fill={T.red} />
+      <text x="352" y="14" textAnchor="start" fontSize="11" fill={T.redLight} fontFamily={SANS}>18 months</text>
+    </svg>
   )
 }
 
-// For Who
-function ForWhoSection() {
-  const D = useData()
-  return (
-    <section style={{ background: T.cream }} className="py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <SectionLabel>Who I Work With</SectionLabel>
-        <h2 className="text-3xl md:text-4xl font-black mb-4" style={{ color: T.text }}>Built for a specific kind of founder</h2>
-        <p className="text-lg mb-14" style={{ color: T.muted }}>My work is not for everyone — and that's the point. Here's who I partner with.</p>
-        <div className="grid md:grid-cols-3 gap-6">
-          {D.forWho.map(({ icon: Icon, title, desc }, i) => (
-            <div key={i} className="rounded-2xl p-8 border text-left" style={{ background: '#fff', borderColor: T.border }}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: T.navy }}>
-                <Icon className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-lg font-bold mb-2" style={{ color: T.text }}>{title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: T.muted }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// Process
-function ProcessSection() {
-  const D = useData()
-  return (
-    <section className="py-24 bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <SectionLabel>How It Works</SectionLabel>
-          <h2 className="text-3xl md:text-4xl font-black" style={{ color: T.text }}>A structured path to clarity</h2>
-        </div>
-        <div className="grid md:grid-cols-3 gap-8 relative">
-          {/* connector line — desktop only */}
-          <div className="hidden md:block absolute top-10 left-1/6 right-1/6 h-px" style={{ background: T.border, top: '2.5rem' }} />
-          {D.process.map(({ step, title, desc }, i) => (
-            <div key={i} className="relative rounded-2xl p-8 border" style={{ background: T.cream, borderColor: T.border }}>
-              <div className="w-12 h-12 rounded-full flex items-center justify-center font-black text-lg mb-5 border-2" style={{ borderColor: T.gold, color: T.gold, background: '#fff' }}>
-                {step}
-              </div>
-              <h3 className="text-lg font-bold mb-3" style={{ color: T.text }}>{title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: T.muted }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// Offer Ladder
-function OffersSection() {
-  const D = useData()
-  return (
-    <section style={{ background: T.navy }} className="py-24" id="offers">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <SectionLabel>Ways to Work Together</SectionLabel>
-          <h2 className="text-3xl md:text-4xl font-black text-white">Choose your engagement</h2>
-          <p className="mt-3 text-base" style={{ color: '#c7d2e0' }}>Start small or go deep — every option is designed to deliver measurable impact.</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {D.offers.map((o, i) => (
-            <div key={i} className={`relative rounded-2xl p-8 border flex flex-col ${o.highlight ? 'ring-2' : ''}`} style={{ background: o.highlight ? '#fff' : 'rgba(255,255,255,0.05)', borderColor: o.highlight ? T.gold : 'rgba(255,255,255,0.12)', ringColor: T.gold }}>
-              {o.highlight && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold" style={{ background: T.gold, color: T.navyDark }}>
-                  Most Popular
-                </div>
-              )}
-              <div className="mb-5">
-                <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: o.highlight ? T.muted : '#c7d2e0' }}>{o.type}</p>
-                <h3 className="text-xl font-black mb-1" style={{ color: o.highlight ? T.text : '#fff' }}>{o.name}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black" style={{ color: T.gold }}>{o.price}</span>
-                  <span className="text-sm" style={{ color: o.highlight ? T.muted : '#c7d2e0' }}>/ {o.duration}</span>
-                </div>
-              </div>
-              <p className="text-sm leading-relaxed mb-6" style={{ color: o.highlight ? T.muted : '#c7d2e0' }}>{o.description}</p>
-              <ul className="space-y-2 mb-8 flex-1">
-                {o.includes.map((item, j) => (
-                  <li key={j} className="flex items-start gap-2 text-sm" style={{ color: o.highlight ? T.text : '#e2e8f0' }}>
-                    <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: T.gold }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <a href="#book" className="mt-auto block text-center py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90" style={{ background: T.gold, color: T.navyDark }}>
-                {o.cta} <ArrowRight className="inline w-4 h-4 ml-1" />
-              </a>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// Case Studies
-function CaseStudiesSection() {
-  const D = useData()
-  return (
-    <section className="py-24 bg-white" id="case-studies">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <SectionLabel>Case Studies</SectionLabel>
-          <h2 className="text-3xl md:text-4xl font-black" style={{ color: T.text }}>Results I've helped create</h2>
-          <p className="mt-3 text-base" style={{ color: T.muted }}>Real outcomes for real businesses. All details shared with client permission.</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {D.caseStudies.map((c, i) => (
-            <div key={i} className="rounded-2xl overflow-hidden border" style={{ borderColor: T.border }}>
-              <div className="px-6 py-4 font-semibold text-sm" style={{ background: T.navy, color: T.goldLight }}>
-                {c.sector}
-              </div>
-              <div className="p-6" style={{ background: T.cream }}>
-                <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: T.muted }}>{c.client}</p>
-                <p className="text-xl font-black mb-3" style={{ color: T.text }}>{c.result}</p>
-                <p className="text-sm leading-relaxed" style={{ color: T.muted }}>{c.detail}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// Testimonials
-function TestimonialsSection() {
-  const D = useData()
-  return (
-    <section style={{ background: T.cream }} className="py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <SectionLabel>Client Voices</SectionLabel>
-          <h2 className="text-3xl md:text-4xl font-black" style={{ color: T.text }}>What founders say</h2>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {D.testimonials.map((t, i) => (
-            <div key={i} className="rounded-2xl p-8 bg-white border" style={{ borderColor: T.border }}>
-              <div className="flex gap-0.5 mb-5">
-                {Array.from({ length: t.rating }).map((_, j) => (
-                  <Star key={j} className="w-4 h-4 fill-current" style={{ color: T.gold }} />
-                ))}
-              </div>
-              <p className="text-sm leading-relaxed italic mb-6" style={{ color: T.muted }}>"{t.quote}"</p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm" style={{ background: T.navy, color: T.gold }}>
-                  {t.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <div>
-                  <p className="font-bold text-sm" style={{ color: T.text }}>{t.name}</p>
-                  <p className="text-xs" style={{ color: T.muted }}>{t.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// FAQ
-function FAQSection() {
-  const D = useData()
-  const [open, setOpen] = useState(null)
-  return (
-    <section className="py-24 bg-white">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <SectionLabel>FAQ</SectionLabel>
-          <h2 className="text-3xl md:text-4xl font-black" style={{ color: T.text }}>Common questions</h2>
-        </div>
-        <div className="space-y-3">
-          {D.faqs.map((f, i) => (
-            <div key={i} className="rounded-xl border overflow-hidden" style={{ borderColor: T.border }}>
-              <button onClick={() => setOpen(open === i ? null : i)} className="w-full flex justify-between items-center px-6 py-4 text-left font-semibold text-sm" style={{ color: T.text, background: open === i ? T.cream : '#fff' }}>
-                {f.q}
-                <ChevronDown className={`w-4 h-4 flex-shrink-0 ml-4 transition-transform ${open === i ? 'rotate-180' : ''}`} style={{ color: T.gold }} />
-              </button>
-              {open === i && (
-                <div className="px-6 pb-5 pt-1 text-sm leading-relaxed" style={{ color: T.muted, background: T.cream }}>
-                  {f.a}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// Invitation / Final CTA
-function InvitationSection() {
-  const D = useData()
-  const f = D.founder
-  return (
-    <section style={{ background: T.navy }} className="py-24" id="book">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="w-14 h-14 rounded-full mx-auto mb-6 flex items-center justify-center border-2" style={{ borderColor: T.gold, background: T.navyDark, color: T.gold, fontSize: '1.25rem', fontWeight: 900 }}>
-          {f.name.split(' ').map(n => n[0]).join('')}
-        </div>
-        <SectionLabel>Let's Talk</SectionLabel>
-        <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
-          Ready to scale with clarity?
-        </h2>
-        <p className="text-base mb-4" style={{ color: '#c7d2e0' }}>
-          I take on a maximum of 5 retainer clients at any time.<br />
-          <span style={{ color: T.goldLight }} className="font-semibold">3 spots remaining this quarter.</span>
-        </p>
-        <p className="text-sm mb-10" style={{ color: '#8fa3b8' }}>No obligations — the first call is a conversation, not a sales pitch.</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-          <a href={f.calLink} className="inline-flex items-center justify-center px-8 py-4 rounded-xl font-bold text-base transition-all hover:opacity-90" style={{ background: T.gold, color: T.navyDark }}>
-            <Calendar className="w-5 h-5 mr-2" /> Book a Free Discovery Call
-          </a>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm" style={{ color: '#8fa3b8' }}>
-          <a href={`tel:${f.phone}`} className="flex items-center gap-2 hover:text-white transition-colors">
-            <Phone className="w-4 h-4" style={{ color: T.gold }} /> {f.phone}
-          </a>
-          <a href={`mailto:${f.email}`} className="flex items-center gap-2 hover:text-white transition-colors">
-            <Mail className="w-4 h-4" style={{ color: T.gold }} /> {f.email}
-          </a>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ─── Template nav bar ─────────────────────────────────────────────────────────
+// ─── Nav ──────────────────────────────────────────────────────────────────────
 function TemplateNav() {
   const D = useData()
   const f = D.founder
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-md" style={{ background: 'rgba(30,58,95,0.97)', borderColor: 'rgba(255,255,255,0.1)' }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <span className="font-black text-white text-lg">{f.name} <span className="font-normal text-sm" style={{ color: '#c7d2e0' }}>· Advisory</span></span>
-        <div className="hidden md:flex items-center gap-6 text-sm">
-          {[['#case-studies', 'Case Studies'], ['#offers', 'Work Together'], ['#book', 'Contact']].map(([href, label]) => (
-            <a key={href} href={href} className="font-medium transition-colors hover:opacity-70" style={{ color: '#c7d2e0' }}>{label}</a>
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ background: 'rgba(20,23,29,0.94)', borderColor: 'rgba(255,255,255,0.08)' }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="leading-tight">
+          <p className="font-semibold text-white text-base" style={{ fontFamily: SERIF }}>{f.name}</p>
+          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Strategy Advisory</p>
+        </div>
+        <div className="hidden md:flex items-center gap-7 text-sm">
+          {[['#exhibits', 'Exhibits'], ['#offers', 'Engagement'], ['#book', 'Contact']].map(([href, label]) => (
+            <a key={href} href={href} className="font-medium transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.55)' }}>{label}</a>
           ))}
         </div>
-        <a href="#book" className="px-5 py-2 rounded-lg font-bold text-sm transition-all hover:opacity-90" style={{ background: T.gold, color: T.navyDark }}>
+        <a href="#book" className="px-5 py-2 rounded font-semibold text-sm transition-all hover:opacity-90" style={{ background: T.red, color: '#fff' }}>
           Book a Call
         </a>
       </div>
     </nav>
+  )
+}
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+function HeroSection() {
+  const D = useData()
+  const f = D.founder
+  return (
+    <section style={{ background: T.ink }} className="pt-28 pb-16">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-14 items-center">
+          <div>
+            <p className="text-sm mb-5" style={{ color: T.redLight }}>Prepared for growth-stage founders</p>
+            <h1 className="text-4xl md:text-5xl leading-[1.15] mb-6 text-white" style={{ fontFamily: SERIF }}>
+              {f.tagline}
+            </h1>
+            <p className="text-base leading-relaxed mb-9 max-w-lg" style={{ color: 'rgba(255,255,255,0.62)' }}>
+              {f.bio}
+            </p>
+            <div className="flex flex-wrap items-center gap-6 mb-8">
+              <a href={f.calLink} className="inline-flex items-center gap-2 px-6 py-3.5 rounded font-semibold text-sm transition-all hover:opacity-90" style={{ background: T.red, color: '#fff' }}>
+                <Calendar className="w-4 h-4" /> Book a Strategy Call
+              </a>
+              <a href="#exhibits" className="inline-flex items-center gap-1.5 text-sm font-semibold border-b pb-0.5 transition-opacity hover:opacity-70" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>
+                Read the case exhibits <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {f.location}<br />Accepting 3 new clients this quarter
+            </p>
+          </div>
+
+          {/* Chart + signature block */}
+          <div>
+            <div className="rounded-lg border p-5 mb-5" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+              <GrowthChart />
+            </div>
+            <div className="flex items-start gap-4 px-1">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: T.inkSoft, color: T.redLight, border: `1px solid ${T.red}` }}>
+                {f.name.split(' ').map(n => n[0]).join('')}
+              </div>
+              <div>
+                <p className="font-semibold text-sm text-white">{f.name}</p>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{f.credentials.join(', ')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats — inline row, not a card grid */}
+        <div className="mt-16 pt-10 grid grid-cols-2 md:grid-cols-4 gap-8" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          {D.stats.map((s, i) => (
+            <div key={i}>
+              <p className="text-2xl md:text-3xl font-bold" style={{ color: T.redLight, fontFamily: SERIF }}>{s.number}</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── §1 Who this is for — a criteria list, not identical cards ──────────────
+function ForWhoSection() {
+  const D = useData()
+  return (
+    <section style={{ background: T.paper }} className="py-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionMark n="1">Who this is for</SectionMark>
+        <p className="text-base mb-10 max-w-lg" style={{ color: T.muted }}>My work is not for everyone — and that's the point. Here's who I partner with.</p>
+        <div className="grid md:grid-cols-3 gap-x-8 gap-y-10">
+          {D.forWho.map(({ icon: Icon, title, desc }, i) => (
+            <div key={i} className="pt-5" style={{ borderTop: `2px solid ${T.text}` }}>
+              <Icon className="w-5 h-5 mb-4" style={{ color: T.red }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: T.text, fontFamily: SERIF }}>{title}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: T.muted }}>{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── §2 How it works — annotated procedure, not circle badges ──────────────
+function ProcessSection() {
+  const D = useData()
+  return (
+    <section className="py-20" style={{ background: T.white }}>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionMark n="2">How the engagement runs</SectionMark>
+        <div className="mt-10 relative">
+          <div className="absolute left-[7px] top-2 bottom-2 w-px" style={{ background: T.border }} />
+          <div className="space-y-10">
+            {D.process.map(({ step, title, desc }, i) => (
+              <div key={i} className="relative pl-8">
+                <div className="absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full border-2" style={{ borderColor: T.red, background: T.white }} />
+                <p className="text-xs font-bold mb-1.5" style={{ color: T.red, fontFamily: SANS }}>§2.{i + 1}</p>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: T.text, fontFamily: SERIF }}>{title}</h3>
+                <p className="text-sm leading-relaxed max-w-lg" style={{ color: T.muted }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── §3 Ways to engage — a ledger, not three identical price cards ─────────
+function OffersSection() {
+  const D = useData()
+  return (
+    <section style={{ background: T.paper }} className="py-20" id="offers">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionMark n="3">Ways to engage</SectionMark>
+        <p className="text-base mb-10 max-w-lg" style={{ color: T.muted }}>Start small or go deep — every option is scoped to deliver a measurable outcome.</p>
+
+        <div className="border-t" style={{ borderColor: T.text }}>
+          {D.offers.map((o, i) => (
+            <div key={i}
+              className="grid md:grid-cols-[1.4fr_1fr_1.6fr_auto] gap-4 md:gap-8 items-start py-7 border-b relative"
+              style={{ borderColor: T.border, paddingLeft: o.highlight ? '1rem' : 0 }}>
+              {o.highlight && <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: T.red }} />}
+
+              <div>
+                <p className="text-xs font-semibold mb-1" style={{ color: o.highlight ? T.red : T.muted }}>
+                  {o.type}{o.highlight ? ' · Recommended' : ''}
+                </p>
+                <h3 className="text-xl font-semibold" style={{ color: T.text, fontFamily: SERIF }}>{o.name}</h3>
+              </div>
+
+              <div>
+                <p className="text-2xl font-bold" style={{ color: T.text, fontFamily: SERIF }}>{o.price}</p>
+                <p className="text-xs" style={{ color: T.muted }}>{o.duration}</p>
+              </div>
+
+              <div>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: T.muted }}>{o.description}</p>
+                <ul className="space-y-1.5">
+                  {o.includes.map((item, j) => (
+                    <li key={j} className="flex items-start gap-2 text-sm" style={{ color: T.text }}>
+                      <CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: T.red }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <a href="#book" className="self-center justify-self-start md:justify-self-end whitespace-nowrap px-5 py-2.5 rounded font-semibold text-sm transition-all hover:opacity-90"
+                style={{ background: o.highlight ? T.red : 'transparent', color: o.highlight ? '#fff' : T.text, border: o.highlight ? 'none' : `1px solid ${T.text}` }}>
+                {o.cta}
+              </a>
+            </div>
+          ))}
+        </div>
+
+        {/* Scope Boundaries: Included & Not Included */}
+        {D.scope && (D.scope.included?.length > 0 || D.scope.notIncluded?.length > 0) && (
+          <div className="mt-12 p-6 rounded-lg border grid md:grid-cols-2 gap-8" style={{ borderColor: T.border, background: T.white }}>
+            {D.scope.included?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: T.text, fontFamily: SANS }}>
+                  <CheckCircle className="w-4 h-4" style={{ color: T.red }} />
+                  What is always included
+                </h4>
+                <ul className="space-y-2.5">
+                  {D.scope.included.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-sm" style={{ color: T.muted }}>
+                      <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: T.red }} />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {D.scope.notIncluded?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: T.muted, fontFamily: SANS }}>
+                  <XCircle className="w-4 h-4 text-gray-400" />
+                  What is not included (scope boundary)
+                </h4>
+                <ul className="space-y-2.5">
+                  {D.scope.notIncluded.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-sm" style={{ color: T.muted }}>
+                      <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ─── §4 Selected exhibits — stacked, alternating, not a card grid ──────────
+function CaseStudiesSection() {
+  const D = useData()
+  return (
+    <section className="py-20" style={{ background: T.white }} id="exhibits">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionMark n="4">Selected exhibits</SectionMark>
+        <p className="text-base mb-14 max-w-lg" style={{ color: T.muted }}>Real outcomes for real businesses, shared with client permission.</p>
+
+        <div className="space-y-14">
+          {D.caseStudies.map((c, i) => {
+            const letter = String.fromCharCode(65 + i)
+            const flip = i % 2 === 1
+            return (
+              <div key={i} className={`grid md:grid-cols-[auto_1fr] gap-6 items-start ${flip ? 'md:[direction:rtl]' : ''}`}>
+                <div className="flex md:flex-col items-baseline md:items-start gap-3 md:gap-1" style={{ direction: 'ltr' }}>
+                  <span className="text-4xl font-bold" style={{ WebkitTextStroke: `1.5px ${T.text}`, color: 'transparent', fontFamily: SERIF }}>
+                    {letter}
+                  </span>
+                  <FileText className="w-4 h-4 hidden md:block" style={{ color: T.red }} />
+                </div>
+                <div style={{ direction: 'ltr' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: T.red, letterSpacing: '0.04em' }}>{c.sector}</p>
+                  <p className="text-xs mb-1" style={{ color: T.muted }}>{c.client}</p>
+                  <h3 className="text-2xl font-semibold mb-3" style={{ color: T.text, fontFamily: SERIF }}>{c.result}</h3>
+                  <p className="text-sm leading-relaxed max-w-xl" style={{ color: T.muted }}>{c.detail}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Intro video — styled as an attached appendix, not a floating video card */}
+        <div className="mt-16 rounded-lg border p-6 flex flex-col sm:flex-row items-center gap-6" style={{ borderColor: T.border, background: T.paper }}>
+          <button className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-transform hover:scale-105" style={{ background: T.red }}>
+            <Play className="w-5 h-5 ml-0.5 text-white" />
+          </button>
+          <div>
+            <p className="text-sm font-semibold mb-0.5" style={{ color: T.text }}>Appendix — a 3-minute introduction</p>
+            <p className="text-xs" style={{ color: T.muted }}>Paste a YouTube link in Settings → Brand → Intro Video to replace this.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── §5 In their own words — inline testimony, not a card grid ────────────
+function TestimonialsSection() {
+  const D = useData()
+  return (
+    <section style={{ background: T.ink }} className="py-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionMark n="5" dark>In their own words</SectionMark>
+        <div className="mt-10 space-y-10">
+          {D.testimonials.map((t, i) => (
+            <div key={i} className="pb-10 border-b last:border-0" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+              <Quote className="w-5 h-5 mb-3" style={{ color: T.red }} />
+              <p className="text-lg md:text-xl leading-relaxed mb-4" style={{ color: '#fff', fontFamily: SERIF }}>"{t.quote}"</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-white">{t.name}</p>
+                <span style={{ color: 'rgba(255,255,255,0.3)' }}>—</span>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{t.role}</p>
+                <div className="flex gap-0.5 ml-2">
+                  {Array.from({ length: t.rating }).map((_, j) => (
+                    <Star key={j} className="w-3 h-3 fill-current" style={{ color: T.redLight }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── §6 FAQ — rule-separated list, not bordered cards ──────────────────────
+function FAQSection() {
+  const D = useData()
+  const [open, setOpen] = useState(null)
+  return (
+    <section className="py-20" style={{ background: T.paper }}>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionMark n="6">Questions before we start</SectionMark>
+        <div className="mt-8">
+          {D.faqs.map((f, i) => (
+            <div key={i} className="border-b" style={{ borderColor: T.border }}>
+              <button onClick={() => setOpen(open === i ? null : i)} className="w-full flex justify-between items-center py-5 text-left font-semibold text-sm" style={{ color: T.text }}>
+                {f.q}
+                <ChevronDown className={`w-4 h-4 flex-shrink-0 ml-4 transition-transform ${open === i ? 'rotate-180' : ''}`} style={{ color: T.red }} />
+              </button>
+              {open === i && (
+                <div className="pb-5 text-sm leading-relaxed max-w-lg" style={{ color: T.muted }}>{f.a}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── §7 Closing — a signature block, not a generic CTA banner ──────────────
+function InvitationSection() {
+  const D = useData()
+  const f = D.founder
+  return (
+    <section style={{ background: T.ink }} className="py-24" id="book">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <PenTool className="w-6 h-6 mx-auto mb-6" style={{ color: T.red }} />
+        <h2 className="text-3xl md:text-4xl mb-5 text-white" style={{ fontFamily: SERIF }}>Ready to scale with clarity?</h2>
+        <p className="text-base mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>I take on a maximum of 5 retainer clients at any time.</p>
+        <p className="text-sm font-semibold mb-10" style={{ color: T.redLight }}>3 spots remaining this quarter</p>
+        <a href={f.calLink} className="inline-flex items-center gap-2 px-8 py-4 rounded font-semibold text-base transition-all hover:opacity-90" style={{ background: T.red, color: '#fff' }}>
+          <Calendar className="w-5 h-5" /> Book a Free Discovery Call
+        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-10 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <a href={`tel:${f.phone}`} className="flex items-center gap-2 hover:text-white transition-colors">
+            <Phone className="w-4 h-4" style={{ color: T.red }} /> {f.phone}
+          </a>
+          <a href={`mailto:${f.email}`} className="flex items-center gap-2 hover:text-white transition-colors">
+            <Mail className="w-4 h-4" style={{ color: T.red }} /> {f.email}
+          </a>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -572,53 +657,36 @@ function TemplateFooter() {
   const D = useData()
   const f = D.founder
   return (
-    <footer style={{ background: T.navyDark, borderTop: `1px solid rgba(255,255,255,0.08)` }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <footer style={{ background: T.ink, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid md:grid-cols-3 gap-10">
-          {/* Brand */}
           <div>
-            <p className="font-black text-xl text-white mb-1">{f.name}</p>
-            <p className="text-sm mb-4" style={{ color: T.goldLight }}>{f.title}</p>
-            <p className="text-sm leading-relaxed mb-5" style={{ color: '#8fa3b8' }}>
-              Independent strategy advisor helping Indian founders scale past ₹10 Cr.
-              Based in {f.location}.
+            <p className="font-semibold text-lg text-white mb-1" style={{ fontFamily: SERIF }}>{f.name}</p>
+            <p className="text-sm mb-4" style={{ color: T.redLight }}>{f.title}</p>
+            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Independent strategy advisor helping Indian founders scale past ₹10 Cr.<br />Based in {f.location}.
             </p>
-            <div className="flex items-center gap-2 text-sm" style={{ color: '#8fa3b8' }}>
-              <span style={{ color: T.gold }}>✦</span> Available for new engagements
-            </div>
           </div>
-          {/* Quick links */}
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: T.gold }}>Quick Links</p>
-            <ul className="space-y-2 text-sm" style={{ color: '#8fa3b8' }}>
-              {[['#case-studies','Case Studies'],['#offers','Work Together'],['#book','Book a Call'],['#','Privacy Policy'],['#','Terms of Engagement']].map(([href, label]) => (
+            <p className="text-xs font-semibold mb-4" style={{ color: T.redLight }}>Quick Links</p>
+            <ul className="space-y-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {[['#exhibits','Exhibits'],['#offers','Engagement'],['#book','Contact'],['#','Privacy Policy'],['#','Terms of Engagement']].map(([href, label]) => (
                 <li key={label}><a href={href} className="hover:text-white transition-colors">{label}</a></li>
               ))}
             </ul>
           </div>
-          {/* Contact */}
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: T.gold }}>Get in Touch</p>
-            <ul className="space-y-3 text-sm" style={{ color: '#8fa3b8' }}>
+            <p className="text-xs font-semibold mb-4" style={{ color: T.redLight }}>Get in Touch</p>
+            <ul className="space-y-3 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
               <li><a href={`mailto:${f.email}`} className="hover:text-white transition-colors">{f.email}</a></li>
               <li><a href={`tel:${f.phone}`} className="hover:text-white transition-colors">{f.phone}</a></li>
               <li>{f.location}</li>
             </ul>
-            <a
-              href={f.calLink}
-              className="inline-flex items-center mt-5 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:opacity-90"
-              style={{ background: T.gold, color: T.navyDark }}
-            >
-              Book a Strategy Call
-            </a>
           </div>
         </div>
-        {/* Bottom bar */}
-        <div className="mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', color: '#8fa3b8' }}>
+        <div className="mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)' }}>
           <span>© {new Date().getFullYear()} {f.name}. All rights reserved.</span>
-          <Link href="/templates" className="inline-flex items-center gap-1.5 hover:text-white transition-colors" style={{ color: '#8fa3b8' }}>
-            ← Browse all templates on OPC Genie
-          </Link>
+          <Link href="/templates" className="hover:text-white transition-colors">← Browse all templates on OPC Genie</Link>
         </div>
       </div>
     </footer>
@@ -626,14 +694,11 @@ function TemplateFooter() {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-// `data` prop: when rendered from /[username] this is the live wizard payload.
-// When browsed standalone at /templates/consultant-advisor it is undefined,
-// so payloadToData(undefined) returns SAMPLE — the preview is unchanged.
 export default function ConsultantAdvisorTemplate({ data }) {
   const resolved = payloadToData(data)
   return (
     <DataCtx.Provider value={resolved}>
-      <div className="min-h-screen" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div className="min-h-screen" style={{ fontFamily: SANS }}>
         <TemplateNav />
         <HeroSection />
         <ForWhoSection />

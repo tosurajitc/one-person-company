@@ -212,17 +212,20 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Logout API call failed:', error)
     } finally {
-      // Clear local storage and cookie regardless of API call result
+      // Clear all auth-related localStorage keys immediately so UI updates
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user_data')
       localStorage.removeItem('oauth_state')
-      // Expire the cookie so Next.js middleware stops seeing the token
-      document.cookie = 'token=; path=/; max-age=0; SameSite=Lax'
-      
+      localStorage.removeItem('oauth_provider')
+      localStorage.removeItem('user_role')
+
       dispatch({ type: AUTH_ACTIONS.LOGOUT })
-      
-      // Redirect to login
-      router.push('/login')
+
+      // Navigate via /signout — the server-side route handler sets the
+      // expired cookie in the HTTP response *before* the redirect, so the
+      // middleware never sees the old token and cannot bounce /login back
+      // to /dashboard.
+      window.location.href = '/signout'
     }
   }
 

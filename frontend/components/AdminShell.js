@@ -8,6 +8,7 @@ import {
   MessageSquare, TrendingUp, Settings, Bell,
   LogOut, User, ChevronDown, LayoutDashboard, Search, Wand2,
 } from 'lucide-react'
+import AdminGenieChatDrawer from './AdminGenieChatDrawer'
 
 // Canonical navigation — single source of truth for all admin pages.
 const NAV_ITEMS = [
@@ -201,6 +202,9 @@ export default function AdminShell({ children }) {
           {children}
         </main>
       </div>
+
+      {/* Admin Genie Copilot Drawer */}
+      <AdminGenieChatDrawer />
     </div>
   )
 }

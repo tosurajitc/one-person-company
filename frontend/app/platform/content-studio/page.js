@@ -772,10 +772,10 @@ export default function ContentStudioPage() {
             Specialist AI Agents • Per-Minute Live Studio
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight mb-4">
-            Specialist Content Creation Studio
+            Digital Workforce
           </h1>
           <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
-            Collaborate directly with dedicated AI specialists across all your business formats.
+            Collaborate directly with dedicated AI Consultants across all your business formats.
             Enjoy the <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">first 1 minute 100% free</span>, then pay per minute chat as you create.
           </p>
         </div>

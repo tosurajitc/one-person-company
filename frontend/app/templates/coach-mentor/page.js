@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, CheckCircle, Star, ChevronDown, Phone, Mail, Calendar, Heart, Smile, Sunrise, Zap, Leaf, BookOpen, MessageCircle, Users, Play } from 'lucide-react'
+import { ArrowRight, CheckCircle, Star, ChevronDown, Phone, Mail, Calendar, Heart, Smile, Sunrise, Zap, Leaf, BookOpen, MessageCircle, Users, Play, Compass } from 'lucide-react'
 import { useState, createContext, useContext } from 'react'
 
 const DataCtx = createContext(null)
@@ -49,6 +49,7 @@ const SAMPLE = {
     { step: '02', title: 'Deep-Dive Session',   desc: 'A 90-minute foundation session where we map your values, blockers, and the one shift that changes everything.' },
     { step: '03', title: 'Ongoing Coaching',    desc: 'Bi-weekly sessions, voice-note check-ins, and a private journal space — support that meets you where you are.' },
   ],
+  frameworksUsed: 'ICF Core Competencies, Positive Psychology, Cognitive Reframing, Somatic Grounding',
   offers: [
     {
       name:        'Single Session',
@@ -158,6 +159,7 @@ function payloadToData(payload) {
     transformation: SAMPLE.transformation,
     forWho:       mappedForWho.length ? mappedForWho : SAMPLE.forWho,
     process:      mappedProcess.length ? mappedProcess : SAMPLE.process,
+    frameworksUsed: o(know.toolsUsed, SAMPLE.frameworksUsed),
     offers:       mappedOffers.length ? mappedOffers : SAMPLE.offers,
     testimonials: mappedTestimonials.length ? mappedTestimonials : SAMPLE.testimonials,
     faqs:         mappedFaqs.length ? mappedFaqs : SAMPLE.faqs,
@@ -428,6 +430,15 @@ function ProcessSection() {
               </div>
             ))}
           </div>
+
+          {/* Frameworks and Tools */}
+          {useData().frameworksUsed && (
+            <div className="mt-12 p-5 rounded-2xl border flex items-center gap-3 text-sm justify-center text-center"
+              style={{ background: T.cream, borderColor: T.border, color: T.muted }}>
+              <Compass className="w-5 h-5 flex-shrink-0" style={{ color: T.terra }} />
+              <span><strong>Guiding Frameworks & Tools:</strong> {useData().frameworksUsed}</span>
+            </div>
+          )}
         </div>
       </div>
     </section>

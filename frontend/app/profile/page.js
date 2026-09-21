@@ -6,7 +6,7 @@ import {
   User, Mail, Phone, MapPin, Camera, Save, Edit3, 
   Shield, Bell, Globe, Eye, EyeOff, Trash2, 
   Key, CreditCard, Download, Upload, RefreshCw,
-  CheckCircle, AlertCircle, Settings, Lock,
+  CheckCircle, AlertCircle, Settings, Lock, Wallet,
   Smartphone, Monitor, Calendar, Clock, Star
 } from 'lucide-react'
 
@@ -53,10 +53,40 @@ function ProfileLayout({ children }) {
 }
 
 // Profile Settings Component
+import DashboardSidebar from '../../components/DashboardSidebar'
+
 export default function ProfileSettings() {
   const [activeTab, setActiveTab] = useState('general')
   const [isLoading, setIsLoading] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+  const [user, setUser] = useState(null)
+  const [hasSite, setHasSite] = useState(false)
+  const [userSiteSlug, setUserSiteSlug] = useState(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token')
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+
+    Promise.all([
+      fetch('/api/auth/me', { headers }).then(r => r.ok ? r.json() : null),
+      fetch('/api/settings/mine', { headers }).then(r => r.ok ? r.json() : null),
+    ]).then(([me, settings]) => {
+      if (me) {
+        setUser(me)
+        setProfile(prev => ({
+          ...prev,
+          firstName: me.name?.split(' ')[0] || me.full_name?.split(' ')[0] || '',
+          lastName: me.name?.split(' ').slice(1).join(' ') || me.full_name?.split(' ').slice(1).join(' ') || '',
+          email: me.email || '',
+        }))
+      }
+      const slug = settings?.site?.subdomain || null
+      if (slug) {
+        setHasSite(true)
+        setUserSiteSlug(slug)
+      }
+    }).catch(() => {})
+  }, [])
 
   // User data state
   const [profile, setProfile] = useState({
@@ -88,6 +118,7 @@ export default function ProfileSettings() {
 
   const tabs = [
     { id: 'general', name: 'General', icon: User },
+    { id: 'wallet', name: 'Wallet & Funds', icon: Wallet, href: '/profile/wallet' },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'privacy', name: 'Privacy', icon: Shield },
     { id: 'security', name: 'Security', icon: Lock },
@@ -391,59 +422,82 @@ export default function ProfileSettings() {
   }
 
   return (
-    <ProfileLayout>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="bg-gray-50 rounded-2xl border border-gray-100 p-4">
-            <div className="space-y-1">
+    <div className="min-h-screen bg-white pt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-8 pb-6 border-b border-gray-100">
+          <h1 className="text-2xl font-black text-gray-900">Profile Settings</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Manage your account information and preferences</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Navigation Menu */}
+          <DashboardSidebar
+            activeTab="profile"
+            hasSite={hasSite}
+            userSiteSlug={userSiteSlug}
+            user={user}
+          />
+
+          {/* Right Main Content */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* Secondary sub-tabs */}
+            <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-100">
               {tabs.map((tab) => {
                 const Icon = tab.icon
+                if (tab.href) {
+                  return (
+                    <Link
+                      key={tab.id}
+                      href={tab.href}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <Icon className="w-3.5 h-3.5 text-primary-600" />
+                      {tab.name}
+                    </Link>
+                  )
+                }
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center px-4 py-3 rounded-xl transition-all text-sm font-medium ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
                       activeTab === tab.id
-                        ? 'bg-primary-600 text-white'
-                        : 'text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm'
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    <Icon className="w-4 h-4 mr-3 flex-shrink-0" />
+                    <Icon className="w-3.5 h-3.5" />
                     {tab.name}
                   </button>
                 )
               })}
             </div>
-          </div>
-        </div>
 
-        {/* Main Content */}
-        <div className="lg:col-span-3">
-          {renderTabContent()}
+            {renderTabContent()}
 
-          {/* Save Button */}
-          <div className="mt-8 flex justify-end space-x-3">
-            <button className="px-6 py-3 rounded-lg font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isLoading}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center"
-            >
-              {isLoading ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : isSaved ? (
-                <CheckCircle className="w-4 h-4 mr-2" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              {isLoading ? 'Saving...' : isSaved ? 'Saved!' : 'Save Changes'}
-            </button>
+            {/* Save Button */}
+            <div className="mt-8 flex justify-end space-x-3">
+              <button className="px-6 py-3 rounded-lg font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isLoading}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center"
+              >
+                {isLoading ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : isSaved ? (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {isLoading ? 'Saving...' : isSaved ? 'Saved!' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </ProfileLayout>
+    </div>
   )
 }

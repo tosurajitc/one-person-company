@@ -29,6 +29,7 @@ import {
   LayoutTemplate, ChevronDown, MapPin, Briefcase, Users, ShoppingBag,
   ExternalLink,
 } from 'lucide-react'
+import AdminGenieChatDrawer from '../../components/AdminGenieChatDrawer'
 
 // ─────────────────────────────────────────────
 // Config — change these for your platform
@@ -2594,6 +2595,9 @@ function SetupWizardPageContent() {
             </div>
           </div>
         </div>
+
+        {/* Admin Genie Copilot Drawer */}
+        <AdminGenieChatDrawer currentStep={step} activeTemplate={data.template?.template_slug} />
       </div>
     </PrefilledContext.Provider>
     </WizardContext.Provider>

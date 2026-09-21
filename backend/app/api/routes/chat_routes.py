@@ -30,6 +30,7 @@ from app.core.auth import AuthService
 from app.models.chat import ChatMessage, ChatRole
 from app.models.user import User, UserRole
 from app.core.config import settings
+from app.services.rag_service import rag_service
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None   # client-managed; generated server-side if absent
     user_id: Optional[str] = None      # legacy field accepted but ignored (auth via header)
+    context: Optional[dict] = None     # optional metadata from frontend (e.g. currentStep, activeTemplate)
 
 
 class ChatResponse(BaseModel):
@@ -91,6 +93,8 @@ class ChatResponse(BaseModel):
     session_id: str
     messages_used_today: int
     daily_limit: int
+    tokens_used: int = 0
+    total_tokens_used: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -198,10 +202,16 @@ async def chat(
             ),
         )
 
+    # Retrieve RAG context from Qdrant Vector DB if available
+    kb_context = await rag_service.search_relevant_context(body.message, top_k=3)
+    system_prompt = OPC_SYSTEM_PROMPT
+    if kb_context:
+        system_prompt += f"\n\n---\nRELEVANT KNOWLEDGE BASE CONTEXT FROM OPC SETUP MANUAL:\n{kb_context}\n---\nUse the knowledge above to accurately tell the user which Step and Field to fill."
+
     # Build message list for Groq
     history = _load_history(session_id, db)
     groq_messages = [
-        {"role": "system", "content": OPC_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         *history,
         {"role": "user", "content": body.message},
     ]
@@ -217,6 +227,9 @@ async def chat(
             max_tokens=1024,
         )
         reply = completion.choices[0].message.content.strip()
+        call_tokens = 0
+        if hasattr(completion, "usage") and completion.usage:
+            call_tokens = getattr(completion.usage, "total_tokens", 0) or 0
     except Exception as exc:
         logger.error("Groq API error: %s", exc)
         raise HTTPException(
@@ -237,6 +250,19 @@ async def chat(
         role=ChatRole.ASSISTANT,
         content=reply,
     ))
+
+    total_tokens = 0
+    if user:
+        user.ai_tokens_used = (user.ai_tokens_used or 0) + call_tokens
+        total_tokens = user.ai_tokens_used
+
+        # Calculate Rupee cost (₹0.15 per 1,000 tokens)
+        rate = getattr(settings, "INR_PER_1K_TOKENS", 0.15)
+        cost_inr = round((call_tokens / 1000.0) * rate, 4)
+        if cost_inr > 0:
+            user.wallet_consumed = float(user.wallet_consumed or 0.0) + cost_inr
+            user.wallet_balance = max(0.0, float(user.wallet_balance or 0.0) - cost_inr)
+
     db.commit()
 
     return ChatResponse(
@@ -244,6 +270,8 @@ async def chat(
         session_id=session_id,
         messages_used_today=messages_today + 1,
         daily_limit=daily_limit,
+        tokens_used=call_tokens,
+        total_tokens_used=total_tokens,
     )
 
 

@@ -144,7 +144,7 @@ function RevenueAnalytics() {
       { name: 'AI Website Builder — Starter', revenue: 24940, enrollments: 1247 },
       { name: 'Business Launch Bundle', revenue: 46820, enrollments: 2341 },
       { name: 'Founder Strategy Session', revenue: 31560, enrollments: 1578 },
-      { name: 'Content Studio Pro', revenue: 28750, enrollments: 1437 },
+      { name: 'Digital Workforce Pro', revenue: 28750, enrollments: 1437 },
       { name: 'OPC Genie — Annual Plan', revenue: 18920, enrollments: 946 }
     ]
   })

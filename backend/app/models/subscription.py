@@ -59,6 +59,7 @@ class PaymentPurpose(str, enum.Enum):
     OFFER = "offer"              # one-time purchase of a founder's offer
     SUBSCRIPTION = "subscription"  # platform plan upgrade
     AI_CREDIT = "ai_credit"      # top-up for new AI website generation
+    WALLET_TOPUP = "wallet_topup"  # user wallet fund top-up
 
 
 # ---------------------------------------------------------------------------

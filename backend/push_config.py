@@ -34,12 +34,10 @@ rows = {
         {"title": "One Dashboard, Everything",  "description": "Manage your website, offers, content, community, and analytics from a single clean admin — no switching tools.",                  "highlight": "vs. 10 Disconnected Apps"},
     ],
     "features": [
-        {"title": "AI Website Builder",    "description": "Describe your business and your Genie builds a complete, branded website — no design skills needed", "preview": "Live site in under 10 minutes",       "link": "/platform/website-builder",  "status": "Available"},
-        {"title": "AI Genie Assistant",    "description": "Your always-on business advisor — handles customer queries, writes content, and gives strategic advice",  "preview": "Powered by advanced AI models",      "link": "/platform/ai-genie",          "status": "Live Demo"},
-        {"title": "Offers & Payments",     "description": "Create service packages, digital products, and payment links in minutes — sell anything solo",           "preview": "Connect your payment gateway",       "link": "/platform/offers",            "status": "Available"},
-        {"title": "Founder Community",     "description": "Connect with fellow OPC founders, share wins, get feedback, and find collaborators",                    "preview": "Private, moderated founder network", "link": "/community",                  "status": "Available"},
-        {"title": "Content Studio",        "description": "Generate blog posts, social captions, email sequences, and pitch decks with one prompt",                "preview": "Publish across all channels",        "link": "/platform/content-studio",    "status": "Coming Soon"},
-        {"title": "Business Analytics",    "description": "Track revenue, visitor behaviour, and customer activity — clear insights, no data science degree needed","preview": "Simple dashboard, real numbers",     "link": "/dashboard",                  "status": "Available"},
+        {"title": "AI Website Builder",    "description": "Describe your business and your Genie builds a complete, branded website — no design skills needed", "preview": "Live site in under 10 minutes",       "link": "/platform/ai-website-builder", "status": "Available"},
+        {"title": "Offers & Payments",     "description": "Create service packages, digital products, and payment links in minutes — sell anything solo",           "preview": "Connect your payment gateway",       "link": "/platform/offers-payments",   "status": "Available"},
+        {"title": "Founder Community",     "description": "Connect with fellow OPC founders, share wins, get feedback, and find collaborators",                    "preview": "Private, moderated founder network", "link": "/community",                  "status": "Coming Soon"},
+        {"title": "Digital Workforce",     "description": "Generate blog posts, social captions, email sequences, and pitch decks with one prompt",                "preview": "Publish across all channels",        "link": "/platform/content-studio",    "status": "Available"},
     ],
     "testimonials": [
         {"name": "Priya Sharma",  "role": "Independent Consultant", "content": "I launched my consulting website and started getting client enquiries within 48 hours. The AI Genie wrote better copy than I ever could have on my own.", "rating": 5},

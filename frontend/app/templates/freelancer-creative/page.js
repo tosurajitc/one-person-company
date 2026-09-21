@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {
   ArrowRight, CheckCircle, Star, ChevronDown, Phone, Mail,
   ExternalLink, Figma, Code2, Layers, Zap, Monitor, Play,
-  Instagram, Twitter, Linkedin, MousePointer2
+  Instagram, Twitter, Linkedin, MousePointer2, Download, Package
 } from 'lucide-react'
 import { useState, createContext, useContext } from 'react'
 
@@ -119,6 +119,13 @@ const SAMPLE = {
       highlight:   false,
     },
   ],
+  digitalProduct: {
+    enabled: true,
+    name: 'Figma Design System & UI Starter Kit',
+    summary: 'A production-ready UI kit with 200+ components, auto-layout tokens, and light/dark modes for fast prototyping.',
+    link: '#buy-kit',
+    price: '₹1,999',
+  },
   testimonials: [
     {
       name:   'Sneha Rawat',
@@ -199,6 +206,13 @@ function payloadToData(payload) {
     services:     SAMPLE.services,
     process:      mappedProcess.length ? mappedProcess : SAMPLE.process,
     offers:       mappedOffers.length ? mappedOffers : SAMPLE.offers,
+    digitalProduct: off.product?.name ? {
+      enabled: Boolean(off.product.enabled !== false),
+      name: off.product.name,
+      summary: off.product.summary || '',
+      link: off.product.link || '#buy-kit',
+      price: off.product.priceInr ? `₹${Number(off.product.priceInr).toLocaleString('en-IN')}` : (off.product.priceUsd ? `$${off.product.priceUsd}` : SAMPLE.digitalProduct.price),
+    } : SAMPLE.digitalProduct,
     testimonials: mappedTestimonials.length ? mappedTestimonials : SAMPLE.testimonials,
     faqs:         mappedFaqs.length ? mappedFaqs : SAMPLE.faqs,
   }
@@ -537,6 +551,36 @@ function OffersSection() {
             </div>
           ))}
         </div>
+
+        {/* Digital Product / Asset Download */}
+        {useData().digitalProduct?.enabled && useData().digitalProduct?.name && (
+          <div className="mt-14 max-w-3xl mx-auto rounded-2xl p-6 md:p-8 border flex flex-col md:flex-row items-center justify-between gap-6"
+            style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(163,230,53,0.3)' }}>
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(163,230,53,0.15)', color: T.lime }}>
+                <Package className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: 'rgba(163,230,53,0.2)', color: T.lime }}>
+                  Digital Asset
+                </span>
+                <h3 className="text-lg font-black text-white mt-1">{useData().digitalProduct.name}</h3>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: T.violetLight }}>{useData().digitalProduct.summary}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 flex-shrink-0 w-full md:w-auto justify-between md:justify-end">
+              <span className="text-2xl font-black" style={{ color: T.lime }}>{useData().digitalProduct.price}</span>
+              <a
+                href={useData().digitalProduct.link || '#buy-kit'}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-bold text-xs transition-all hover:opacity-90 whitespace-nowrap"
+                style={{ background: T.lime, color: T.black }}
+              >
+                <Download className="w-3.5 h-3.5" />
+                Get Asset
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

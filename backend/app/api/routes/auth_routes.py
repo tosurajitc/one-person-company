@@ -12,7 +12,7 @@ from app.core.database import get_db
 from app.core.auth import AuthService, SecurityService, AuthenticationError, OAuthService
 from app.core.oauth import OAuthClient, OAuthConfig
 from app.core.config import settings
-from app.models.user import User, UserRole, OAuthProvider
+from app.models.user import User, UserRole, OAuthProvider, _generate_referral_code
 from app.models.lead import Lead
 from app.schemas.user_schemas import (
     UserLoginRequest,
@@ -101,6 +101,7 @@ async def register(payload: UserRegisterRequest, response: Response, db: Session
         is_active=True,
         email_verified=True,
         role=UserRole.USER,
+        referral_code=_generate_referral_code(),
     )
     db.add(user)
     db.commit()
@@ -151,6 +152,7 @@ async def signup(payload: UserSignupRequest, response: Response, db: Session = D
         is_active=True,
         email_verified=False,
         role=UserRole.USER,
+        referral_code=_generate_referral_code(),
     )
     db.add(user)
     db.commit()
@@ -319,6 +321,7 @@ async def oauth_callback(
             is_active=True,
             email_verified=user_info.get("verified_email", True),
             role=UserRole.USER,
+            referral_code=_generate_referral_code(),
         )
         db.add(user)
         db.commit()

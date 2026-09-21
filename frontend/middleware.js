@@ -44,9 +44,55 @@ function isFounderSitePath(pathname) {
   return /^\/[a-z0-9][a-z0-9-]*$/.test(pathname)
 }
 
+function extractSubdomain(hostname) {
+  if (!hostname) return null
+  const hostWithoutPort = hostname.split(':')[0].toLowerCase()
+
+  // Ignore localhost and raw IP addresses
+  if (hostWithoutPort === 'localhost' || /^(\d{1,3}\.){3}\d{1,3}$/.test(hostWithoutPort)) {
+    return null
+  }
+
+  // Check known platform domains
+  const platformDomains = ['opcgenie.com', 'shuktoai.com', 'opcgenie.in']
+  for (const domain of platformDomains) {
+    if (hostWithoutPort.endsWith('.' + domain)) {
+      const sub = hostWithoutPort.slice(0, -(domain.length + 1))
+      if (sub && sub !== 'www' && sub !== 'admin' && sub !== 'api') {
+        return sub
+      }
+    }
+  }
+
+  // Fallback for custom domains or multi-level domains (e.g. sub.customdomain.com)
+  const parts = hostWithoutPort.split('.')
+  if (parts.length >= 3) {
+    const sub = parts[0]
+    if (sub !== 'www' && sub !== 'admin' && sub !== 'api') {
+      return sub
+    }
+  }
+
+  return null
+}
+
 export function middleware(request) {
-  const { pathname } = request.nextUrl
+  const { pathname, hostname } = request.nextUrl
   const token = request.cookies.get('token')?.value
+
+  // Handle subdomain rewrites for founder sites:
+  // e.g. priya.opcgenie.com/ or priya.opcgenie.com/web-design
+  // Rewrites internally to /[username] or /[username]/[offer-slug]
+  const subdomain = extractSubdomain(hostname)
+  if (subdomain && !pathname.startsWith('/api') && !pathname.startsWith('/_next')) {
+    const url = request.nextUrl.clone()
+    if (pathname === '/') {
+      url.pathname = `/${subdomain}`
+    } else {
+      url.pathname = `/${subdomain}${pathname}`
+    }
+    return NextResponse.rewrite(url)
+  }
 
   // Get user info from token
   let user = null
@@ -162,9 +208,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public assets
+     * - public assets (including images, svgs, icons, css)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js)$).*)',
   ],
 }
 

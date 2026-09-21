@@ -7,10 +7,12 @@ import {
   BarChart3, Activity, User, Settings,
   TrendingUp, MessageSquare, FileText,
   Users, Zap, ChevronRight,
-  Bell, ArrowRight, Globe, CheckCircle, Sparkles,
+  Bell, ArrowRight, Globe, CheckCircle, Sparkles, Bot,
   ExternalLink, Pencil, Eye, Wand2, Layers, Target,
   BookOpen, DoorOpen, Award, Wallet, Share2, AlertCircle,
 } from 'lucide-react'
+import SalesDeskSection from '../../components/SalesDeskSection'
+import DashboardSidebar from '../../components/DashboardSidebar'
 
 // ─── My Website panel ────────────────────────────────────────────────────────
 // Fetches the user's saved site data and renders a management card.
@@ -34,6 +36,8 @@ function MyWebsitePanel({ token }) {
 
   useEffect(() => {
     if (!token) { setLoading(false); return }
+    setLoading(true)
+    setSite(null)
     // Load the founder's own site data through the authenticated settings endpoint
     Promise.all([
       fetch('/api/settings/mine', { headers: { Authorization: `Bearer ${token}` } })
@@ -48,7 +52,7 @@ function MyWebsitePanel({ token }) {
       // Derive display data straight from saved settings groups
       setSite({
         slug,
-        brandName:    settings?.business?.brandName || slug,
+        brandName:    settings?.business?.brandName || settings?.identity?.brandName || slug,
         status:       'draft',   // site_build_routes always saves 'draft' initially
         positioning:  settings?.positioning || {},
         offers:       (settings?.offers?.tiers || []).filter(t => t?.name),
@@ -196,7 +200,13 @@ export default function DashboardPage() {
   const [stats, setStats]       = useState(null)
   const [activities, setActivities] = useState([])
   const [loading, setLoading]   = useState(true)
-  const [token,   setToken]     = useState(null)
+  const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'sales-desk' | 'website' | 'digital-workforce'
+  const [token,   setToken]     = useState(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('auth_token') || localStorage.getItem('token') || null
+  })
+  const [hasSite, setHasSite]   = useState(false)
+  const [userSiteSlug, setUserSiteSlug] = useState(null)
 
   useEffect(() => {
     const h = new Date().getHours()
@@ -211,8 +221,14 @@ export default function DashboardPage() {
 
     Promise.all([
       fetch('/api/auth/me', { headers }).then(r => r.ok ? r.json() : null),
-    ]).then(([me]) => {
+      fetch('/api/settings/mine', { headers }).then(r => r.ok ? r.json() : null),
+    ]).then(([me, settings]) => {
       if (me) setUser(me)
+      const slug = settings?.site?.subdomain || null
+      if (slug) {
+        setHasSite(true)
+        setUserSiteSlug(slug)
+      }
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
@@ -255,136 +271,138 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── My Website Panel ── */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-blue-600" />My Website
-            </h2>
-          </div>
-          <MyWebsitePanel token={token} />
-        </div>
+        {/* ── Main Workspace: Sticky Left Nav + Dynamic Tab View ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Left Navigation Menu (Sticky / Floating) */}
+          <DashboardSidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            hasSite={hasSite}
+            userSiteSlug={userSiteSlug}
+            user={user}
+          />
 
-        {/* Stats — pulled from siteConfig so admin can customise them */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {(siteConfig.stats || []).map((stat, i) => (
-            <div key={i} className="bg-gray-50 rounded-xl p-6 border border-gray-100">
-              <div className="text-2xl font-black text-primary-600 mb-1">{stat.number}</div>
-              <div className="text-gray-500 text-sm">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Main Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
-
-          {/* Left — Features / Quick Launch */}
-          <div className="lg:col-span-2 space-y-8">
-
-            {/* Feature cards from config */}
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center">
-                  <Zap className="w-5 h-5 mr-2 text-primary-600" />
-                  {siteConfig.ecosystemSection?.title || 'Your Business Tools'}
-                </h2>
+          {/* Right Area: Dynamic View Panel */}
+          <div className="lg:col-span-9">
+            
+            {/* VIEW 1: AI Sales Desk */}
+            {activeTab === 'sales-desk' && (
+              <div className="space-y-6">
+                <SalesDeskSection token={token} />
               </div>
-              <p className="text-gray-500 text-sm mb-6">{siteConfig.ecosystemSection?.subtitle}</p>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {(siteConfig.features || []).map((feature, i) => (
-                  <Link
-                    key={i}
-                    href={feature.link || '#'}
-                    className="group flex items-start p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-200 hover:shadow-sm transition-all"
-                  >
-                    <div className="w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-primary-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm leading-tight">{feature.title}</p>
-                      <p className="text-gray-500 text-xs mt-0.5 leading-snug">{feature.preview}</p>
-                    </div>
-                    <span className={`ml-auto flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
-                      feature.status === 'Available' || feature.status === 'Live Demo'
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {feature.status}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
+            )}
 
-            {/* Value props from config */}
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-primary-600" />
-                {siteConfig.whyDifferent?.title || 'Why OPC Genie'}
-              </h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {(siteConfig.valueProps || []).map((vp, i) => (
-                  <div key={i} className="bg-white rounded-xl p-4 border border-gray-200">
-                    <p className="font-semibold text-gray-900 text-sm mb-1">{vp.title}</p>
-                    <p className="text-gray-500 text-xs leading-relaxed">{vp.description}</p>
-                    <span className="inline-block mt-2 text-xs text-primary-600 font-medium">{vp.highlight}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right — CTA + community + quick links */}
-          <div className="space-y-6">
-
-            {/* Primary CTA from config */}
-            <div className="bg-gray-900 rounded-2xl p-6 text-white">
-              <h3 className="text-lg font-bold mb-2">{siteConfig.cta?.headline}</h3>
-              <p className="text-gray-400 text-sm mb-5 leading-relaxed">{siteConfig.cta?.subheadline}</p>
-              <Link
-                href={siteConfig.cta?.primary?.href || '/setup-wizard'}
-                className="flex items-center justify-between w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
-              >
-                {siteConfig.cta?.primary?.text}
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              {(siteConfig.cta?.badges || []).map((b, i) => (
-                <div key={i} className="flex items-center mt-3 text-gray-400 text-xs">
-                  <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-green-500" />
-                  {b}
+            {/* VIEW 2: My Website */}
+            {activeTab === 'website' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-blue-600" />My Website Manager
+                  </h2>
                 </div>
-              ))}
-            </div>
-
-            {/* Quick nav */}
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <h3 className="font-bold text-gray-900 text-sm mb-4">Quick Links</h3>
-              <div className="space-y-2">
-                {[
-                  { label: 'AI Genie Assistant',  href: '/platform/ai-genie',       icon: MessageSquare },
-                  { label: 'Offers & Payments',   href: '/platform/offers',         icon: FileText },
-                  { label: 'My Community',        href: '/dashboard/community',     icon: Users },
-                  { label: 'Playbooks',           href: '/resources',               icon: Globe },
-                  { label: 'Account Settings',    href: '/profile',                 icon: Settings },
-                ].map((item, i) => {
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={i}
-                      href={item.href}
-                      className="flex items-center justify-between p-3 bg-white hover:bg-primary-50 rounded-xl border border-gray-200 hover:border-primary-200 transition-all group"
-                    >
-                      <div className="flex items-center">
-                        <Icon className="w-4 h-4 text-primary-600 mr-3" />
-                        <span className="text-gray-700 text-sm">{item.label}</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary-600" />
-                    </Link>
-                  )
-                })}
+                <MyWebsitePanel token={token} />
               </div>
-            </div>
+            )}
+
+            {/* VIEW 3: Overview (Default) */}
+            {activeTab === 'overview' && (
+              <div className="space-y-8">
+                {/* Stats & AI Usage Row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-5 border border-indigo-100">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-2xl font-black text-indigo-700">
+                        ₹{Number(user?.wallet_consumed || 0).toFixed(2)}
+                      </div>
+                      <Bot className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div className="text-indigo-950 font-semibold text-xs">AI Usage (Consumed)</div>
+                    <div className="text-[11px] text-indigo-600 mt-0.5">{(user?.ai_tokens_used || 0).toLocaleString()} tokens (@ ₹0.15/1k)</div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                    <div className="text-2xl font-black text-primary-600 mb-1">
+                      {hasSite ? 1 : 0}
+                    </div>
+                    <div className="text-gray-900 font-semibold text-xs">Active Website</div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">{hasSite ? 'Live online' : 'Draft stage'}</div>
+                  </div>
+
+                  {(siteConfig.stats || []).slice(0, 1).map((stat, i) => (
+                    <div key={i} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                      <div className="text-2xl font-black text-primary-600 mb-1">{stat.number}</div>
+                      <div className="text-gray-900 font-semibold text-xs">{stat.label}</div>
+                      <div className="text-[11px] text-gray-500 mt-0.5">Platform Network</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* My Website Quick Summary Card */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-blue-600" />Live Website
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('website')}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                    >
+                      Manage Website →
+                    </button>
+                  </div>
+                  <MyWebsitePanel token={token} />
+                </div>
+
+                {/* AI Sales Desk Teaser Card in Overview */}
+                <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-400" />
+                      <h3 className="font-bold text-base">Inbound Leads & AI Sales Desk</h3>
+                    </div>
+                    <p className="text-xs text-slate-300 max-w-lg">
+                      AI analyzes your incoming website enquiries, matches them against your offers, and drafts response emails for your 1-click approval.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('sales-desk')}
+                    className="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl text-xs font-bold transition-colors whitespace-nowrap flex-shrink-0"
+                  >
+                    Open Sales Desk
+                  </button>
+                </div>
+
+                {/* Feature cards from config */}
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-bold text-gray-900 flex items-center">
+                      <Zap className="w-4 h-4 mr-2 text-primary-600" />
+                      {siteConfig.ecosystemSection?.title || 'Your Business Tools'}
+                    </h3>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {(siteConfig.features || []).map((feature, i) => (
+                      <Link
+                        key={i}
+                        href={feature.link || '#'}
+                        className="group flex items-start p-4 bg-white rounded-xl border border-gray-200 hover:border-primary-200 hover:shadow-sm transition-all"
+                      >
+                        <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                          <Sparkles className="w-4 h-4 text-primary-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm leading-tight">{feature.title}</p>
+                          <p className="text-gray-500 text-xs mt-0.5 leading-snug">{feature.preview}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Social proof snippet from config */}
             {(siteConfig.testimonials || []).slice(0, 1).map((t, i) => (
