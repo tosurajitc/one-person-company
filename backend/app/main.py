@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from .api.routes import contact_routes, auth_routes, settings_routes, content_routes, page_routes, resource_routes, community_routes, chat_routes, payment_routes, lead_routes, subscriber_routes, agent_session_routes, fb_agent_routes, site_build_routes, genie_routes, referral_routes, enquiry_routes
+from .api.routes import contact_routes, auth_routes, settings_routes, content_routes, page_routes, resource_routes, community_routes, chat_routes, payment_routes, lead_routes, subscriber_routes, agent_session_routes, fb_agent_routes, site_build_routes, genie_routes, referral_routes, enquiry_routes, ad_agent_routes, ai_config_routes, refine_routes, travel_routes, tutor_routes, trip_architect_routes
 from .core.config import settings
 from app.core.database import test_db_connection
 from app.db import init_db
 from app.core.middleware import AuthenticationMiddleware, SecurityHeadersMiddleware, RequestLoggingMiddleware  # Import our middleware
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -52,10 +53,16 @@ app.include_router(agent_session_routes.router, prefix="/api/agent-session", tag
 app.include_router(fb_agent_routes.router, prefix="/api", tags=["fb-agent"])
 app.include_router(site_build_routes.router, prefix="/api", tags=["sites"])
 app.include_router(genie_routes.router, prefix="/api", tags=["genie"])
+app.include_router(refine_routes.router, prefix="/api", tags=["genie"])
 app.include_router(referral_routes.router, prefix="/api", tags=["referral"])
 app.include_router(enquiry_routes.router, prefix="/api/enquiries", tags=["enquiries"])
-
-
+app.include_router(ad_agent_routes.router, prefix="/api", tags=["ad-agent"])
+app.include_router(ai_config_routes.router, prefix="/api", tags=["ai-config"])
+app.include_router(travel_routes.public_router)
+app.include_router(travel_routes.owner_router)
+app.include_router(tutor_routes.public_router)
+app.include_router(tutor_routes.owner_router)
+app.include_router(trip_architect_routes.router)
 
 @app.get("/")
 async def root():

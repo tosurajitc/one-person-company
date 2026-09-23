@@ -2,7 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react'
 import Link from 'next/link'
-import { Brain, BookOpen, Users, Award, Building, ChevronRight, Play, Star, ArrowRight, Code, Zap, Target, TrendingUp, MessageSquare, Lightbulb, Shield, Globe, CheckCircle, Sparkles, Rocket, Database } from 'lucide-react'
+import { Brain, BookOpen, Users, Award, Building, ChevronRight, Play, Star, ArrowRight, Code, Zap, Target, TrendingUp, MessageSquare, Lightbulb, Shield, Globe, CheckCircle, Sparkles, Rocket, Database, PenTool, LayoutTemplate } from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
 
 // Context so all sub-components can access the (possibly API-loaded) config
@@ -191,7 +191,12 @@ function ValuePropsSection() {
 // Enhanced Platform Features Showcase
 function FeaturesShowcase() {
   const siteConfig = useCfg()
-  const featureIcons = [BookOpen, MessageSquare, Code, Users, TrendingUp, Building, Shield, Zap]
+  const featureIconsMap = {
+    'AI Website Builder': Globe,
+    'Digital Workforce': PenTool,
+    'Templates': LayoutTemplate,
+  }
+  const featureIcons = [Globe, PenTool, LayoutTemplate, BookOpen, MessageSquare, Code]
   const featureColors = [
     'bg-primary-600', 'bg-primary-600',
     'bg-primary-600', 'bg-primary-600',
@@ -202,7 +207,7 @@ function FeaturesShowcase() {
   const ecosystemSubtitle = ecosystemSection.subtitle || 'One platform to build, brand, sell, and run your one-person company'
   const features = (siteConfig.features || []).map((f, i) => ({
     ...f,
-    icon: featureIcons[i % featureIcons.length],
+    icon: featureIconsMap[f.title] || featureIcons[i % featureIcons.length],
     color: featureColors[i % featureColors.length],
   }))
 

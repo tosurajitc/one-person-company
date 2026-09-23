@@ -29,5 +29,13 @@ EXPOSE 8000
 
 # Run Alembic migrations then start Uvicorn.
 # Using shell form so $PORT can be overridden by env.
+# --timeout-keep-alive 120  keeps idle connections alive for 2 min so the
+# browser's fetch doesn't see ECONNRESET while waiting for a slow Claude call.
+# --timeout-graceful-shutdown 10  lets in-flight requests finish on SIGTERM.
 CMD alembic upgrade head && \
-    uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
+    uvicorn app.main:app \
+        --host 0.0.0.0 \
+        --port ${PORT:-8000} \
+        --workers 2 \
+        --timeout-keep-alive 120 \
+        --timeout-graceful-shutdown 10

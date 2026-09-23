@@ -112,6 +112,15 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         # Payment gateway webhooks (verified by signature inside the route)
         ("POST", "/api/payments/webhook/razorpay"),
         ("POST", "/api/payments/webhook/stripe"),
+        # Travel-host template: public website
+        ("GET",  "/api/public-travel/{slug}"),
+        ("POST", "/api/public-travel/{slug}/bookings"),
+        # Tutor-template:
+        ("GET",  "/api/public-tutor/{slug}"),
+        ("GET",  "/api/public-tutor/{slug}/availability"),
+        ("POST", "/api/public-tutor/{slug}/bookings"),
+        ("POST", "/api/trip-architect/requests"),
+        ("GET", "/api/trip-architect/share/{token}"),
     ]
 
     # Prefixes that require an admin. Matched on whole path segments.

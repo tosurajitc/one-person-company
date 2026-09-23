@@ -299,16 +299,32 @@ FALLBACK_MODELS = [
 # ---------------------------------------------------------------------------
 
 _PREFILL_INSTRUCTION = (
-    "Fill every empty string in this JSON with concise content (max 12 words) that fits the described business. "
-    "Return ONLY minified single-line JSON — no markdown fences, no newlines, no spaces after colons or commas. "
-    "Keep all numbers, booleans, and fixed hrefs exactly as-is. "
-    "deliverables: newline-separated list. priceInr/priceUsd: integers or empty string. ASCII only.\n"
+    "You are writing website copy for a new solo business. "
+    "The founder has described their business below. "
+    "Your job: construct compelling, specific, visitor-facing website copy — "
+    "write as if the potential CLIENT is reading this page, using 'you' and 'your'. "
+    "Use the founder's own words and phrasing wherever possible. "
+    "Draw on the before/after story and FAQ questions to make the copy concrete and grounded. "
+    "Field length guide: "
+    "tagline/buyer/timeframe/fear → 8-12 words; "
+    "credibility (founder bio) → 3-5 complete sentences (60-80 words) describing background, experience, and authority; "
+    "outcome/problem/alreadyTried/invitation/ctaLabel → 1-2 full sentences (15-30 words); "
+    "offer summary/process detail/refundPolicy → 2 sentences (20-35 words); "
+    "FAQ answers/forWho items/notFor items → 1-2 sentences each (15-30 words); "
+    "caseStudies (if details provided in background/answers) → fill client, result, detail/whatYouDid, and sector; "
+    "deliverables → newline-separated bullet list, each item under 10 words. "
+    "Hard rules: "
+    "NEVER invent prices, statistics, client names, testimonials, or URLs — leave those fields empty string unless explicitly described by user. "
+    "priceInr/priceUsd: integers only (no currency symbols) or empty string. "
+    "Keep all booleans and fixed hrefs exactly as-is. "
+    "Return ONLY minified single-line JSON — no markdown fences, no prose, no newlines outside string values. "
+    "ASCII only.\n"
 )
 
 # Skeleton A — identity, positioning, proof, frontDoor, knowledge, brand, channels
 # NOTE: introVideo is intentionally left with empty strings — the LLM must NOT generate
 # URLs. Programmatic defaults (wizard-schema.js / applyProgrammaticDefaults) fill it.
-# FAQs: provide the array so the LLM fills it; backend will guarantee non-empty via defaults.
+# FAQs: 6 slots so more questions are preserved; backend will guarantee non-empty via defaults.
 _SKELETON_A = (
     '{"identity":{"brandName":"","tagline":"","city":"","country":"","timezone":"Asia/Kolkata",'
     '"ownerName":"","ownerRole":"","email":"","whatsapp":"","photoUrl":"","logoUrl":""},'
@@ -317,7 +333,7 @@ _SKELETON_A = (
     '"nicheScore":{"pain":3,"budget":3,"reach":3,"repeat":3,"cred":3}},'
     '"proof":{"yearsExperience":"","clientsServed":"","credentials":[""],'
     '"results":[{"number":"","label":""},{"number":"","label":""}],'
-    '"caseStudies":[],'
+    '"caseStudies":[{"client":"","result":"","whatYouDid":"","detail":"","sector":""},{"client":"","result":"","whatYouDid":"","detail":"","sector":""}],'
     '"testimonials":[]},'
     '"frontDoor":{"primaryCta":"book_call","bookingUrl":"","ctaLabel":"","invitation":"",'
     '"responseTime":"Within 1 business day","workingHours":"",'
@@ -326,9 +342,10 @@ _SKELETON_A = (
     '"knowledge":{"process":[{"title":"Short call","detail":""},{"title":"Fixed proposal","detail":""},'
     '{"title":"Delivery","detail":""},{"title":"Walkthrough","detail":""}],'
     '"included":[""],"notIncluded":[""],"refundPolicy":"","toolsUsed":"",'
-    '"faqs":[{"question":"","answer":""},{"question":"","answer":""},{"question":"","answer":""}],'
+    '"faqs":[{"question":"","answer":""},{"question":"","answer":""},{"question":"","answer":""},'
+    '{"question":"","answer":""},{"question":"","answer":""},{"question":"","answer":""}],'
     '"introVideo":{"url":"","title":""}},'
-    '"brand":{"style":"minimal","tone":"plain","primaryColor":"#2563eb","referenceSite":"","avoidWords":""},'
+    '"brand":{"style":"minimal","tone":"","primaryColor":"#2563eb","referenceSite":"","avoidWords":""},'
     '"channels":{"social":{"linkedin":"","instagram":"","facebook":"","youtube":"","x":"","googleBusiness":""},'
     '"mainPlatform":"linkedin","cadence":"weekly","newsletter":false,'
     '"contentTopics":["","",""],"publishedWork":[]}}'

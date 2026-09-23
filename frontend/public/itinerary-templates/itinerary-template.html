@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goa, Slow Coastal — Itinerary | Meridian & Co.</title>
+
+<!--
+  Trip Architect — Traveller Itinerary Template
+  ─────────────────────────────────────────────────────────────────────
+  What this is: the "final digital itinerary" artifact from the Trip
+  Architect positioning brief — the document a founder hands a traveller
+  once planning is done. Self-contained: one file, no build step, no
+  external JS libraries. Matches the brand tokens already used in
+  components/travel/TripArchitectSite.js (deep brown / marigold / olive /
+  rust) so it reads as the same product, not a bolted-on export.
+
+  HOW EDITING WORKS RIGHT NOW (this pass):
+    Click "Edit" top-right → every field with class="editable" becomes
+    contenteditable, table rows gain an "add row" control, and a Save
+    button appears. Save serializes every [data-field] element into one
+    JSON object and writes it to localStorage under the key below.
+    Reload the page and your edits are still there. This is a *local*
+    save for working on one trip on one machine — not yet a shared
+    save to the backend.
+
+  STORAGE KEY — change per trip when duplicating this file:
+-->
+<script>const ITINERARY_STORAGE_KEY = 'itinerary:goa-slow-coastal';</script>
+
+<!--
+  INTEGRATION PATH (next pass, not built yet):
+  Two real options once this template is approved, not mutually exclusive:
+   (a) Backend-rendered: turn the [data-field] placeholders into Jinja2
+       syntax ({{ trip.title }}) — this codebase already uses Jinja2 for
+       email templates (see AGENTS.md), so this file could render
+       server-side from trip_requests + trip_itinerary_days + a few new
+       tables (checklist_items, bookings, budget_lines — none of which
+       exist yet; only itinerary days and options do).
+   (b) Admin-portal-driven: keep this as a client-rendered page, replace
+       localStorage read/write with real calls to new endpoints under
+       /api/trip-architect/requests/{id}/itinerary-doc (not built yet),
+       and gate editing behind the same auth trip_architect_routes.py
+       already uses for the owner-only endpoints.
+  Suggest (b) if the admin's Itinerary Builder module is being built
+  next anyway — one data model, no duplicate templating system.
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --dark: #3b2417; --dark-deep: #1e120a; --dark-soft: #4f3020;
+    --marigold: #f2952e; --marigold-light: #ffc069;
+    --olive: #7c8a4e; --olive-light: #a3b378;
+    --rust: #b5502e; --rust-light: #d97b52;
+    --sand: #fbeed9; --sand-deep: #f2dcb0;
+    --cream: #fff8ee; --white: #ffffff;
+    --text: #2a1f19; --muted: #8c7c6b; --border: #e8d3a8;
+    --danger: #a13d2f; --danger-bg: #f6e4e0;
+    --display: 'Space Grotesk', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); color: var(--text); background: var(--cream); line-height: 1.5; }
+  h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 500; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .container { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+
+  /* ── Top bar ─────────────────────────────────────────────────────── */
+  .topbar { position: sticky; top: 0; z-index: 40; background: var(--dark); color: #fff; }
+  .topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; max-width: 920px; margin: 0 auto; flex-wrap: wrap; }
+  .brand { font-family: var(--display); font-size: 1.05rem; }
+  .brand span { color: var(--marigold-light); font-size: 0.7rem; display: block; font-family: var(--sans); letter-spacing: 0.05em; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { font-family: var(--sans); font-size: 0.8rem; font-weight: 600; border: none; border-radius: 999px; padding: 9px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-brass { background: var(--marigold); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; }
+  .btn-outline:hover { background: rgba(255,255,255,0.08); }
+  .btn-sea { background: var(--olive); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .tabs { display: flex; gap: 4px; overflow-x: auto; padding: 0 20px; background: var(--dark-soft); }
+  .tabs-inner { display: flex; gap: 4px; max-width: 920px; margin: 0 auto; width: 100%; }
+  .tab-btn { font-family: var(--sans); font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.65); background: none; border: none; padding: 12px 14px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab-btn.active { color: #fff; border-bottom-color: var(--marigold-light); }
+
+  /* ── Persistent trip-facts strip ─────────────────────────────────── */
+  .factstrip { background: var(--sand-deep); border-bottom: 1px solid var(--border); }
+  .factstrip-inner { max-width: 920px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 22px; flex-wrap: wrap; font-size: 0.8rem; }
+  .factstrip b { font-family: var(--display); font-weight: 500; color: var(--dark); }
+
+  /* ── Content ──────────────────────────────────────────────────────── */
+  .tab-panel { padding: 28px 0 60px; }
+  .tab-panel[hidden] { display: none; }
+  .section-title { font-size: 1.4rem; margin-bottom: 4px; color: var(--dark); }
+  .section-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .card h3 { font-size: 1rem; color: var(--dark); margin-bottom: 10px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .editable { outline: none; border-radius: 4px; }
+  body.edit-mode .editable { background: #fffbea; box-shadow: 0 0 0 1px var(--marigold-light) inset; padding: 2px 4px; cursor: text; color: var(--text) !important; }
+  body.edit-mode .editable:focus { box-shadow: 0 0 0 2px var(--marigold) inset; }
+  body:not(.edit-mode) .edit-only { display: none !important; }
+
+  /* Overview */
+  .overview-hero { background: var(--dark); color: #fff; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  .overview-hero h1 { font-size: 1.9rem; color: #fff; margin-bottom: 6px; }
+  .overview-hero .sub { color: rgba(255,255,255,0.65); font-size: 0.9rem; }
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
+  .stat { background: rgba(255,255,255,0.06); border-radius: 8px; padding: 12px 14px; }
+  .stat .num { font-family: var(--display); font-size: 1.5rem; }
+  .stat .lbl { font-size: 0.72rem; color: rgba(255,255,255,0.5); }
+  .quick-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+  /* Checklist */
+  .checklist-progress { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
+  .bar-track { height: 8px; border-radius: 999px; background: var(--sand-deep); overflow: hidden; margin-top: 8px; }
+  .bar-fill { height: 100%; background: var(--olive); transition: width 0.3s; }
+  .checklist-group { margin-bottom: 18px; }
+  .checklist-group h3 { color: var(--dark); font-size: 0.95rem; margin-bottom: 8px; }
+  .chk-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--border); }
+  .chk-row:last-child { border-bottom: none; }
+  .chk-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--olive); flex-shrink: 0; }
+  .chk-row label { flex: 1; font-size: 0.88rem; }
+  .chk-row.done label { text-decoration: line-through; color: var(--muted); }
+
+  /* Tables (Bookings, Budget, Day plan) */
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  th { text-align: left; font-family: var(--sans); font-weight: 600; color: var(--dark); border-bottom: 1px solid var(--border); padding: 8px 10px; background: var(--sand); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .table-wrap table { border: none; border-radius: 0; }
+  .table-wrap .card-pad { padding: 0; }
+
+  .badge { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .badge-confirmed { background: #e3ede9; color: var(--olive); }
+  .badge-pending { background: #f6ecd9; color: #8a5f10; }
+  .badge-cancelled { background: var(--danger-bg); color: var(--danger); }
+  .badge-suggested { background: var(--sand-deep); color: var(--muted); }
+  .badge-paid { background: #e3ede9; color: var(--olive); }
+  .badge-partial { background: #f6ecd9; color: #8a5f10; }
+  .badge-unpaid { background: var(--danger-bg); color: var(--danger); }
+
+  /* Budget */
+  .budget-total { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 18px; }
+  .budget-total .stat { background: var(--white); border: 1px solid var(--border); color: var(--text); flex: 1; min-width: 140px; }
+  .budget-total .stat .num { color: var(--dark); }
+  .budget-total .stat .lbl { color: var(--muted); }
+
+  /* Day-wise planner */
+  details.day { background: var(--white); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+  details.day summary { list-style: none; cursor: pointer; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; font-family: var(--display); font-size: 1.02rem; color: var(--dark); background: var(--sand); }
+  details.day summary::-webkit-details-marker { display: none; }
+  details.day summary .chevron { transition: transform 0.2s; font-family: var(--sans); color: var(--marigold); }
+  details.day[open] summary .chevron { transform: rotate(90deg); }
+  .day-meta { font-size: 0.78rem; color: var(--muted); font-family: var(--sans); font-weight: 400; }
+  .day-body { padding: 16px 18px; }
+  .day-note { background: var(--sand); border-left: 3px solid var(--marigold); padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 0.82rem; margin-top: 12px; }
+  .day-planb { background: #f6ecd9; border-left: 3px solid #8a5f10; padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 0.82rem; margin-top: 8px; }
+
+  /* Stays & Transport / Food & Experiences */
+  .item-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; background: var(--white); }
+  .item-card h3 { font-size: 1rem; color: var(--dark); margin-bottom: 4px; }
+  .item-card .tag { display: inline-block; font-size: 0.7rem; color: var(--olive); background: #e3ede9; padding: 2px 8px; border-radius: 999px; margin-bottom: 8px; }
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; font-size: 0.83rem; margin-top: 8px; }
+  .kv b { color: var(--dark); font-weight: 600; }
+
+  /* Emergency floating button + dialog */
+  .emergency-fab { position: fixed; bottom: 22px; right: 22px; z-index: 50; background: var(--danger); color: #fff; border: none; border-radius: 999px; padding: 14px 20px; font-family: var(--sans); font-weight: 700; font-size: 0.85rem; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 8px; }
+  dialog#emergency { border: none; border-radius: 12px; padding: 0; max-width: 480px; width: 92vw; }
+  dialog#emergency::backdrop { background: rgba(14,23,32,0.6); }
+  .em-head { background: var(--danger); color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .em-head h2 { color: #fff; font-size: 1.1rem; }
+  .em-close { background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; }
+  .em-body { padding: 18px 20px; max-height: 60vh; overflow-y: auto; }
+  .em-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem; }
+  .em-row:last-child { border-bottom: none; }
+  .em-row a { color: var(--olive); font-weight: 600; text-decoration: none; }
+
+  .add-row-btn, .add-day-btn { font-size: 0.78rem; font-weight: 600; color: var(--marigold); background: none; border: 1px dashed var(--marigold-light); border-radius: 8px; padding: 8px 14px; cursor: pointer; margin-top: 8px; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: #fff; padding: 10px 20px; border-radius: 999px; font-size: 0.82rem; opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 60; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media print {
+    .topbar, .tabs, .emergency-fab, .quick-actions, .edit-only, .add-row-btn, .add-day-btn { display: none !important; }
+    .tab-panel[hidden] { display: block !important; }
+    body { background: #fff; }
+    details.day { break-inside: avoid; }
+    details.day:not([open]) .day-body { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ TOP BAR ══════════════════════ -->
+<div class="topbar">
+  <div class="topbar-row">
+    <div class="brand">Meridian &amp; Co.<span>Traveller Itinerary</span></div>
+    <div class="actions">
+      <button class="btn btn-outline" onclick="window.print()">Download / Print</button>
+      <button class="btn btn-outline" onclick="sharePage()">Share</button>
+      <button class="btn btn-sea" onclick="document.getElementById('emergency').showModal()">Emergency</button>
+      <button class="btn btn-brass" id="editToggle" onclick="toggleEdit()">Edit</button>
+      <button class="btn btn-brass edit-only" id="saveBtn" onclick="saveItinerary()" style="display:none;">Save</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tabs-inner">
+      <button class="tab-btn active" data-tab="overview">Trip Overview</button>
+      <button class="tab-btn" data-tab="checklist">Checklist</button>
+      <button class="tab-btn" data-tab="bookings">Bookings &amp; Docs</button>
+      <button class="tab-btn" data-tab="budget">Budget</button>
+      <button class="tab-btn" data-tab="days">Day-Wise Planner</button>
+      <button class="tab-btn" data-tab="stays">Stays &amp; Transport</button>
+      <button class="tab-btn" data-tab="food">Food &amp; Experiences</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ PERSISTENT FACT STRIP ══════════════════ -->
+<div class="factstrip">
+  <div class="factstrip-inner">
+    <span><b class="editable" data-field="trip.destination" contenteditable="false">Goa, Slow Coastal</b></span>
+    <span class="muted"><span class="editable" data-field="trip.dates" contenteditable="false">22–27 Dec 2026</span> · <span class="editable" data-field="trip.duration" contenteditable="false">6 days</span></span>
+    <span class="muted"><span class="editable" data-field="trip.travellers" contenteditable="false">3 travellers</span></span>
+    <span class="muted">4 waypoints</span>
+    <span id="countdownText" class="muted" data-departure="2026-12-22">— days to departure</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════════ 1. TRIP OVERVIEW ══════════════════════ -->
+  <section id="tab-overview" class="tab-panel">
+    <div class="overview-hero">
+      <h1 class="editable" data-field="trip.title" contenteditable="false">Goa, Slow Coastal</h1>
+      <p class="sub">
+        <span class="editable" data-field="trip.theme" contenteditable="false">Multigenerational family — slow pace</span> ·
+        <span class="editable" data-field="trip.travellers2" contenteditable="false">Meera, Nana &amp; Aanya (3 travellers)</span>
+      </p>
+      <div class="stat-row">
+        <div class="stat"><div class="num editable" data-field="trip.budgetTotal" contenteditable="false">₹1,05,000</div><div class="lbl">Total planned budget</div></div>
+        <div class="stat"><div class="num editable" data-field="trip.budgetPerPerson" contenteditable="false">₹35,000</div><div class="lbl">Per person</div></div>
+        <div class="stat"><div class="num editable" data-field="trip.bookingProgress" contenteditable="false">3 of 5</div><div class="lbl">Bookings confirmed</div></div>
+        <div class="stat"><div class="num editable" data-field="trip.weather" contenteditable="false">24–32°C</div><div class="lbl">Typical Dec weather · low humidity post-monsoon</div></div>
+      </div>
+      <div class="quick-actions">
+        <button class="btn btn-brass" onclick="window.print()">Download PDF</button>
+        <button class="btn btn-outline" onclick="sharePage()">Share Itinerary</button>
+        <a class="btn btn-outline" href="https://wa.me/9845011223?text=Hi%20Rhea%2C%20a%20question%20about%20our%20Goa%20trip" target="_blank" rel="noopener" style="text-decoration:none;">Contact Meridian &amp; Co.</a>
+      </div>
+    </div>
+
+    <!-- Waypoint strip -->
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-bottom:20px;">
+      <span style="display:flex;align-items:center;">
+        <span style="background:#fff;border:1px solid var(--border);border-radius:999px;padding:5px 14px;font-size:0.78rem;font-weight:600;color:var(--dark);">Panaji</span>
+        <span style="font-size:0.7rem;color:var(--muted);padding:0 8px;">›</span>
+      </span>
+      <span style="display:flex;align-items:center;">
+        <span style="background:#fff;border:1px solid var(--border);border-radius:999px;padding:5px 14px;font-size:0.78rem;font-weight:600;color:var(--dark);">Baga / Calangute</span>
+        <span style="font-size:0.7rem;color:var(--muted);padding:0 8px;">›</span>
+      </span>
+      <span style="display:flex;align-items:center;">
+        <span style="background:var(--marigold);border:1px solid var(--marigold);border-radius:999px;padding:5px 14px;font-size:0.78rem;font-weight:600;color:#fff;">Palolem</span>
+        <span style="font-size:0.7rem;color:var(--muted);padding:0 8px;">›</span>
+      </span>
+      <span style="display:flex;align-items:center;">
+        <span style="background:#fff;border:1px solid var(--border);border-radius:999px;padding:5px 14px;font-size:0.78rem;font-weight:600;color:var(--dark);">Agonda</span>
+      </span>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Trip at a glance</h3>
+        <div class="kv">
+          <b>Route</b><span class="editable" data-field="overview.destinations" contenteditable="false">Panaji → Baga/Calangute → Palolem → Agonda</span>
+          <b>Dates</b><span class="editable" data-field="overview.datesFull" contenteditable="false">22–27 December 2026</span>
+          <b>Duration</b><span class="editable" data-field="overview.durationFull" contenteditable="false">6 days, 5 nights</span>
+          <b>Trip theme</b><span class="editable" data-field="overview.themeFull" contenteditable="false">Multigenerational — beach, heritage, slow meals</span>
+          <b>Pace</b><span class="editable" data-field="overview.pace" contenteditable="false">Very relaxed — no activity before 9 AM, midday rest built in for Nana</span>
+          <b>Travel Architect</b><span class="editable" data-field="overview.architect" contenteditable="false">Rhea Menon, Meridian &amp; Co.</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Travellers</h3>
+        <div class="kv">
+          <b>Adult</b><span class="editable" data-field="overview.adults" contenteditable="false">Meera Iyer, 40 (trip lead)</span>
+          <b>Senior</b><span class="editable" data-field="overview.senior" contenteditable="false">Nana (grandfather), 70 — limited walking, prefers shaded seating</span>
+          <b>Child</b><span class="editable" data-field="overview.children" contenteditable="false">Aanya, 10 — loves swimming and beach games</span>
+          <b>Mobility</b><span class="editable" data-field="overview.mobility" contenteditable="false">Nana uses a walking stick on uneven ground; no stairs preferred</span>
+          <b>Dietary</b><span class="editable" data-field="overview.dietary" contenteditable="false">No restrictions — Nana prefers light, non-spicy meals</span>
+          <b>Emergency contact</b><span class="editable" data-field="overview.emergency" contenteditable="false">Rajan Iyer (brother), +91 97XXXXXXXX</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waypoint detail cards -->
+    <div class="card">
+      <h3>4 Waypoints</h3>
+      <div class="grid-2" style="margin-top:4px;">
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">Waypoint 1</div>
+          <div style="font-family:var(--display);font-size:0.95rem;color:var(--dark);font-weight:600;margin-bottom:6px;" class="editable" data-field="wp1.name" contenteditable="false">Panaji</div>
+          <div style="font-size:0.76rem;color:var(--muted);line-height:1.5;" class="editable" data-field="wp1.meta" contenteditable="false">Days 1–2 · 1 night<br>Old Latin Quarter walk, Fontainhas, Mandovi ferry, easy flat streets — ideal for Nana</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">Waypoint 2</div>
+          <div style="font-family:var(--display);font-size:0.95rem;color:var(--dark);font-weight:600;margin-bottom:6px;" class="editable" data-field="wp2.name" contenteditable="false">Baga / Calangute</div>
+          <div style="font-size:0.76rem;color:var(--muted);line-height:1.5;" class="editable" data-field="wp2.meta" contenteditable="false">Day 2 afternoon–Day 3 · 1 night<br>North Goa's lively beach — shack lunches, Aanya's swimming time, Nana rests under a parasol</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;border-color:var(--marigold);">
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--marigold);margin-bottom:4px;">Waypoint 3 · Highlight</div>
+          <div style="font-family:var(--display);font-size:0.95rem;color:var(--dark);font-weight:600;margin-bottom:6px;" class="editable" data-field="wp3.name" contenteditable="false">Palolem</div>
+          <div style="font-size:0.76rem;color:var(--muted);line-height:1.5;" class="editable" data-field="wp3.meta" contenteditable="false">Days 4–5 · 2 nights<br>South Goa's most sheltered crescent beach — calm water safe for Aanya, kayak hire, sunset from the headland</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">Waypoint 4</div>
+          <div style="font-family:var(--display);font-size:0.95rem;color:var(--dark);font-weight:600;margin-bottom:6px;" class="editable" data-field="wp4.name" contenteditable="false">Agonda</div>
+          <div style="font-size:0.76rem;color:var(--muted);line-height:1.5;" class="editable" data-field="wp4.meta" contenteditable="false">Day 6 morning · half-day before departure<br>Quietest beach in South Goa — no beach shacks, no crowds; ideal slow morning before the return flight</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architect's planning notes -->
+    <div class="card">
+      <h3>Architect's planning notes</h3>
+      <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:0.83rem;"><span style="font-size:1rem;flex-shrink:0;width:22px;">👴</span><span class="editable" data-field="note.nana" contenteditable="false"><b>Nana's comfort:</b> Every hotel has been selected for ground-floor or lift access. All lunch spots are shack-style with covered seating — no uneven cobblestones or long walks from the car. Driving stretches are capped at 90 min with a rest stop.</span></div>
+      <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:0.83rem;"><span style="font-size:1rem;flex-shrink:0;width:22px;">🏊</span><span class="editable" data-field="note.aanya" contenteditable="false"><b>Aanya's swim safety:</b> Palolem's crescent bay has the calmest water in South Goa — the headland breaks ocean swell. We've checked the Dec lifeguard schedule; flags will be green. Aanya should stay inside the flag zone. Arm floats optional at her age — your call.</span></div>
+      <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:0.83rem;"><span style="font-size:1rem;flex-shrink:0;width:22px;">🌊</span><span class="editable" data-field="note.currents" contenteditable="false"><b>Currents &amp; tides:</b> Baga beach has rip currents in Dec afternoon. Aanya should swim only in the lifeguard zone and not past the buoy line. Agonda (Day 6) has no lifeguard — strictly ankle-deep for everyone that morning.</span></div>
+      <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:0.83rem;"><span style="font-size:1rem;flex-shrink:0;width:22px;">🚗</span><span class="editable" data-field="note.transport" contenteditable="false"><b>Transport:</b> We've booked an AC Toyota Innova for the full 6 days. Goa's auto-rickshaws are fun but the roads from Panaji to South Goa are 2.5 hrs — not suitable for Nana. Driver (Dominic) speaks Hindi and English.</span></div>
+      <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:0.83rem;"><span style="font-size:1rem;flex-shrink:0;width:22px;">🎄</span><span class="editable" data-field="note.xmas" contenteditable="false"><b>Christmas week:</b> 22–25 Dec is peak season. Palolem restaurants fill up on Christmas Eve — we've pre-booked the beach dinner at Magic Italy. North Goa beaches are crowded on 25 Dec; our Baga day is 23 Dec, ahead of the rush.</span></div>
+      <div style="display:flex;gap:10px;padding:9px 0;font-size:0.83rem;"><span style="font-size:1rem;flex-shrink:0;width:22px;">💊</span><span class="editable" data-field="note.health" contenteditable="false"><b>Health:</b> Carry Nana's full prescription list. Nearest good hospital is Goa Medical College, Panaji (Day 1–2 base). In South Goa, Apollo Clinic Margao is 20 min from Palolem. Dominic has both numbers saved.</span></div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════ 2. PRE-TRIP CHECKLIST ══════════════════════ -->
+  <section id="tab-checklist" class="tab-panel" hidden>
+    <h2 class="section-title">Pre-Trip Checklist</h2>
+    <p class="section-sub">Tick off items as they're done — the progress bar updates automatically.</p>
+
+    <div class="checklist-progress">
+      <b id="chkSummary">Trip readiness: 0 of 0 tasks completed — 0%</b>
+      <div class="bar-track"><div class="bar-fill" id="chkBar" style="width:0%"></div></div>
+    </div>
+
+    <div id="checklistGroups">
+      <!-- Each group is data-driven by JS group config below; markup kept static+editable for simplicity -->
+      <div class="checklist-group">
+        <h3>Identity &amp; entry</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.gov_id"><label class="editable" contenteditable="false">Government ID (Aadhaar/Passport) for all travellers</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.insurance"><label class="editable" contenteditable="false">Travel insurance confirmed</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" data-field="chk.permits"><label class="editable" contenteditable="false">Fort/palace entry permits pre-booked (City Palace, Mehrangarh)</label></div>
+      </div>
+      <div class="checklist-group">
+        <h3>Transport readiness</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.flights"><label class="editable" contenteditable="false">Flight tickets booked and confirmed</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" data-field="chk.checkin"><label class="editable" contenteditable="false">Web check-in for outbound flight</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.baggage"><label class="editable" contenteditable="false">Baggage allowance confirmed for all 4 travellers</label></div>
+      </div>
+      <div class="checklist-group">
+        <h3>Stay readiness</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.hotelconf"><label class="editable" contenteditable="false">All hotel confirmations received</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" data-field="chk.roomreq"><label class="editable" contenteditable="false">Wheelchair-accessible room request confirmed with Udaipur hotel</label></div>
+      </div>
+      <div class="checklist-group">
+        <h3>Money &amp; payments</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.cash"><label class="editable" contenteditable="false">Cash withdrawn for local spends</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" data-field="chk.emergencyfund"><label class="editable" contenteditable="false">Emergency fund set aside (~₹15,000)</label></div>
+      </div>
+      <div class="checklist-group">
+        <h3>Health &amp; safety</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.medicines"><label class="editable" contenteditable="false">Prescriptions and regular medicines packed</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.firstaid"><label class="editable" contenteditable="false">Basic first-aid kit packed</label></div>
+      </div>
+      <div class="checklist-group">
+        <h3>Connectivity</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" data-field="chk.esim"><label class="editable" contenteditable="false">Local SIM/eSIM activated</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.powerbank"><label class="editable" contenteditable="false">Power bank and adapters packed</label></div>
+      </div>
+      <div class="checklist-group">
+        <h3>Packing</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.clothes"><label class="editable" contenteditable="false">Layered clothing for cool desert mornings</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" data-field="chk.footwear"><label class="editable" contenteditable="false">Comfortable walking footwear for fort visits</label></div>
+      </div>
+      <div class="checklist-group">
+        <h3>Home readiness</h3>
+        <div class="chk-row"><input type="checkbox" class="chk" checked data-field="chk.family"><label class="editable" contenteditable="false">Family informed of full itinerary</label></div>
+        <div class="chk-row"><input type="checkbox" class="chk" data-field="chk.petcare"><label class="editable" contenteditable="false">Pet care arranged</label></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ 3. BOOKINGS & DOCUMENTS ══════════════════════ -->
+  <section id="tab-bookings" class="tab-panel" hidden>
+    <h2 class="section-title">Bookings &amp; Documents</h2>
+    <p class="section-sub">Every confirmation in one place — voucher references and direct contacts.</p>
+
+    <div class="table-wrap">
+      <div class="card-pad">
+        <table id="bookingsTable">
+          <thead><tr><th>Booking type</th><th>Provider</th><th>Date</th><th>Status</th><th>Voucher / Reference</th><th>Contact</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="editable" contenteditable="false" data-field="bk.1.type">Flight — Outbound</td>
+              <td class="editable" contenteditable="false" data-field="bk.1.provider">IndiGo 6E-204</td>
+              <td class="editable" contenteditable="false" data-field="bk.1.date">14 Nov</td>
+              <td><span class="badge badge-confirmed">Confirmed</span></td>
+              <td class="editable" contenteditable="false" data-field="bk.1.ref">PNR RJKX4T</td>
+              <td class="editable" contenteditable="false" data-field="bk.1.contact">Airline support</td>
+            </tr>
+            <tr>
+              <td class="editable" contenteditable="false" data-field="bk.2.type">Hotel — Jaipur</td>
+              <td class="editable" contenteditable="false" data-field="bk.2.provider">Alsisar Haveli</td>
+              <td class="editable" contenteditable="false" data-field="bk.2.date">14–16 Nov</td>
+              <td><span class="badge badge-confirmed">Confirmed</span></td>
+              <td class="editable" contenteditable="false" data-field="bk.2.ref">Booking #AH-2291</td>
+              <td class="editable" contenteditable="false" data-field="bk.2.contact">Reception +91 141 XXXXXXX</td>
+            </tr>
+            <tr>
+              <td class="editable" contenteditable="false" data-field="bk.3.type">Hotel — Udaipur</td>
+              <td class="editable" contenteditable="false" data-field="bk.3.provider">Lake Pichola Boutique</td>
+              <td class="editable" contenteditable="false" data-field="bk.3.date">18–21 Nov</td>
+              <td><span class="badge badge-pending">Pending</span></td>
+              <td class="editable" contenteditable="false" data-field="bk.3.ref">Awaiting accessible-room confirmation</td>
+              <td class="editable" contenteditable="false" data-field="bk.3.contact">Reception +91 294 XXXXXXX</td>
+            </tr>
+            <tr>
+              <td class="editable" contenteditable="false" data-field="bk.4.type">Private car — full circuit</td>
+              <td class="editable" contenteditable="false" data-field="bk.4.provider">Rajasthan Road Trips Co.</td>
+              <td class="editable" contenteditable="false" data-field="bk.4.date">14–25 Nov</td>
+              <td><span class="badge badge-confirmed">Confirmed</span></td>
+              <td class="editable" contenteditable="false" data-field="bk.4.ref">Booking #RRT-889</td>
+              <td class="editable" contenteditable="false" data-field="bk.4.contact">Driver — Suresh, +91 98XXXXXXXX</td>
+            </tr>
+            <tr>
+              <td class="editable" contenteditable="false" data-field="bk.5.type">Travel insurance</td>
+              <td class="editable" contenteditable="false" data-field="bk.5.provider">ICICI Lombard</td>
+              <td class="editable" contenteditable="false" data-field="bk.5.date">Valid 13–26 Nov</td>
+              <td><span class="badge badge-confirmed">Confirmed</span></td>
+              <td class="editable" contenteditable="false" data-field="bk.5.ref">Policy #IL-4471X</td>
+              <td class="editable" contenteditable="false" data-field="bk.5.contact">24×7 helpline in Emergency panel</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <button class="add-row-btn edit-only" onclick="addBookingRow()">+ Add booking row</button>
+  </section>
+
+  <!-- ══════════════════════ 4. BUDGET & PAYMENTS ══════════════════════ -->
+  <section id="tab-budget" class="tab-panel" hidden>
+    <h2 class="section-title">Budget &amp; Payments</h2>
+    <p class="section-sub">Estimated vs. confirmed cost, by category.</p>
+
+    <div class="budget-total">
+      <div class="stat"><div class="num editable" data-field="budget.total" contenteditable="false">₹4,80,000</div><div class="lbl">Total budget</div></div>
+      <div class="stat"><div class="num editable" data-field="budget.paid" contenteditable="false">₹3,10,000</div><div class="lbl">Paid <span class="badge badge-paid" style="margin-left:4px;">Partial</span></div></div>
+      <div class="stat"><div class="num editable" data-field="budget.pending" contenteditable="false">₹1,70,000</div><div class="lbl">Pending — due 5 Nov</div></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="card-pad">
+        <table>
+          <thead><tr><th>Category</th><th>Estimated</th><th>Confirmed</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td class="editable" contenteditable="false" data-field="bud.transport.cat">Transport</td><td class="editable" contenteditable="false" data-field="bud.transport.est">₹1,10,000</td><td class="editable" contenteditable="false" data-field="bud.transport.conf">₹1,10,000</td><td class="editable" contenteditable="false" data-field="bud.transport.note">Flights + full-circuit car</td></tr>
+            <tr><td class="editable" contenteditable="false" data-field="bud.stay.cat">Stay</td><td class="editable" contenteditable="false" data-field="bud.stay.est">₹1,80,000</td><td class="editable" contenteditable="false" data-field="bud.stay.conf">₹1,20,000</td><td class="editable" contenteditable="false" data-field="bud.stay.note">Udaipur hotel not yet confirmed</td></tr>
+            <tr><td class="editable" contenteditable="false" data-field="bud.food.cat">Food</td><td class="editable" contenteditable="false" data-field="bud.food.est">₹55,000</td><td class="editable" contenteditable="false" data-field="bud.food.conf">—</td><td class="editable" contenteditable="false" data-field="bud.food.note">Pay as you go</td></tr>
+            <tr><td class="editable" contenteditable="false" data-field="bud.activities.cat">Activities &amp; entries</td><td class="editable" contenteditable="false" data-field="bud.activities.est">₹48,000</td><td class="editable" contenteditable="false" data-field="bud.activities.conf">₹32,000</td><td class="editable" contenteditable="false" data-field="bud.activities.note">Fort entries pre-booked; guides pay on day</td></tr>
+            <tr><td class="editable" contenteditable="false" data-field="bud.localtravel.cat">Local travel &amp; tips</td><td class="editable" contenteditable="false" data-field="bud.localtravel.est">₹22,000</td><td class="editable" contenteditable="false" data-field="bud.localtravel.conf">—</td><td class="editable" contenteditable="false" data-field="bud.localtravel.note">Cash budget</td></tr>
+            <tr><td class="editable" contenteditable="false" data-field="bud.contingency.cat">Contingency (10%)</td><td class="editable" contenteditable="false" data-field="bud.contingency.est">₹48,000</td><td class="editable" contenteditable="false" data-field="bud.contingency.conf">—</td><td class="editable" contenteditable="false" data-field="bud.contingency.note">Held back, not pre-allocated</td></tr>
+          </tbody>
+          <tfoot>
+            <tr style="font-weight:700; background:var(--sand);"><td>Planner fee</td><td colspan="2" class="editable" contenteditable="false" data-field="bud.plannerfee">₹28,000 (Itinerary + On-Trip Support)</td><td>Paid in full</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <button class="add-row-btn edit-only" onclick="alert('Add a category row manually by duplicating a <tr> in this table — a proper add-row control is a good next pass once this is wired to real data.')">+ Add category</button>
+  </section>
+
+  <!-- ══════════════════════ 5. DAY-WISE PLANNER ══════════════════════ -->
+  <section id="tab-days" class="tab-panel" hidden>
+    <h2 class="section-title">Day-Wise Planner</h2>
+    <p class="section-sub">Tap a day to expand it. Plan B options are included for weather, closures or fatigue.</p>
+
+    <div id="daysContainer">
+      <details class="day" open>
+        <summary>
+          <span>Day 1 — <span class="editable" contenteditable="false" data-field="day1.city">Jaipur</span></span>
+          <span class="day-meta"><span class="editable" contenteditable="false" data-field="day1.date">14 Nov</span> · <span class="editable" contenteditable="false" data-field="day1.hotel">Alsisar Haveli</span> <span class="chevron">›</span></span>
+        </summary>
+        <div class="day-body">
+          <table>
+            <thead><tr><th>Time</th><th>Plan</th><th>Location / travel</th><th>Booking / cost</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td class="editable" contenteditable="false" data-field="day1.r1.time">10:30 AM</td><td class="editable" contenteditable="false" data-field="day1.r1.plan">Arrive Jaipur, check in</td><td class="editable" contenteditable="false" data-field="day1.r1.loc">Airport → hotel, 35 min</td><td class="editable" contenteditable="false" data-field="day1.r1.cost">Car included</td><td class="editable" contenteditable="false" data-field="day1.r1.notes">Driver holds a "Kapoor Family" sign</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day1.r2.time">1:00 PM</td><td class="editable" contenteditable="false" data-field="day1.r2.plan">Lunch &amp; rest</td><td class="editable" contenteditable="false" data-field="day1.r2.loc">Hotel</td><td class="editable" contenteditable="false" data-field="day1.r2.cost">₹600–₹900 pp</td><td class="editable" contenteditable="false" data-field="day1.r2.notes">Vegetarian thali recommended</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day1.r3.time">4:00 PM</td><td class="editable" contenteditable="false" data-field="day1.r3.plan">City Palace walking tour</td><td class="editable" contenteditable="false" data-field="day1.r3.loc">15 min drive</td><td class="editable" contenteditable="false" data-field="day1.r3.cost">₹700 entry, pre-booked</td><td class="editable" contenteditable="false" data-field="day1.r3.notes">Carry the printed permit</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day1.r4.time">7:30 PM</td><td class="editable" contenteditable="false" data-field="day1.r4.plan">Dinner</td><td class="editable" contenteditable="false" data-field="day1.r4.loc">Near hotel</td><td class="editable" contenteditable="false" data-field="day1.r4.cost">₹800–₹1,200 pp</td><td class="editable" contenteditable="false" data-field="day1.r4.notes">Reservation held under Kapoor</td></tr>
+            </tbody>
+          </table>
+          <div class="day-note editable" contenteditable="false" data-field="day1.tip">Carry a light shawl for the evening — Jaipur cools down fast after sunset in November.</div>
+          <div class="day-planb editable" contenteditable="false" data-field="day1.planb">Plan B: if the family is tired after the flight, City Palace can move to Day 2 morning and Day 1 evening becomes a rooftop dinner with no walking.</div>
+        </div>
+      </details>
+
+      <details class="day">
+        <summary>
+          <span>Day 2 — <span class="editable" contenteditable="false" data-field="day2.city">Jaipur</span></span>
+          <span class="day-meta"><span class="editable" contenteditable="false" data-field="day2.date">15 Nov</span> · <span class="editable" contenteditable="false" data-field="day2.hotel">Alsisar Haveli</span> <span class="chevron">›</span></span>
+        </summary>
+        <div class="day-body">
+          <table>
+            <thead><tr><th>Time</th><th>Plan</th><th>Location / travel</th><th>Booking / cost</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td class="editable" contenteditable="false" data-field="day2.r1.time">7:00 AM</td><td class="editable" contenteditable="false" data-field="day2.r1.plan">Breakfast</td><td class="editable" contenteditable="false" data-field="day2.r1.loc">Hotel</td><td class="editable" contenteditable="false" data-field="day2.r1.cost">Included</td><td class="editable" contenteditable="false" data-field="day2.r1.notes">Leave by 8:00 AM for Amber Fort before the crowds</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day2.r2.time">8:30 AM</td><td class="editable" contenteditable="false" data-field="day2.r2.plan">Amber Fort</td><td class="editable" contenteditable="false" data-field="day2.r2.loc">30 min drive</td><td class="editable" contenteditable="false" data-field="day2.r2.cost">₹550 pp entry</td><td class="editable" contenteditable="false" data-field="day2.r2.notes">Elephant ride optional, book on arrival</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day2.r3.time">1:00 PM</td><td class="editable" contenteditable="false" data-field="day2.r3.plan">Lunch</td><td class="editable" contenteditable="false" data-field="day2.r3.loc">Restaurant near fort</td><td class="editable" contenteditable="false" data-field="day2.r3.cost">₹500–₹800 pp</td><td class="editable" contenteditable="false" data-field="day2.r3.notes">Vegetarian option available</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day2.r4.time">4:00 PM</td><td class="editable" contenteditable="false" data-field="day2.r4.plan">Hawa Mahal &amp; local bazaar</td><td class="editable" contenteditable="false" data-field="day2.r4.loc">20 min drive</td><td class="editable" contenteditable="false" data-field="day2.r4.cost">₹200 pp entry</td><td class="editable" contenteditable="false" data-field="day2.r4.notes">Good light for photos ~5 PM</td></tr>
+            </tbody>
+          </table>
+          <div class="day-note editable" contenteditable="false" data-field="day2.tip">Amber Fort's stairs are uneven in places — comfortable, closed footwear recommended for the kids.</div>
+          <div class="day-planb editable" contenteditable="false" data-field="day2.planb">Plan B: if it's too hot midday, swap the bazaar to early morning and rest at the hotel 1–4 PM instead.</div>
+        </div>
+      </details>
+
+      <details class="day">
+        <summary>
+          <span>Day 6 — <span class="editable" contenteditable="false" data-field="day6.city">Udaipur</span></span>
+          <span class="day-meta"><span class="editable" contenteditable="false" data-field="day6.date">19 Nov</span> · <span class="editable" contenteditable="false" data-field="day6.hotel">Lake Pichola Boutique</span> <span class="chevron">›</span></span>
+        </summary>
+        <div class="day-body">
+          <table>
+            <thead><tr><th>Time</th><th>Plan</th><th>Location / travel</th><th>Booking / cost</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td class="editable" contenteditable="false" data-field="day6.r1.time">9:00 AM</td><td class="editable" contenteditable="false" data-field="day6.r1.plan">City Palace, Udaipur</td><td class="editable" contenteditable="false" data-field="day6.r1.loc">10 min drive</td><td class="editable" contenteditable="false" data-field="day6.r1.cost">₹700 pp entry</td><td class="editable" contenteditable="false" data-field="day6.r1.notes">Ask for the lake-facing route</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day6.r2.time">1:00 PM</td><td class="editable" contenteditable="false" data-field="day6.r2.plan">Lunch by the lake</td><td class="editable" contenteditable="false" data-field="day6.r2.loc">Near City Palace</td><td class="editable" contenteditable="false" data-field="day6.r2.cost">₹700–₹1,000 pp</td><td class="editable" contenteditable="false" data-field="day6.r2.notes">Book a lake-view table in advance</td></tr>
+              <tr><td class="editable" contenteditable="false" data-field="day6.r3.time">5:30 PM</td><td class="editable" contenteditable="false" data-field="day6.r3.plan">Sunset boat ride, Lake Pichola</td><td class="editable" contenteditable="false" data-field="day6.r3.loc">Boat jetty, 5 min walk</td><td class="editable" contenteditable="false" data-field="day6.r3.cost">₹900 pp, pre-booked</td><td class="editable" contenteditable="false" data-field="day6.r3.notes">Best light 30 min before sunset</td></tr>
+            </tbody>
+          </table>
+          <div class="day-note editable" contenteditable="false" data-field="day6.tip">This is the day the hero photo on the public site references — worth confirming the boat slot a day ahead in peak season.</div>
+          <div class="day-planb editable" contenteditable="false" data-field="day6.planb">Plan B: if the lake level is low or the boat ride is cancelled, Jagdish Temple and the Bagore ki Haveli evening show are a strong substitute.</div>
+        </div>
+      </details>
+    </div>
+
+    <button class="add-day-btn edit-only" onclick="addDay()">+ Add day</button>
+
+    <!-- Hidden template used by "+ Add day" — never shown directly -->
+    <template id="dayTemplate">
+      <details class="day">
+        <summary>
+          <span>Day __N__ — <span class="editable" contenteditable="true" data-field="day__N__.city">City name</span></span>
+          <span class="day-meta"><span class="editable" contenteditable="true" data-field="day__N__.date">Date</span> · <span class="editable" contenteditable="true" data-field="day__N__.hotel">Hotel name</span> <span class="chevron">›</span></span>
+        </summary>
+        <div class="day-body">
+          <table>
+            <thead><tr><th>Time</th><th>Plan</th><th>Location / travel</th><th>Booking / cost</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td class="editable" contenteditable="true" data-field="day__N__.r1.time">Time</td><td class="editable" contenteditable="true" data-field="day__N__.r1.plan">Plan</td><td class="editable" contenteditable="true" data-field="day__N__.r1.loc">Location / travel</td><td class="editable" contenteditable="true" data-field="day__N__.r1.cost">Booking / cost</td><td class="editable" contenteditable="true" data-field="day__N__.r1.notes">Notes</td></tr>
+            </tbody>
+          </table>
+          <div class="day-note editable" contenteditable="true" data-field="day__N__.tip">Practical tip for this day.</div>
+          <div class="day-planb editable" contenteditable="true" data-field="day__N__.planb">Plan B: alternative if weather/closure/fatigue affects this day.</div>
+        </div>
+      </details>
+    </template>
+  </section>
+
+  <!-- ══════════════════════ 6. STAYS & TRANSPORT ══════════════════════ -->
+  <section id="tab-stays" class="tab-panel" hidden>
+    <h2 class="section-title">Stays &amp; Transport</h2>
+
+    <h3 style="color:var(--dark); margin-bottom:10px;">Stays</h3>
+    <div class="item-card">
+      <span class="tag">14–16 Nov</span>
+      <h3 class="editable" contenteditable="false" data-field="stay1.name">Alsisar Haveli, Jaipur</h3>
+      <div class="kv">
+        <b>Address</b><span class="editable" contenteditable="false" data-field="stay1.address">Sansar Chandra Road, Jaipur — Map link</span>
+        <b>Check-in/out</b><span class="editable" contenteditable="false" data-field="stay1.checkinout">2:00 PM / 11:00 AM</span>
+        <b>Room type</b><span class="editable" contenteditable="false" data-field="stay1.room">2× Deluxe Heritage rooms, breakfast included</span>
+        <b>Hotel contact</b><span class="editable" contenteditable="false" data-field="stay1.contact">+91 141 XXXXXXX</span>
+        <b>Cancellation</b><span class="editable" contenteditable="false" data-field="stay1.cancel">Free until 7 Nov, non-refundable after</span>
+        <b>Nearby</b><span class="editable" contenteditable="false" data-field="stay1.nearby">Pharmacy 5 min walk, ATM in lobby</span>
+      </div>
+    </div>
+    <div class="item-card">
+      <span class="tag">18–21 Nov</span>
+      <h3 class="editable" contenteditable="false" data-field="stay2.name">Lake Pichola Boutique, Udaipur</h3>
+      <div class="kv">
+        <b>Address</b><span class="editable" contenteditable="false" data-field="stay2.address">Lake Pichola Road, Udaipur — Map link</span>
+        <b>Check-in/out</b><span class="editable" contenteditable="false" data-field="stay2.checkinout">1:00 PM / 11:00 AM</span>
+        <b>Room type</b><span class="editable" contenteditable="false" data-field="stay2.room">2× Lake View rooms, one wheelchair-accessible (pending confirmation)</span>
+        <b>Hotel contact</b><span class="editable" contenteditable="false" data-field="stay2.contact">+91 294 XXXXXXX</span>
+        <b>Cancellation</b><span class="editable" contenteditable="false" data-field="stay2.cancel">Free until 10 Nov</span>
+        <b>Nearby</b><span class="editable" contenteditable="false" data-field="stay2.nearby">Grocery store opposite gate</span>
+      </div>
+    </div>
+
+    <h3 style="color:var(--dark); margin: 22px 0 10px;">Transport</h3>
+    <div class="item-card">
+      <h3 class="editable" contenteditable="false" data-field="transport.title">Private car — full circuit</h3>
+      <div class="kv">
+        <b>Arrival</b><span class="editable" contenteditable="false" data-field="transport.arrival">IndiGo 6E-204, lands Jaipur 10:15 AM, 14 Nov</span>
+        <b>Departure</b><span class="editable" contenteditable="false" data-field="transport.departure">IndiGo 6E-511, departs Udaipur 6:40 PM, 25 Nov</span>
+        <b>Pickup/drop</b><span class="editable" contenteditable="false" data-field="transport.pickup">Airport arrivals gate each city</span>
+        <b>Driver</b><span class="editable" contenteditable="false" data-field="transport.driver">Suresh Kumar, +91 98XXXXXXXX, white Innova Crysta</span>
+        <b>Daily allocation</b><span class="editable" contenteditable="false" data-field="transport.daily">Full day, up to 250 km/day included</span>
+        <b>Extras</b><span class="editable" contenteditable="false" data-field="transport.extras">Tolls and parking included; driver allowance ₹500/day not included</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ 7. FOOD & EXPERIENCES ══════════════════════ -->
+  <section id="tab-food" class="tab-panel" hidden>
+    <h2 class="section-title">Food &amp; Experiences</h2>
+
+    <h3 style="color:var(--dark); margin-bottom:10px;">Food</h3>
+    <div class="item-card">
+      <h3 class="editable" contenteditable="false" data-field="food1.name">Suvarna Mahal, Jaipur</h3>
+      <div class="kv">
+        <b>Local dish</b><span class="editable" contenteditable="false" data-field="food1.dish">Laal Maas (or a vegetarian ker sangri thali)</span>
+        <b>Dietary</b><span class="editable" contenteditable="false" data-field="food1.dietary">Full vegetarian menu available</span>
+        <b>Cost</b><span class="editable" contenteditable="false" data-field="food1.cost">₹1,500–₹2,000 pp</span>
+        <b>Notes</b><span class="editable" contenteditable="false" data-field="food1.notes">Reservation recommended, smart casual</span>
+      </div>
+    </div>
+    <div class="item-card">
+      <h3 class="editable" contenteditable="false" data-field="food2.name">Street food, Johari Bazaar</h3>
+      <div class="kv">
+        <b>Local dish</b><span class="editable" contenteditable="false" data-field="food2.dish">Pyaaz kachori, ghewar</span>
+        <b>Dietary</b><span class="editable" contenteditable="false" data-field="food2.dietary">Vegetarian by default</span>
+        <b>Cost</b><span class="editable" contenteditable="false" data-field="food2.cost">₹100–₹200 pp</span>
+        <b>Caution</b><span class="editable" contenteditable="false" data-field="food2.caution">Choose stalls with visible turnover; carry hand sanitiser</span>
+      </div>
+    </div>
+
+    <h3 style="color:var(--dark); margin: 22px 0 10px;">Experiences</h3>
+    <div class="item-card">
+      <h3 class="editable" contenteditable="false" data-field="exp1.name">Sunset boat ride, Lake Pichola</h3>
+      <div class="kv">
+        <b>What to carry</b><span class="editable" contenteditable="false" data-field="exp1.carry">Light jacket, camera</span>
+        <b>Fitness/age</b><span class="editable" contenteditable="false" data-field="exp1.fitness">Suitable for all ages</span>
+        <b>Best timing</b><span class="editable" contenteditable="false" data-field="exp1.timing">30 min before sunset</span>
+        <b>Weather note</b><span class="editable" contenteditable="false" data-field="exp1.weather">Cancelled in high wind — see Day 6 Plan B</span>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<!-- ══════════════════════ 8. EMERGENCY & SUPPORT (floating, not a tab) ══════════════════════ -->
+<button class="emergency-fab" onclick="document.getElementById('emergency').showModal()">⚠ Emergency</button>
+
+<dialog id="emergency">
+  <div class="em-head">
+    <h2>Emergency &amp; Support</h2>
+    <button class="em-close" onclick="document.getElementById('emergency').close()">✕</button>
+  </div>
+  <div class="em-body">
+    <div class="em-row"><span>Travel Architect (Rhea Menon)</span><a href="tel:+919845011223" class="editable" contenteditable="false" data-field="em.architect">+91 98450 11223</a></div>
+    <div class="em-row"><span>Support hours</span><span class="editable" contenteditable="false" data-field="em.hours">7 AM–10 PM IST, every day of your trip</span></div>
+    <div class="em-row"><span>Hotel reception (current)</span><span class="editable" contenteditable="false" data-field="em.hotel">Auto-updates per day — currently Alsisar Haveli, +91 141 XXXXXXX</span></div>
+    <div class="em-row"><span>Driver</span><span class="editable" contenteditable="false" data-field="em.driver">Suresh Kumar, +91 98XXXXXXXX</span></div>
+    <div class="em-row"><span>Local police</span><span class="editable" contenteditable="false" data-field="em.police">100</span></div>
+    <div class="em-row"><span>Ambulance</span><span class="editable" contenteditable="false" data-field="em.ambulance">108</span></div>
+    <div class="em-row"><span>Nearest hospital (Jaipur)</span><span class="editable" contenteditable="false" data-field="em.hospital">Fortis Escorts, Malviya Nagar — Map link</span></div>
+    <div class="em-row"><span>Insurance helpline</span><span class="editable" contenteditable="false" data-field="em.insurance">ICICI Lombard, 1800-XXX-XXXX</span></div>
+    <div class="em-row"><span>Lost passport / ID</span><span class="editable" contenteditable="false" data-field="em.lostid">Call Rhea first — she keeps a scanned copy on file and can guide the nearest RPO/police process</span></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+  // ── Tab switching ──────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-panel').forEach(p => p.hidden = p.id !== 'tab-' + tab);
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  // ── Edit mode ──────────────────────────────────────────────────────
+  function toggleEdit() {
+    const on = document.body.classList.toggle('edit-mode');
+    document.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', on ? 'true' : 'false'));
+    document.getElementById('editToggle').textContent = on ? 'Done' : 'Edit';
+    document.getElementById('saveBtn').style.display = on ? 'inline-flex' : 'none';
+  }
+
+  // ── Save / load to localStorage (placeholder for a real backend call) ─
+  function setDeep(obj, path, value) {
+    const keys = path.split('.'); let o = obj;
+    for (let i = 0; i < keys.length - 1; i++) { o[keys[i]] = o[keys[i]] || {}; o = o[keys[i]]; }
+    o[keys[keys.length - 1]] = value;
+  }
+  function getDeep(obj, path) { return path.split('.').reduce((o, k) => (o || {})[k], obj); }
+
+  function saveItinerary() {
+    const data = {};
+    document.querySelectorAll('[data-field]').forEach(el => {
+      const path = el.dataset.field;
+      let value;
+      if (el.type === 'checkbox') value = el.checked;
+      else value = el.innerText;
+      setDeep(data, path, value);
+    });
+    try {
+      localStorage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(data));
+      showToast('Saved to this browser');
+    } catch (e) {
+      showToast('Could not save — storage unavailable');
+    }
+  }
+
+  function loadItinerary() {
+    let raw;
+    try { raw = localStorage.getItem(ITINERARY_STORAGE_KEY); } catch (e) { return; }
+    if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { return; }
+    document.querySelectorAll('[data-field]').forEach(el => {
+      const value = getDeep(data, el.dataset.field);
+      if (value === undefined) return;
+      if (el.type === 'checkbox') el.checked = !!value;
+      else el.innerText = value;
+    });
+    refreshChecklist();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // ── Checklist progress ─────────────────────────────────────────────
+  function refreshChecklist() {
+    const boxes = document.querySelectorAll('.chk');
+    const total = boxes.length;
+    const done = Array.from(boxes).filter(b => b.checked).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    document.getElementById('chkSummary').textContent = `Trip readiness: ${done} of ${total} tasks completed — ${pct}%`;
+    document.getElementById('chkBar').style.width = pct + '%';
+    boxes.forEach(b => b.closest('.chk-row').classList.toggle('done', b.checked));
+  }
+  document.querySelectorAll('.chk').forEach(b => b.addEventListener('change', refreshChecklist));
+
+  // ── Countdown ──────────────────────────────────────────────────────
+  function refreshCountdown() {
+    const el = document.getElementById('countdownText');
+    const dep = new Date(el.dataset.departure);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diffDays = Math.ceil((dep - today) / 86400000);
+    if (diffDays > 1) el.textContent = diffDays + ' days to departure';
+    else if (diffDays === 1) el.textContent = 'Departing tomorrow';
+    else if (diffDays === 0) el.textContent = 'Departing today';
+    else el.textContent = 'Trip in progress or completed';
+  }
+
+  // ── Add booking row (edit mode) ────────────────────────────────────
+  function addBookingRow() {
+    const tbody = document.querySelector('#bookingsTable tbody');
+    const n = tbody.children.length + 1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="editable" contenteditable="true" data-field="bk.${n}.type">Booking type</td>
+      <td class="editable" contenteditable="true" data-field="bk.${n}.provider">Provider</td>
+      <td class="editable" contenteditable="true" data-field="bk.${n}.date">Date</td>
+      <td><span class="badge badge-suggested">Suggested</span></td>
+      <td class="editable" contenteditable="true" data-field="bk.${n}.ref">Reference</td>
+      <td class="editable" contenteditable="true" data-field="bk.${n}.contact">Contact</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // ── Add day (edit mode) ────────────────────────────────────────────
+  function addDay() {
+    const container = document.getElementById('daysContainer');
+    const existing = container.querySelectorAll('details.day').length;
+    const n = existing + 1;
+    const tpl = document.getElementById('dayTemplate').innerHTML.replaceAll('__N__', n);
+    const wrap = document.createElement('div');
+    wrap.innerHTML = tpl;
+    const node = wrap.firstElementChild;
+    container.appendChild(node);
+    if (document.body.classList.contains('edit-mode')) {
+      node.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', 'true'));
+    }
+  }
+
+  // ── Share ──────────────────────────────────────────────────────────
+  function sharePage() {
+    if (navigator.share) {
+      navigator.share({ title: document.title, url: window.location.href }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(window.location.href);
+      showToast('Link copied');
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────
+  loadItinerary();
+  refreshChecklist();
+  refreshCountdown();
+</script>
+
+</body>
+</html>

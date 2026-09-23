@@ -16,6 +16,8 @@ from app.core.database import Base  # noqa: E402
 
 # Untouched models
 from app.models.user import User  # noqa: F401, E402
+from app.models.travel import TravelPackage, TravelDeparture, TravelBooking, TravelSettings  # noqa: F401
+from app.models import tutor  # noqa: F401  (tutor_subjects, tutor_videos, tutor_availability, tutor_bookings, tutor_settings)
 from app.models.contact import Contact  # noqa: F401, E402
 from app.models.site_settings import SiteSetting  # noqa: F401, E402
 from app.models.page import Page  # noqa: F401, E402
@@ -35,6 +37,9 @@ from app.models.lead import Lead  # noqa: F401, E402
 from app.api.routes.fb_agent_routes import FbAgentState  # noqa: F401, E402
 from app.models.founder_site import FounderSite, FounderSiteSlugHistory  # noqa: F401, E402
 from app.models.enquiry import Enquiry  # noqa: F401, E402
+from app.models.user_ai_credential import UserAiCredential  # noqa: F401, E402
+from app.models.ad_management_state import AdManagementState  # noqa: F401, E402
+from app.models.trip_request import TripRequest, TripOption, TripItineraryDay  # noqa: F401, E402
 
 target_metadata = Base.metadata
 

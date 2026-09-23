@@ -1,6 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',  // enables minimal Docker image via .next/standalone
+  // Raise the proxy socket timeout for long-running AI agent calls (Claude Sonnet
+  // can take 60-120 s on large JSON payloads).  Without this Next.js drops the
+  // upstream connection after ~30 s and the browser receives a 500 ECONNRESET
+  // even though FastAPI returned 200.
+  experimental: {
+    proxyTimeout: 180_000,   // 3 minutes in ms
+  },
+  httpAgentOptions: {
+    keepAlive: true,
+  },
   images: {
     domains: ['api.placeholder.com', 'images.unsplash.com'],
     unoptimized: false,

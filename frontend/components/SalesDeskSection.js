@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import {
   Inbox, Sparkles, Send, CheckCircle2, Clock, Mail,
   Phone, Building2, RefreshCw, AlertCircle, MessageSquare,
-  ChevronRight, Filter, Eye, Check, Edit3, XCircle
+  ChevronRight, Filter, Eye, Check, Edit3, XCircle, Key
 } from 'lucide-react'
+import AiKeyConfigModal from './AiKeyConfigModal'
 
 export default function SalesDeskSection({ token }) {
   const [enquiries, setEnquiries] = useState([])
@@ -20,6 +21,14 @@ export default function SalesDeskSection({ token }) {
   const [isSending, setIsSending] = useState(false)
   const [actionSuccess, setActionSuccess] = useState(null)
   const [actionError, setActionError] = useState(null)
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false)
+  const [activeAiConfig, setActiveAiConfig] = useState(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem('user_custom_ai_config')
+      return raw ? JSON.parse(raw) : null
+    } catch (_) { return null }
+  })
 
   const fetchEnquiries = async () => {
     if (!token) return
@@ -173,19 +182,33 @@ export default function SalesDeskSection({ token }) {
           </div>
         </div>
 
-        {/* Filter controls */}
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-800/80 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+        {/* Actions & Filter controls */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* AI Key Button */}
+          <button
+            type="button"
+            onClick={() => setIsKeyModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 text-xs font-semibold transition-colors"
+            title="Configure Custom AI Provider (BYOK)"
           >
-            <option value="all">All Enquiries</option>
-            <option value="new">New</option>
-            <option value="replied">Replied</option>
-            <option value="closed">Closed</option>
-          </select>
+            <Key className="w-3.5 h-3.5 text-amber-300" />
+            <span>{activeAiConfig?.isCustom ? activeAiConfig.providerName : 'AI Key'}</span>
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-slate-800/80 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            >
+              <option value="all">All Enquiries</option>
+              <option value="new">New</option>
+              <option value="replied">Replied</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+
           <button
             onClick={fetchEnquiries}
             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
@@ -371,6 +394,19 @@ export default function SalesDeskSection({ token }) {
           )}
         </div>
       )}
+
+      {/* BYOK Modal */}
+      <AiKeyConfigModal
+        isOpen={isKeyModalOpen}
+        onClose={() => {
+          setIsKeyModalOpen(false)
+          try {
+            const raw = localStorage.getItem('user_custom_ai_config')
+            setActiveAiConfig(raw ? JSON.parse(raw) : null)
+          } catch (_) {}
+        }}
+        scopeName="AI Sales Desk"
+      />
     </div>
   )
 }

@@ -245,16 +245,20 @@ function payloadToData(payload) {
   const tagline = pos.buyer && pos.outcome
     ? `I help ${pos.buyer} get ${pos.outcome}${pos.fear ? `, without ${pos.fear}` : ''}.`
     : o(biz.tagline, SAMPLE.founder.tagline)
-  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => ({
-    name:        t.name,
-    price:       t.priceInr ? `₹${Number(t.priceInr).toLocaleString('en-IN')}` : (t.priceUsd ? `$${t.priceUsd}` : SAMPLE.offers[i]?.price || ''),
-    duration:    t.duration || '',
-    type:        t.tier === 'recurring' ? 'Monthly' : t.tier === 'front_door' ? 'Starter' : 'Full Course',
-    description: t.summary || SAMPLE.offers[i]?.description || '',
-    includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
-    cta:         SAMPLE.offers[i]?.cta || 'Enrol Now',
-    highlight:   off.mostBought === t.tier,
-  }))
+  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => {
+    const pInr = t.prices?.INR ?? t.priceInr
+    const pUsd = t.prices?.USD ?? t.priceUsd
+    return {
+      name:        t.name,
+      price:       pInr ? `₹${Number(pInr).toLocaleString('en-IN')}` : (pUsd ? `$${pUsd}` : SAMPLE.offers[i]?.price || ''),
+      duration:    t.duration || '',
+      type:        t.tier === 'recurring' ? 'Monthly' : t.tier === 'front_door' ? 'Starter' : 'Full Course',
+      description: t.summary || SAMPLE.offers[i]?.description || '',
+      includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
+      cta:         SAMPLE.offers[i]?.cta || 'Enrol Now',
+      highlight:   off.mostBought === t.tier,
+    }
+  })
   const mappedFaqs = (know.faqs || []).filter(f => f?.question && f?.answer).map(f => ({ q: f.question, a: f.answer }))
   const mappedTestimonials = (prf.testimonials || []).filter(t => t?.quote).map(t => ({ name: t.name || '', role: t.role || '', rating: 5, quote: t.quote, result: t.result || '' }))
   return {
@@ -441,8 +445,9 @@ function HeroSection() {
 
 // ─── Curriculum — horizontal tab layout ──────────────────────────────────────
 function CurriculumSection() {
+  const data = useData()
   const [active, setActive] = useState(0)
-  const cur = useData().curriculum[active]
+  const cur = data.curriculum[active]
   return (
     <section id="curriculum" className="py-24" style={{ background: T.white }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -458,7 +463,7 @@ function CurriculumSection() {
 
         {/* Tab strip */}
         <div className="flex overflow-x-auto gap-2 mb-8 pb-2 scrollbar-hide">
-          {useData().curriculum.map((c, i) => (
+          {data.curriculum.map((c, i) => (
             <button
               key={i}
               onClick={() => setActive(i)}
@@ -509,10 +514,10 @@ function CurriculumSection() {
           >
             ← Previous module
           </button>
-          <span>{active + 1} / {useData().curriculum.length}</span>
+          <span>{active + 1} / {data.curriculum.length}</span>
           <button
-            onClick={() => setActive(Math.min(useData().curriculum.length - 1, active + 1))}
-            disabled={active === useData().curriculum.length - 1}
+            onClick={() => setActive(Math.min(data.curriculum.length - 1, active + 1))}
+            disabled={active === data.curriculum.length - 1}
             className="flex items-center gap-1 disabled:opacity-30 hover:opacity-70 transition-opacity"
             style={{ color: T.teal }}
           >
@@ -526,8 +531,9 @@ function CurriculumSection() {
 
 // ─── Testimonials — editorial blockquote style ────────────────────────────────
 function TestimonialsSection() {
+  const data = useData()
   const [active, setActive] = useState(0)
-  const t = useData().testimonials[active]
+  const t = data.testimonials[active]
   return (
     <section className="py-24" style={{ background: T.ink }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

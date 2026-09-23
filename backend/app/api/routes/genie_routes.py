@@ -74,6 +74,7 @@ _DEFAULT_SOCIAL_LINKS: Dict[str, str] = {
     "instagram": "https://instagram.com/yourhandle",
     "facebook": "https://facebook.com/yourpage",
     "youtube": "https://youtube.com/@yourchannel",
+    "pinterest": "https://pinterest.com/yourname",
     "x": "https://x.com/yourhandle",
     "googleBusiness": "",
 }
@@ -95,6 +96,22 @@ _DEFAULT_FAQS: List[Dict[str, str]] = [
     {"question": "Can I contact you outside business hours?",
      "answer": "You can leave a message any time. I check messages during working hours and respond within 1 business day."},
 ]
+
+_CATEGORY_TO_DEFAULT_TEMPLATE: Dict[str, Tuple[str, str]] = {
+    "service-based": ("service-based", "consultant-advisor"),
+    "knowledge-content": ("knowledge-content", "course-creator"),
+    "local-trade": ("local-trade", "local-service-pro"),
+    "product-commerce": ("product-commerce", "digital-product-seller"),
+    "hybrid-platform": ("hybrid-platform", "community-led"),
+    "consulting": ("service-based", "consultant-advisor"),
+    "coaching": ("service-based", "coach-mentor"),
+    "freelance": ("service-based", "freelancer-creative"),
+    "agency-of-one": ("service-based", "agency-of-one"),
+    "creator": ("knowledge-content", "course-creator"),
+    "author": ("knowledge-content", "author-speaker"),
+    "local": ("local-trade", "local-service-pro"),
+    "clinic": ("local-trade", "clinic-practitioner"),
+}
 
 
 import re as _re
@@ -161,6 +178,8 @@ def _rebuild_site_payload(prefill: Dict[str, Any], existing_payload: Optional[Di
             "duration": t.get("duration") or "",
             "billing": "monthly" if t["tier"] == "recurring" else "one_time",
             "prices": prices,
+            "priceInr": _num(t.get("priceInr")),
+            "priceUsd": _num(t.get("priceUsd")),
             "highlight": (d.get("offers") or {}).get("mostBought") == t["tier"],
         })
 
@@ -188,8 +207,20 @@ def _rebuild_site_payload(prefill: Dict[str, Any], existing_payload: Optional[Di
     faqs   = [f for f in (knowledge.get("faqs") or []) if isinstance(f, dict) and f.get("question") and f.get("answer")]
     created_at = (existing_payload or {}).get("createdAt") or datetime.now(_tz.utc).isoformat()
 
+    tpl_obj = d.get("template") or {}
+    tpl_slug = tpl_obj.get("slug") or (existing_payload or {}).get("templateSlug")
+    tpl_section = tpl_obj.get("sectionId") or (existing_payload or {}).get("templateSection")
+    if not tpl_slug:
+        b_type = (start.get("businessType") or "service-based").strip()
+        default_section, default_slug = _CATEGORY_TO_DEFAULT_TEMPLATE.get(b_type, ("service-based", "consultant-advisor"))
+        tpl_slug = default_slug
+        if not tpl_section:
+            tpl_section = default_section
+
     return {
         "schemaVersion": "2.0", "template": "opc-template-v1", "createdAt": created_at,
+        "templateSlug": tpl_slug,
+        "templateSection": tpl_section,
         "site": {
             "subdomain": slug, "customDomain": site_cfg.get("customDomain") or None,
             "language": start.get("language", "en"), "market": market,
@@ -232,7 +263,17 @@ def _rebuild_site_payload(prefill: Dict[str, Any], existing_payload: Optional[Di
             "clientsServed":   _num(proof.get("clientsServed")),
             "credentials":  [c for c in (proof.get("credentials") or []) if c and isinstance(c, str)],
             "results":      [r for r in (proof.get("results") or []) if isinstance(r, dict) and r.get("number") and r.get("label")],
-            "caseStudies":  [c for c in (proof.get("caseStudies") or []) if isinstance(c, dict) and (c.get("client") or c.get("result"))],
+            "caseStudies":  [
+                {
+                    "client": c.get("client") or "",
+                    "result": c.get("result") or "",
+                    "detail": c.get("detail") or c.get("whatYouDid") or "",
+                    "whatYouDid": c.get("whatYouDid") or c.get("detail") or "",
+                    "sector": c.get("sector") or "",
+                }
+                for c in (proof.get("caseStudies") or [])
+                if isinstance(c, dict) and (c.get("client") or c.get("result") or c.get("detail") or c.get("whatYouDid"))
+            ],
             "testimonials": [t for t in (proof.get("testimonials") or []) if isinstance(t, dict) and t.get("name") and t.get("quote")],
         },
         "frontDoor": {
@@ -384,7 +425,13 @@ def _apply_programmatic_defaults(prefill: Dict[str, Any]) -> Dict[str, Any]:
         )
         out["knowledge"] = knowledge
 
-    # ── 8. included / notIncluded ────────────────────────────────────────────
+    # ── 8. Brand tone fallback ───────────────────────────────────────────────
+    brand = out.get("brand") or {}
+    if _is_blank(brand.get("tone")):
+        brand["tone"] = "plain"
+        out["brand"] = brand
+
+    # ── 9. included / notIncluded ────────────────────────────────────────────
     included = [s for s in (knowledge.get("included") or []) if not _is_blank(s)]
     if len(included) == 0:
         knowledge["included"] = ["All work as described in the proposal", "Regular progress updates", "Final walkthrough and handover"]
@@ -427,6 +474,8 @@ class IntakeRequest(BaseModel):
     schemaVersion: str = "2.0"
     start: Dict[str, Any] = {}
     basics: Dict[str, Any] = {}
+    template: Dict[str, Any] = {}
+    template_data: Dict[str, Any] = {}
     answers: Dict[str, str] = {}
     links: Dict[str, str] = {}     # {"website": "...", "linkedin": "...", ...}
     pastedMaterial: str = ""
@@ -475,19 +524,37 @@ def _get_nested(data: Dict[str, Any], dotted_path: str) -> Any:
     return current
 
 
+# Human-readable titles for every intake question key.
+# Keeps the LLM grounded — it sees "What do you do, and who for?" not "whatAndWho".
+_QUESTION_LABELS: Dict[str, str] = {
+    "whatAndWho":      "What the founder does and who they serve",
+    "problem":         "The problem clients come with and cost of leaving it unsolved",
+    "result":          "The result clients get and how long it takes",
+    "beforeAfter":     "Client situation before hiring vs. one month after (homepage story)",
+    "offersAndPrices": "Services offered, what the client receives, and prices",
+    "whyYou":          "Why the founder is the right person — background, credentials, proof",
+    "notFit":          "Who is NOT a good fit for this business",
+    "realFaqs":        "Real questions new clients ask before saying yes (FAQ page)",
+    "howFound":        "How clients find the founder and how they first make contact",
+    "voiceAndTone":    "How the founder communicates — brand voice and tone",
+}
+
+
 def _compose_intake_text(body: IntakeRequest) -> str:
-    """Turn the intake page's several inputs into one text blob for the Groq call."""
+    """Turn the intake page's structured inputs into a labelled text blob for the LLM."""
     lines: List[str] = []
 
     business_type = (body.start.get("businessType") or "").strip()
     market = (body.start.get("market") or "").strip()
+    language = (body.start.get("language") or "en").strip()
     if business_type or market:
-        lines.append(f"Business type: {business_type}. Market: {market}.")
+        lines.append(f"Business type: {business_type}. Market: {market}. Language: {language}.")
 
-    for question, answer in body.answers.items():
+    for question_key, answer in body.answers.items():
         answer = (answer or "").strip()
         if answer:
-            lines.append(f"{question}: {answer}")
+            label = _QUESTION_LABELS.get(question_key, question_key)
+            lines.append(f"{label}:\n{answer}")
 
     link_values = [v.strip() for v in body.links.values() if v and v.strip()]
     if link_values:
@@ -497,7 +564,7 @@ def _compose_intake_text(body: IntakeRequest) -> str:
     if pasted:
         lines.append("Additional material:\n" + pasted)
 
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _save_intake_draft(db: Session, user_id: int, prefill: Dict[str, Any], basics: Dict[str, Any]) -> None:
@@ -512,12 +579,16 @@ def _save_intake_draft(db: Session, user_id: int, prefill: Dict[str, Any], basic
     the saved draft is always a complete website even before save-wizard is called.
     """
     # Map non-empty basics fields into identity, same keys the intake form uses
-    BASICS_TO_IDENTITY = ("ownerName", "brandName", "email", "whatsapp")
+    BASICS_TO_IDENTITY = ("ownerName", "brandName", "email", "whatsapp", "city", "country", "photoUrl")
     identity: Dict[str, Any] = dict(prefill.get("identity") or {})
     for field in BASICS_TO_IDENTITY:
         value = (basics.get(field) or "").strip()
         if value:
             identity[field] = value
+    if (basics.get("bookingUrl") or "").strip():
+        front_door = dict(prefill.get("frontDoor") or {})
+        front_door["bookingUrl"] = (basics.get("bookingUrl") or "").strip()
+        prefill["frontDoor"] = front_door
     to_save = {**prefill, "identity": identity}
 
     # Apply programmatic defaults so the draft is always a complete site
@@ -772,13 +843,17 @@ class SaveWizardRequest(BaseModel):
     plus the user's raw intake basics and start values that always win.
 
     prefill         — the full LLM output after client-side honesty filtering
-    basics          — { ownerName, brandName, email, whatsapp } typed by the user
+    basics          — { ownerName, brandName, email, whatsapp, city, country, photoUrl, bookingUrl } typed by the user
     start           — { businessType, market, language } chosen by the user
+    template        — { sectionId, slug } selected by the user
+    template_data   — extra fields for the template
     userSocialLinks — { linkedin, instagram } supplied in the intake links section
     """
     prefill: Dict[str, Any] = {}
     basics: Dict[str, Any] = {}
     start: Dict[str, Any] = {}
+    template: Dict[str, Any] = {}
+    template_data: Dict[str, Any] = {}
     userSocialLinks: Dict[str, str] = {}
 
 
@@ -809,7 +884,7 @@ async def save_wizard(
     prefill: Dict[str, Any] = dict(body.prefill)
 
     # ── 1. Merge user basics into identity ───────────────────────────────────
-    BASICS_TO_IDENTITY = ("ownerName", "brandName", "email", "whatsapp")
+    BASICS_TO_IDENTITY = ("ownerName", "brandName", "email", "whatsapp", "city", "country", "photoUrl")
     identity: Dict[str, Any] = dict(prefill.get("identity") or {})
     for field in BASICS_TO_IDENTITY:
         value = (body.basics.get(field) or "").strip()
@@ -821,6 +896,12 @@ async def save_wizard(
     if not identity.get("email") and current_user.email:
         identity["email"] = current_user.email
     prefill["identity"] = identity
+
+    # Merge bookingUrl into frontDoor if supplied in basics
+    if (body.basics.get("bookingUrl") or "").strip():
+        front_door = dict(prefill.get("frontDoor") or {})
+        front_door["bookingUrl"] = (body.basics.get("bookingUrl") or "").strip()
+        prefill["frontDoor"] = front_door
 
     # ── 2. Merge user start values ───────────────────────────────────────────
     if body.start:
@@ -843,10 +924,16 @@ async def save_wizard(
     # ── 4. Apply programmatic defaults ──────────────────────────────────────
     prefill = _apply_programmatic_defaults(prefill)
 
+    # Merge template & template_data if provided
+    if body.template:
+        prefill["template"] = body.template
+    if body.template_data:
+        prefill["template_data"] = body.template_data
+
     # ── 5. Persist each domain group to user_site_settings ──────────────────
     V2_GROUPS = ("start", "identity", "positioning", "offers", "proof",
                  "frontDoor", "knowledge", "brand", "agents", "payments",
-                 "channels", "site")
+                 "channels", "site", "template", "template_data")
 
     def _upsert(key: str, value: Any) -> None:
         row = (

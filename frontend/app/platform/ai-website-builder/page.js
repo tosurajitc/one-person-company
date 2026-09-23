@@ -26,7 +26,7 @@ import { useSiteConfig } from '../../../hooks/useSiteConfig'
 import { useRouter } from 'next/navigation'
 import {
   Sparkles, ArrowRight, CheckCircle, Loader2, Wand2, AlertCircle, AlertTriangle,
-  ChevronDown, ChevronUp, Link2, ClipboardList, RotateCcw, HelpCircle, User, Menu, X,
+  ChevronDown, ChevronUp, RotateCcw, HelpCircle, User, Menu, X,
 } from 'lucide-react'
 import { applyProgrammaticDefaults } from '../../../lib/wizard-schema'
 import { TEMPLATE_CATALOGUE } from '../../setup-wizard/page'
@@ -40,80 +40,212 @@ const CONFIRM_KEY = 'genie_needs_confirmation'
 // Questions (drawn from the book's positioning, pricing and proof chapters)
 // ─────────────────────────────────────────────────────────────────────────────
 const QUESTIONS = [
+  // ── Q1 ─────────────────────────────────────────────────────────────────────
   {
     key: 'whatAndWho',
     title: 'What do you do, and who do you do it for?',
-    help: 'Name a specific group. "Small businesses" is too broad; "freelance designers in India" works.',
-    placeholder: "I'm a chartered accountant in Kolkata. I help freelancers and small agencies with GST and income tax.",
+    help: 'Pick every option that applies, then edit the text to make it specific to your niche.',
+    placeholder: "I'm a chartered accountant in Kolkata. I help freelance designers and small agencies with GST filing and income tax returns.",
     required: true,
     minLength: 40,
     fills: 'Business type, who you help, tagline, SEO description',
+    options: [
+      { label: 'Consultant / Advisor', text: "I'm a consultant. I help [type of client] with [specific problem]." },
+      { label: 'Coach / Trainer', text: "I'm a coach. I help [type of person] achieve [specific outcome] through [method]." },
+      { label: 'Freelancer / Designer', text: "I'm a freelancer. I do [service] for [type of client] in [industry/niche]." },
+      { label: 'Agency (solo)', text: "I run a solo agency. I help [type of business] with [service] to achieve [result]." },
+      { label: 'CA / Finance Pro', text: "I'm a chartered accountant. I help [freelancers / startups / SMEs] with [GST, tax, compliance]." },
+      { label: 'Tech / Developer', text: "I'm a developer. I build [type of product/solution] for [type of client]." },
+      { label: 'Content / Marketing', text: "I do [content/SEO/social media] for [type of business] who want to [goal]." },
+      { label: 'Health / Wellness', text: "I'm a [nutritionist / therapist / coach]. I help [type of person] with [specific issue]." },
+    ],
   },
+  // ── Q2 ─────────────────────────────────────────────────────────────────────
   {
     key: 'problem',
     title: 'What problem do clients come to you with, and what does it cost them if it stays unfixed?',
-    help: 'Money lost, stress, missed deadlines, lost customers. Be concrete.',
-    placeholder: 'They miss GST deadlines, pay late fees and get surprise tax bills in March. Some have received notices.',
+    help: 'Select the pains that match, then add the real cost — money lost, stress, missed deadlines.',
+    placeholder: 'They miss GST deadlines, pay late fees and get surprise tax bills in March. Some have received notices from the department.',
     required: true,
     minLength: 40,
+    rows: 5,
+    elaborate: true,
     fills: 'The problem, their fears, "this is for you if…", FAQ topics',
+    options: [
+      { label: 'Missing deadlines', text: 'Clients miss important deadlines and pay avoidable late fees or penalties.' },
+      { label: 'Losing money', text: 'They are losing money because they have no clear picture of costs, margins, or cash flow.' },
+      { label: 'Too much stress', text: 'They are overwhelmed and stressed trying to handle this themselves without the right expertise.' },
+      { label: 'Wasting time', text: 'They spend hours on tasks outside their core skill, wasting time that should go into growing the business.' },
+      { label: 'No clear system', text: 'Everything is ad-hoc — there is no repeatable system, so quality and results are inconsistent.' },
+      { label: 'Fear of compliance / legal risk', text: 'They worry about getting notices, fines, or legal trouble because they are not fully compliant.' },
+      { label: 'Stuck / not growing', text: 'The business has hit a ceiling. They are busy but not growing, and cannot figure out why.' },
+      { label: 'Wrong past provider', text: 'They have been let down by a cheaper or less experienced provider before and need someone reliable.' },
+    ],
   },
+  // ── Q3 ─────────────────────────────────────────────────────────────────────
   {
     key: 'result',
     title: 'What result do clients get after working with you, and how long does it take?',
-    help: 'Describe what changes for them, not the tasks you do.',
-    placeholder: 'Clean books, every return filed on time, no penalties. Most clients are fully sorted within a month.',
+    help: 'Describe the transformation — what is better, clearer, or gone. Pick the outcomes that apply.',
+    placeholder: 'Clean books, every return filed on time, zero penalties. Most clients are fully sorted within 4 weeks of starting.',
     required: true,
     minLength: 30,
     fills: 'Outcome, time frame, headline, offer summaries',
+    options: [
+      { label: 'Saves money', text: 'Clients save money — either directly through lower costs or by avoiding penalties and waste.' },
+      { label: 'Saves time', text: 'They get back hours every week that they were previously spending on this problem.' },
+      { label: 'Peace of mind', text: 'They stop worrying about this area entirely because it is handled, monitored, and up to date.' },
+      { label: 'Grows revenue', text: 'Their revenue or client base grows because they now have the right foundation or strategy in place.' },
+      { label: 'Builds a system', text: 'They leave with a clear, repeatable system they can run themselves or hand off to a team.' },
+      { label: 'Gets compliant', text: 'All filings, registrations, and legal requirements are completed, documented, and fully compliant.' },
+      { label: 'Looks professional', text: 'Their brand, website, or materials look polished and credible to the clients they want to attract.' },
+      { label: 'Achieves a milestone', text: 'They hit a specific goal — launch, raise, close a deal, pass an exam, or complete a transformation.' },
+    ],
   },
+  // ── Q4 ─────────────────────────────────────────────────────────────────────
+  {
+    key: 'beforeAfter',
+    title: "Describe your client's situation before they hire you vs. one month after.",
+    help: "You don't need a real client yet — describe the most likely scenario. This builds your homepage story.",
+    placeholder: "Before: chasing invoices, anxious every March, no idea what tax is owed. After: books sorted, all returns filed, zero anxiety about compliance.",
+    required: true,
+    minLength: 40,
+    rows: 6,
+    elaborate: true,
+    fills: 'Hero copy, homepage story, fear & outcome, frontDoor invitation',
+    options: [
+      { label: 'Chaos → Clarity', text: 'Before: chaotic, reactive, no system in place. After: clear process, everything tracked, full visibility.' },
+      { label: 'Stressed → Confident', text: 'Before: stressed and second-guessing every decision. After: confident with a plan and professional support.' },
+      { label: 'Losing money → Saving money', text: 'Before: spending too much or missing revenue. After: costs are under control and leakages fixed.' },
+      { label: 'Non-compliant → Fully sorted', text: 'Before: overdue filings, missed deadlines, risk of notices. After: fully compliant, documents in order.' },
+      { label: 'No brand → Professional', text: 'Before: no online presence or a poor one. After: a polished, credible brand that attracts ideal clients.' },
+      { label: 'Stuck → Growing', text: 'Before: plateaued, unsure of the next step. After: growing with a clear strategy and action plan.' },
+      { label: 'DIY & struggling', text: 'Before: doing it all themselves and getting poor results. After: expert handles it so they can focus on their work.' },
+    ],
+  },
+  // ── Q5 ─────────────────────────────────────────────────────────────────────
   {
     key: 'offersAndPrices',
-    title: 'What do you sell, and what do you charge? List everything, even if it’s messy.',
-    help: 'Include free consultations, packages and monthly services. Genie organises them into three tiers and only uses the prices you write here.',
-    placeholder: 'Free 30-min call. GST registration ₹3,000. Monthly filing ₹2,500/month. Full-year package ₹25,000.',
+    title: 'What do you sell, what does the client walk away with, and what do you charge?',
+    help: 'For each service, write what the client receives at the end — not just the task. Genie uses only the prices you write here.',
+    placeholder: 'Free 30-min call — no deliverable.\nGST registration ₹3,000 — client gets GSTIN, registration certificate, first return filed.\nMonthly filing ₹2,500/month — all monthly returns filed, reminders sent, books reconciled.',
     required: true,
     minLength: 20,
+    rows: 6,
+    elaborate: true,
     fills: 'Tier 1, 2 and 3 offers, deliverables, prices, payment terms',
+    options: [
+      { label: 'Free intro call', text: 'Free 30-minute discovery call — client gets clarity on whether we are a fit and a next-step plan.' },
+      { label: 'One-time project', text: '[Service name] — one-time project, client receives [deliverable], timeline [X weeks], price ₹[amount].' },
+      { label: 'Monthly retainer', text: '[Service name] — monthly retainer, client gets [what is done each month], price ₹[amount]/month.' },
+      { label: 'Starter package', text: 'Starter package — [what is included], ideal for [type of client], price ₹[amount].' },
+      { label: 'Full-year package', text: 'Annual package — [everything included for the year], price ₹[amount], saves ₹[X] vs monthly.' },
+      { label: 'Audit / review', text: 'Audit or review — client receives a written report with findings and action plan, price ₹[amount].' },
+      { label: 'Workshop / training', text: '[Workshop name] — [duration], client walks away with [skill/output], price ₹[amount].' },
+    ],
   },
+  // ── Q6 ─────────────────────────────────────────────────────────────────────
   {
     key: 'whyYou',
-    title: 'Why should someone choose you?',
-    help: 'Years of experience, qualifications, past roles, results you can back up. Genie will not invent any of these.',
-    placeholder: 'CA for 9 years, ex-Deloitte. Handled 140+ freelancer clients. Saved one design studio ₹2.4 lakh in its first year.',
+    title: 'Why should someone choose you? Give the background, training, or proof that makes you the right person.',
+    help: "New to this? Describe your education, past job, or the specific reason you're qualified — even without a long client list.",
+    placeholder: 'CA for 9 years, ex-Deloitte, specialised in SME and freelancer accounts. Handled 140+ clients across design, tech and media sectors.',
+    required: true,
+    minLength: 30,
+    rows: 5,
+    elaborate: true,
     fills: 'Credibility, credentials, experience, results, About page',
-    suggestions: [
-      "5+ years of hands-on industry experience with 50+ happy clients.",
-      "Worked with top tier global brands and startups in this niche.",
-      "Proven track record with measurable ROI and verified testimonials.",
-      "Certified specialist with end-to-end dedicated 1-on-1 support."
-    ]
+    options: [
+      { label: 'Years in this field', text: '[X] years of hands-on experience specialising in [niche].' },
+      { label: 'Formal qualification', text: 'Qualified [degree / certification] from [institution].' },
+      { label: 'Past employer / brand', text: 'Previously worked at [company name] as [role], handling [what].' },
+      { label: 'Number of clients', text: 'Worked with [X]+ clients in [industry / niche].' },
+      { label: 'Specific result I achieved', text: 'Helped a client [achieve specific result] — [number or outcome].' },
+      { label: 'Deep niche focus', text: 'I specialise exclusively in [narrow niche], so my clients get focused, expert-level work.' },
+      { label: 'Personal story', text: 'I started this because I faced [problem] myself and built the solution that I wished existed.' },
+      { label: 'Award / recognition', text: 'Recognised by [publication / body] for [achievement].' },
+    ],
   },
+  // ── Q7 ─────────────────────────────────────────────────────────────────────
   {
     key: 'notFit',
-    title: 'Who is not a good fit for you?',
-    help: 'This filters out enquiries that waste your time.',
-    placeholder: 'Companies with their own finance team, or people who only want the cheapest possible filing.',
-    fills: '"Not for you if…" list, enquiry form questions',
-    suggestions: [
-      "People looking for the cheapest quick-fix without long-term quality.",
-      "Large enterprise teams with existing in-house departments.",
-      "Anyone expecting overnight results without active collaboration.",
-      "Businesses not ready to invest in structured growth."
-    ]
+    title: 'Who is NOT a good fit for you?',
+    help: 'Be direct. This copy filters out bad-fit enquiries and makes good-fit clients feel they have found the right person.',
+    placeholder: 'Not for large companies with an in-house finance team, or anyone looking for the cheapest possible filing with no questions asked.',
+    required: true,
+    minLength: 20,
+    fills: '"Not for you if…" section, enquiry form filter questions',
+    options: [
+      { label: 'Price-sensitive only', text: 'People whose only criteria is the lowest price, with no concern for quality or reliability.' },
+      { label: 'Large enterprises', text: 'Large companies or enterprises with existing in-house teams for this function.' },
+      { label: 'Needs overnight results', text: 'Anyone expecting overnight results or a quick fix without proper process or collaboration.' },
+      { label: 'Not ready to invest', text: 'Businesses that are not ready to invest time or budget into solving this problem properly.' },
+      { label: 'Handles it in-house', text: 'People who prefer to manage this entirely in-house and just want a one-off answer.' },
+      { label: 'Outside my niche', text: 'Clients outside [specific niche or sector] — I specialise narrowly and do not take general work.' },
+      { label: 'No active business', text: 'People who have not yet started their business or are still at the idea stage.' },
+    ],
   },
+  // ── Q8 ─────────────────────────────────────────────────────────────────────
+  {
+    key: 'realFaqs',
+    title: 'What are the 3 questions a new client almost always asks before saying yes?',
+    help: 'Think about your last few conversations. What did they want to know before committing? This becomes your FAQ page.',
+    placeholder: "How long will it take? Do I need GST registration? What if I'm already behind on filings? Can I see a sample report?",
+    required: true,
+    minLength: 30,
+    rows: 5,
+    elaborate: true,
+    fills: 'FAQ page, enquiry form pre-questions, sales objection handling',
+    options: [
+      { label: 'How long does it take?', text: 'How long does the process take from start to finish?' },
+      { label: 'What is included?', text: 'What exactly is included in the service, and what is not?' },
+      { label: 'Do I need to share documents?', text: 'What documents or access do you need from me to get started?' },
+      { label: 'Is this right for me?', text: 'I am not sure if I qualify or if this applies to my situation — can you check?' },
+      { label: 'What happens if something goes wrong?', text: 'What if there is a mistake or the outcome is not what I expected?' },
+      { label: 'Can I get a refund?', text: 'What is your refund or revision policy if I am not satisfied?' },
+      { label: 'Why should I pay this price?', text: 'Why does this cost what it does — what am I paying for exactly?' },
+      { label: 'How do we work together?', text: 'How does the process work — what do you handle and what do I need to do?' },
+      { label: 'Do you work with my type of business?', text: 'Have you worked with someone in my situation or industry before?' },
+    ],
+  },
+  // ── Q9 ─────────────────────────────────────────────────────────────────────
   {
     key: 'howFound',
-    title: 'How do new clients find you, and how do they usually contact you?',
-    help: 'Referrals, LinkedIn, Instagram, Google, WhatsApp, events…',
-    placeholder: 'Mostly referrals and LinkedIn posts. Most people message me on WhatsApp first.',
-    fills: 'Main button on your site, contact options, content plan, AI agents',
-    suggestions: [
-      "Mostly referrals from past clients and WhatsApp direct messaging.",
-      "LinkedIn outreach and posts, with calls booked via Calendly.",
-      "Instagram DMs, organic search, and portfolio enquiries.",
-      "Word of mouth, industry events, and direct email enquiries."
-    ]
+    title: 'How do new clients find you, and how do they usually first contact you?',
+    help: 'Pick every channel that applies. This determines the main call-to-action button and contact options on your site.',
+    placeholder: 'Mostly referrals from past clients and LinkedIn posts. Most people message me on WhatsApp first before booking a call.',
+    required: true,
+    minLength: 20,
+    fills: 'Main CTA button, contact channels, content plan, AI agent settings',
+    options: [
+      { label: 'Referrals / word of mouth', text: 'Mostly referrals from past clients and people in my network.' },
+      { label: 'LinkedIn', text: 'LinkedIn posts, direct messages, and connections.' },
+      { label: 'Instagram', text: 'Instagram posts, reels, or DMs.' },
+      { label: 'Google search', text: 'Google search — people find my website or profile organically.' },
+      { label: 'WhatsApp first contact', text: 'Most new clients message me on WhatsApp before anything else.' },
+      { label: 'Calendly / booking link', text: 'People book a call directly via a Calendly or similar booking link.' },
+      { label: 'Industry events', text: 'Industry events, conferences, or in-person networking.' },
+      { label: 'Email outreach', text: 'Direct email — either inbound enquiries or my own outreach.' },
+    ],
+  },
+  // ── Q10 ────────────────────────────────────────────────────────────────────
+  {
+    key: 'voiceAndTone',
+    title: 'How do you communicate? Pick the style that sounds most like you.',
+    help: 'Your website copy will match this tone. Click one or more that fit, then describe in your own words if you like.',
+    placeholder: 'Direct and no-nonsense, but warm with clients once they are on a call. I avoid corporate jargon.',
+    required: true,
+    minLength: 10,
+    fills: 'Brand tone, copy style across every page, AI agent personality',
+    options: [
+      { label: 'Direct & no-nonsense', text: 'Direct and no-nonsense. I get to the point and avoid fluff or corporate jargon.' },
+      { label: 'Warm & personal', text: 'Warm and personal. I make clients feel heard and supported, not just processed.' },
+      { label: 'Expert & authoritative', text: 'Expert and authoritative. I back everything with knowledge and clients trust my judgement.' },
+      { label: 'Friendly & approachable', text: 'Friendly and approachable. I am easy to talk to and clients feel comfortable asking anything.' },
+      { label: 'Calm & reassuring', text: 'Calm and reassuring. I work with clients who are stressed and I help them feel safe.' },
+      { label: 'Sharp & results-driven', text: 'Sharp and results-driven. I focus on outcomes and ROI, not process.' },
+      { label: 'Conversational & honest', text: 'Conversational and honest. I say what I think, explain my reasoning, and avoid sales-speak.' },
+    ],
   },
 ]
 
@@ -126,11 +258,20 @@ const BUSINESS_TYPES = TEMPLATE_CATALOGUE.map(s => ({
     .join(', ') || s.section,
 }))
 
+const CATEGORY_DEFAULT_TEMPLATES = {
+  'service-based': { section: 'service-based', slug: 'consultant-advisor' },
+  'knowledge-content': { section: 'knowledge-content', slug: 'course-creator' },
+  'local-trade': { section: 'local-trade', slug: 'local-service-pro' },
+  'product-commerce': { section: 'product-commerce', slug: 'digital-product-seller' },
+  'hybrid-platform': { section: 'hybrid-platform', slug: 'community-led' },
+}
+
 const createEmptyIntake = () => ({
-  basics: { ownerName: '', brandName: '', email: '', whatsapp: '' },
+  basics: { ownerName: '', brandName: '', email: '', whatsapp: '', city: '', country: 'India', photoUrl: '', bookingUrl: '' },
   start: { businessType: 'service-based', market: 'india', language: 'en' },
+  template: { sectionId: 'service-based', slug: 'consultant-advisor' },
   answers: Object.fromEntries(QUESTIONS.map(q => [q.key, ''])),
-  links: { website: '', linkedin: '', instagram: '', other: '' },
+  links: { facebook: '', youtube: '', instagram: '', linkedin: '', pinterest: '' },
   pastedMaterial: '',
 })
 
@@ -444,7 +585,6 @@ function GenieIntakeWidget() {
   const router = useRouter()
   const [intake, setIntake] = useState(createEmptyIntake)
   const [hydrated, setHydrated] = useState(false)
-  const [showExtras, setShowExtras] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -453,6 +593,10 @@ function GenieIntakeWidget() {
   const [paying, setPaying] = useState(false)
   const [activeSection, setActiveSection] = useState('section-basics')
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  // Per-question AI-refine state: { [questionKey]: 'idle' | 'loading' | 'done' }
+  const [refineState, setRefineState] = useState({})
+  // Snapshot of the text before AI refinement so the user can undo: { [questionKey]: string }
+  const [undoSnapshot, setUndoSnapshot] = useState({})
 
   // Fetch generation status and restore answers
   useEffect(() => {
@@ -517,11 +661,66 @@ function GenieIntakeWidget() {
 
   const update = (path, value) => setIntake(d => setIn(d, path, value))
 
+  // ── AI answer refinement ─────────────────────────────────────────────────
+  // Calls the dedicated /api/genie/refine-answer endpoint (not /api/chat).
+  // No quota, no history, no RAG — pure single-shot text improvement.
+  // Token usage is tracked server-side on the user's profile.
+  const handleRefineWithAI = async (q) => {
+    const current = (intake.answers?.[q.key] || '').trim()
+    if (!current) return
+    // Save snapshot before overwriting so the user can undo
+    setUndoSnapshot(s => ({ ...s, [q.key]: current }))
+    setRefineState(s => ({ ...s, [q.key]: 'loading' }))
+    try {
+      const token = (typeof window !== 'undefined' && (localStorage.getItem('auth_token') || localStorage.getItem('token'))) || ''
+      const res = await fetch('/api/genie/refine-answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          question_title: q.title,
+          fills: q.fills,
+          answer: current,
+          business_context: [
+            intake.start?.businessType,
+            intake.start?.market,
+            intake.answers?.whatAndWho,
+          ].filter(Boolean).join('. '),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.refined) throw new Error(data.detail || 'AI could not improve this answer right now.')
+      update(`answers.${q.key}`, data.refined)
+      setRefineState(s => ({ ...s, [q.key]: 'done' }))
+    } catch (err) {
+      // Roll back the snapshot on failure — don't leave stale undo state
+      setUndoSnapshot(s => { const n = { ...s }; delete n[q.key]; return n })
+      setRefineState(s => ({ ...s, [q.key]: 'idle' }))
+      alert(`Could not improve answer: ${err.message}`)
+    }
+  }
+
+  const handleUndoRefine = (qKey) => {
+    const original = undoSnapshot[qKey]
+    if (!original) return
+    update(`answers.${qKey}`, original)
+    setUndoSnapshot(s => { const n = { ...s }; delete n[qKey]; return n })
+    setRefineState(s => ({ ...s, [qKey]: 'idle' }))
+  }
+
   const requiredQs = QUESTIONS.filter(q => q.required)
   const answeredCount = QUESTIONS.filter(q => (intake.answers?.[q.key] || '').trim()).length
-  const answeredKeys = new Set(QUESTIONS.filter(q => (intake.answers?.[q.key] || '').trim()).map(q => q.key))
-  const missingRequired = requiredQs.filter(q => !(intake.answers?.[q.key] || '').trim())
-  const hasExtras = Object.values(intake.links).some(Boolean) || intake.pastedMaterial.trim()
+  const answeredKeys = new Set(QUESTIONS.filter(q => {
+    const v = (intake.answers?.[q.key] || '').trim()
+    return v && (!q.minLength || v.length >= q.minLength)
+  }).map(q => q.key))
+  // Missing = blank OR below minLength threshold
+  const missingRequired = requiredQs.filter(q => {
+    const v = (intake.answers?.[q.key] || '').trim()
+    return !v || (q.minLength && v.length < q.minLength)
+  })
   const canSubmit = missingRequired.length === 0 && !loading
 
   const handleGenerate = async e => {
@@ -541,6 +740,8 @@ function GenieIntakeWidget() {
           schemaVersion: SCHEMA_VERSION,
           start: intake.start,
           basics: intake.basics,
+          template: intake.template || {},
+          template_data: {},
           answers: intake.answers,
           links: intake.links,
           pastedMaterial: intake.pastedMaterial,
@@ -573,7 +774,9 @@ function GenieIntakeWidget() {
       // The user's own inputs always win over Genie for these fields
       const userOwned = {
         start: { ...intake.start, description },
-        identity: Object.fromEntries(Object.entries(intake.basics).filter(([, v]) => v.trim())),
+        template: intake.template || { sectionId: intake.start.businessType, slug: CATEGORY_DEFAULT_TEMPLATES[intake.start.businessType]?.slug || 'consultant-advisor' },
+        identity: Object.fromEntries(Object.entries(intake.basics).filter(([, v]) => typeof v === 'string' && v.trim())),
+        frontDoor: intake.basics.bookingUrl ? { bookingUrl: intake.basics.bookingUrl.trim() } : {},
         channels: {
           social: Object.fromEntries([
             ['linkedin', intake.links.linkedin],
@@ -626,8 +829,10 @@ function GenieIntakeWidget() {
 
       const srcIntake = result.intake || intake
       const userSocialLinks = {}
-      if ((srcIntake.links?.linkedin || '').trim()) userSocialLinks.linkedin = srcIntake.links.linkedin.trim()
-      if ((srcIntake.links?.instagram || '').trim()) userSocialLinks.instagram = srcIntake.links.instagram.trim()
+      const SOCIAL_KEYS = ['facebook', 'youtube', 'instagram', 'linkedin', 'pinterest']
+      for (const key of SOCIAL_KEYS) {
+        if ((srcIntake.links?.[key] || '').trim()) userSocialLinks[key] = srcIntake.links[key].trim()
+      }
 
       const res = await fetch('/api/genie/save-wizard', {
         method: 'POST',
@@ -636,6 +841,8 @@ function GenieIntakeWidget() {
           prefill: result.prefill,
           basics: srcIntake.basics || {},
           start: srcIntake.start || {},
+          template: srcIntake.template || result.prefill.template || {},
+          template_data: result.prefill.template_data || {},
           userSocialLinks,
         }),
       })
@@ -814,14 +1021,17 @@ function GenieIntakeWidget() {
             <span className="ml-auto text-[10px] font-medium text-gray-400">Used on your website</span>
           </legend>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input className={inputCls} aria-label="Your name" placeholder="Your name" value={intake.basics.ownerName} onChange={e => update('basics.ownerName', e.target.value)} />
+            <input className={inputCls} aria-label="Your name" placeholder="Your name *" value={intake.basics.ownerName} onChange={e => update('basics.ownerName', e.target.value)} />
             <input className={inputCls} aria-label="Business name" placeholder="Business name (if you have one)" value={intake.basics.brandName} onChange={e => update('basics.brandName', e.target.value)} />
-            <input className={inputCls} aria-label="Business email" type="email" placeholder="Business email" value={intake.basics.email} onChange={e => update('basics.email', e.target.value)} />
-            <input className={inputCls} aria-label="WhatsApp number" placeholder="WhatsApp number (optional)" value={intake.basics.whatsapp} onChange={e => update('basics.whatsapp', e.target.value)} />
+            <input className={inputCls} aria-label="Business email" type="email" placeholder="Business email *" value={intake.basics.email} onChange={e => update('basics.email', e.target.value)} />
+            <input className={inputCls} aria-label="WhatsApp number" placeholder="WhatsApp / Phone number" value={intake.basics.whatsapp} onChange={e => update('basics.whatsapp', e.target.value)} />
+            <input className={inputCls} aria-label="City" placeholder="City (e.g. Mumbai, Bangalore, London)" value={intake.basics.city} onChange={e => update('basics.city', e.target.value)} />
+            <input className={inputCls} aria-label="Country" placeholder="Country (e.g. India, United States)" value={intake.basics.country} onChange={e => update('basics.country', e.target.value)} />
+
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4 pt-2">
             <div>
-              <p className="text-xs font-medium text-gray-600 mb-2">Which describes you best?</p>
+              <p className="text-xs font-semibold text-gray-700 mb-2">1. Select your business model category</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup">
                 {BUSINESS_TYPES.map(b => {
                   const active = intake.start.businessType === b.value
@@ -831,7 +1041,12 @@ function GenieIntakeWidget() {
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      onClick={() => update('start.businessType', b.value)}
+                      onClick={() => {
+                        update('start.businessType', b.value)
+                        const defaultTpl = CATEGORY_DEFAULT_TEMPLATES[b.value] || { section: b.value, slug: 'consultant-advisor' }
+                        update('template.sectionId', defaultTpl.section)
+                        update('template.slug', defaultTpl.slug)
+                      }}
                       className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                         active ? 'border-primary-600 bg-primary-50 ring-1 ring-primary-600' : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
@@ -843,7 +1058,51 @@ function GenieIntakeWidget() {
                 })}
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            {/* Template Selector based on category */}
+            <div>
+              <p className="text-xs font-semibold text-gray-700 mb-2">2. Choose the design template for your website</p>
+              {(() => {
+                const currentSection = TEMPLATE_CATALOGUE.find(s => s.id === (intake.template?.sectionId || intake.start.businessType)) || TEMPLATE_CATALOGUE[0]
+                const templates = currentSection.templates || []
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {templates.map(t => {
+                      const isSelected = (intake.template?.slug || 'consultant-advisor') === t.slug
+                      return (
+                        <button
+                          key={t.slug}
+                          type="button"
+                          onClick={() => {
+                            update('template.sectionId', currentSection.id)
+                            update('template.slug', t.slug)
+                          }}
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? 'border-primary-600 bg-primary-50/70 ring-2 ring-primary-500 shadow-sm'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full border border-white shadow-xs shrink-0"
+                            style={{ backgroundColor: t.accent || '#1e3a5f' }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-xs font-semibold truncate ${isSelected ? 'text-primary-900' : 'text-gray-900'}`}>
+                              {t.name}
+                            </p>
+                            <span className="text-[10px] text-gray-500 capitalize">{t.status === 'live' ? 'Live template' : 'Preview'}</span>
+                          </div>
+                          {isSelected && <CheckCircle className="w-4 h-4 text-primary-600 shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <label className="text-xs text-gray-600">
                 Your clients are in
                 <select className={`${inputCls} mt-1`} value={intake.start.market} onChange={e => update('start.market', e.target.value)}>
@@ -869,120 +1128,180 @@ function GenieIntakeWidget() {
         <ol className="space-y-4">
           {QUESTIONS.map((q, i) => {
             const value = intake.answers?.[q.key] || ''
-            const tooShort = value.trim() && q.minLength && value.trim().length < q.minLength
-            const answered = value.trim().length > 0
+            const trimmed = value.trim()
+            // A chip is "active" if its sentence text is already present in the textarea
+            const isChipActive = (optText) => trimmed.includes(optText.trim())
+            const tooShort = trimmed && q.minLength && trimmed.length < q.minLength
+            // For required fields: not answered at all, OR typed but still below minLength
+            const incomplete = q.required && (!trimmed || tooShort)
+            const answered = trimmed.length > 0 && !tooShort
             return (
               <li
                 key={q.key}
                 id={`section-q-${q.key}`}
-                className={`bg-white rounded-2xl border p-5 space-y-3 scroll-mt-28 transition-shadow ${answered ? 'border-green-200 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+                className={`bg-white rounded-2xl border p-5 space-y-3 scroll-mt-28 transition-shadow ${
+                  answered ? 'border-green-200 shadow-sm' : incomplete && trimmed ? 'border-amber-300' : 'border-gray-200 hover:border-gray-300'
+                }`}
               >
                 {/* Question header */}
                 <label htmlFor={`q-${q.key}`} className="block cursor-pointer">
                   <div className="flex items-start gap-3">
-                    <span className={`shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center mt-0.5 transition-colors ${answered ? 'bg-green-500' : 'bg-primary-600'}`}>
+                    <span className={`shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center mt-0.5 transition-colors ${
+                      answered ? 'bg-green-500' : 'bg-primary-600'
+                    }`}>
                       {answered ? '✓' : i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 leading-snug">
                         {q.title}
-                        {q.required
-                          ? <span className="ml-1.5 text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full align-middle">required</span>
-                          : <span className="ml-1.5 text-[10px] font-medium text-gray-400 align-middle">optional</span>}
+                        <span className="ml-1.5 text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full align-middle">required</span>
                       </p>
                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">{q.help}</p>
                     </div>
                     {answered && <span className="shrink-0 text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full mt-1">Done</span>}
                   </div>
                 </label>
-                <textarea
-                  id={`q-${q.key}`}
-                  rows={3}
-                  value={value}
-                  onChange={e => update(`answers.${q.key}`, e.target.value)}
-                  placeholder={q.placeholder}
-                  className={`${inputCls} resize-y`}
-                />
-                {Array.isArray(q.suggestions) && q.suggestions.length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-medium text-gray-400 flex items-center gap-1">
-                      <span>💡</span> Quick suggestions — click to add:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {q.suggestions.map((sugg, sIdx) => (
-                        <button
-                          key={sIdx}
-                          type="button"
-                          onClick={() => {
-                            const current = (intake.answers?.[q.key] || '').trim()
-                            const updated = current ? `${current} ${sugg}` : sugg
-                            update(`answers.${q.key}`, updated)
-                          }}
-                          className="text-xs bg-gray-50 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 border border-gray-200 text-gray-600 rounded-lg px-2.5 py-1.5 text-left transition-colors"
-                        >
-                          + {sugg}
-                        </button>
-                      ))}
+
+                {/* ── Option chips ── click to toggle sentence into textarea ── */}
+                {Array.isArray(q.options) && q.options.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                      Select what applies — edit the text below to personalise it:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {q.options.map((opt, oIdx) => {
+                        const active = isChipActive(opt.text)
+                        return (
+                          <button
+                            key={oIdx}
+                            type="button"
+                            onClick={() => {
+                              const current = (intake.answers?.[q.key] || '').trim()
+                              let next
+                              if (active) {
+                                // Remove this sentence from the textarea
+                                next = current.replace(opt.text.trim(), '').replace(/\s{2,}/g, ' ').trim()
+                              } else {
+                                // Append with a space separator
+                                next = current ? `${current} ${opt.text}` : opt.text
+                              }
+                              update(`answers.${q.key}`, next)
+                            }}
+                            className={`text-xs rounded-lg px-3 py-1.5 border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+                              active
+                                ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400 hover:text-primary-700 hover:bg-primary-50'
+                            }`}
+                          >
+                            {active ? '✓ ' : '+ '}{opt.label}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
+
+                {/* ── Free-text textarea ── always shown, editable ── */}
+                <textarea
+                  id={`q-${q.key}`}
+                  rows={q.rows || 3}
+                  value={value}
+                  onChange={e => update(`answers.${q.key}`, e.target.value)}
+                  placeholder={q.placeholder}
+                  className={`${inputCls} resize-y ${incomplete && trimmed ? 'border-amber-300 focus:ring-amber-400' : ''}`}
+                />
+
+                {/* ── AI refine button + undo — shown for elaborate questions once user has typed ── */}
+                {q.elaborate && trimmed.length >= 20 && (() => {
+                  const rs = refineState[q.key] || 'idle'
+                  const canUndo = !!undoSnapshot[q.key]
+                  return (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleRefineWithAI(q)}
+                        disabled={rs === 'loading'}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400 ${
+                          rs === 'done'
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : rs === 'loading'
+                            ? 'bg-violet-50 text-violet-400 border-violet-200 cursor-not-allowed'
+                            : 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300'
+                        }`}
+                      >
+                        {rs === 'loading' ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" />Improving with AI…</>
+                        ) : rs === 'done' ? (
+                          <><Sparkles className="w-3.5 h-3.5" />AI improved — improve again?</>
+                        ) : (
+                          <><Sparkles className="w-3.5 h-3.5" />Improve this answer with AI</>
+                        )}
+                      </button>
+                      {canUndo && (
+                        <button
+                          type="button"
+                          onClick={() => handleUndoRefine(q.key)}
+                          className="text-[11px] text-gray-400 hover:text-gray-700 underline underline-offset-2 transition-colors"
+                        >
+                          ↩ Undo AI change
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* ── Footer: fills label + validation message ── */}
                 <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1 border-t border-gray-100">
                   <span className="text-gray-400 flex items-center gap-1">
                     <span className="text-gray-300">→</span> Fills: {q.fills}
                   </span>
-                  {tooShort && <span className="text-amber-600 font-medium">A little more detail will give a better draft</span>}
+                  {tooShort && (
+                    <span className="text-amber-600 font-semibold">
+                      Add a bit more detail — this fills {q.fills.split(',')[0].toLowerCase()}
+                    </span>
+                  )}
+                  {!trimmed && (
+                    <span className="text-red-500 font-semibold">Required — select options above or type your answer</span>
+                  )}
                 </div>
               </li>
             )
           })}
 
-          {/* Links & pasted material */}
-          <li id="section-extras" className="bg-white rounded-xl border border-gray-200 overflow-hidden scroll-mt-28">
-            <button
-              type="button"
-              onClick={() => setShowExtras(s => !s)}
-              aria-expanded={showExtras || !!hasExtras}
-              className="w-full flex items-start gap-2.5 p-4 text-left hover:bg-gray-50"
-            >
-              <span className="shrink-0 w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">{QUESTIONS.length + 1}</span>
-              <span className="flex-1">
-                <span className="block text-sm font-semibold text-gray-900">
-                  Share links or paste anything you already have <span className="ml-1 text-xs font-normal text-gray-400">optional, but fills the most</span>
-                </span>
-                <span className="block text-xs text-gray-500 mt-1">Your website or LinkedIn, a price list, client reviews, FAQs, a past proposal.</span>
-              </span>
-              {showExtras || hasExtras ? <ChevronUp className="w-4 h-4 text-gray-400 mt-1" /> : <ChevronDown className="w-4 h-4 text-gray-400 mt-1" />}
-            </button>
-            {(showExtras || hasExtras) && (
-              <div className="px-4 pb-4 space-y-3 border-t border-gray-100 pt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    ['website', 'Current website'],
-                    ['linkedin', 'LinkedIn profile'],
-                    ['instagram', 'Instagram'],
-                    ['other', 'Any other link (Google reviews, portfolio)'],
-                  ].map(([key, label]) => (
-                    <div key={key} className="relative">
-                      <Link2 className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
-                      <input type="url" aria-label={label} placeholder={label} value={intake.links?.[key] || ''} onChange={e => update(`links.${key}`, e.target.value)} className={`${inputCls} pl-9`} />
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <label htmlFor="pasted" className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-1">
-                    <ClipboardList className="w-3.5 h-3.5" />Paste text
-                  </label>
-                  <textarea
-                    id="pasted"
-                    rows={6}
-                    value={intake.pastedMaterial || ''}
-                    onChange={e => update('pastedMaterial', e.target.value)}
-                    placeholder={'Price list, brochure text, client reviews (with names), your FAQs, refund policy…\n\nTestimonials are only used if they appear here, word for word.'}
-                    className={`${inputCls} resize-y`}
+          {/* Social media links */}
+          <li id="section-extras" className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4 scroll-mt-28">
+            <div className="flex items-center gap-2.5">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center">{QUESTIONS.length + 1}</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Your social media profiles <span className="ml-1 text-xs font-normal text-gray-400">optional</span></p>
+                <p className="text-xs text-gray-500 mt-0.5">These appear in your website footer and help Genie set the right contact channels.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { key: 'facebook',  placeholder: 'https://facebook.com/yourpage',    icon: 'f', label: 'Facebook',  color: '#1877F2' },
+                { key: 'youtube',   placeholder: 'https://youtube.com/@yourchannel', icon: '▶', label: 'YouTube',   color: '#FF0000' },
+                { key: 'instagram', placeholder: 'https://instagram.com/yourhandle', icon: '◈', label: 'Instagram', color: '#E1306C' },
+                { key: 'linkedin',  placeholder: 'https://linkedin.com/in/yourname', icon: 'in', label: 'LinkedIn',  color: '#0A66C2' },
+                { key: 'pinterest', placeholder: 'https://pinterest.com/yourname',   icon: 'P', label: 'Pinterest', color: '#E60023' },
+              ].map(({ key, placeholder, icon, label, color }) => (
+                <div key={key} className="relative">
+                  <span
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-white text-[11px] font-black select-none pointer-events-none"
+                    style={{ backgroundColor: color }}
+                    aria-hidden="true"
+                  >{icon}</span>
+                  <input
+                    type="url"
+                    aria-label={label}
+                    placeholder={placeholder}
+                    value={intake.links?.[key] || ''}
+                    onChange={e => update(`links.${key}`, e.target.value)}
+                    className={`${inputCls} pl-10`}
                   />
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </li>
         </ol>
 

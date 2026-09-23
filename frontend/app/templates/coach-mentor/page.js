@@ -129,16 +129,20 @@ function payloadToData(payload) {
   const tagline = pos.buyer && pos.outcome
     ? `I help ${pos.buyer} get ${pos.outcome}${pos.fear ? `, without ${pos.fear}` : ''}.`
     : o(biz.tagline, SAMPLE.founder.tagline)
-  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => ({
-    name:        t.name,
-    price:       t.priceInr ? `₹${Number(t.priceInr).toLocaleString('en-IN')}` : (t.priceUsd ? `$${t.priceUsd}` : SAMPLE.offers[i]?.price || ''),
-    duration:    t.duration || '',
-    type:        t.tier === 'recurring' ? 'Ongoing' : t.tier === 'front_door' ? 'One-time' : 'Programme',
-    description: t.summary || SAMPLE.offers[i]?.description || '',
-    includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
-    cta:         SAMPLE.offers[i]?.cta || 'Book a Session',
-    highlight:   off.mostBought === t.tier,
-  }))
+  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => {
+    const pInr = t.prices?.INR ?? t.priceInr
+    const pUsd = t.prices?.USD ?? t.priceUsd
+    return {
+      name:        t.name,
+      price:       pInr ? `₹${Number(pInr).toLocaleString('en-IN')}` : (pUsd ? `$${pUsd}` : SAMPLE.offers[i]?.price || ''),
+      duration:    t.duration || '',
+      type:        t.tier === 'recurring' ? 'Ongoing' : t.tier === 'front_door' ? 'One-time' : 'Programme',
+      description: t.summary || SAMPLE.offers[i]?.description || '',
+      includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
+      cta:         SAMPLE.offers[i]?.cta || 'Book a Session',
+      highlight:   off.mostBought === t.tier,
+    }
+  })
   const mappedProcess = (know.process || []).filter(s => s?.title).map((s, i) => ({ step: String(i + 1).padStart(2, '0'), title: s.title, desc: s.detail || '' }))
   const mappedFaqs = (know.faqs || []).filter(f => f?.question && f?.answer).map(f => ({ q: f.question, a: f.answer }))
   const mappedTestimonials = (prf.testimonials || []).filter(t => t?.quote).map(t => ({ name: t.name || '', role: t.role || '', rating: 5, quote: t.quote, result: t.result || '' }))
@@ -404,6 +408,7 @@ function ForWhoSection() {
 
 // ─── Process ──────────────────────────────────────────────────────────────────
 function ProcessSection() {
+  const data = useData()
   return (
     <section className="py-24" style={{ background: T.white }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -417,7 +422,7 @@ function ProcessSection() {
           {/* vertical connector */}
           <div className="hidden md:block absolute left-1/2 -translate-x-1/2 top-8 bottom-8 w-px" style={{ background: T.sand }} />
           <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-3 gap-8">
-            {useData().process.map(({ step, title, desc }, i) => (
+            {data.process.map(({ step, title, desc }, i) => (
               <div key={i} className="relative rounded-2xl p-7 border text-center" style={{ background: T.cream, borderColor: T.border }}>
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center font-black text-lg mx-auto mb-5 border-2"
@@ -432,11 +437,11 @@ function ProcessSection() {
           </div>
 
           {/* Frameworks and Tools */}
-          {useData().frameworksUsed && (
+          {data.frameworksUsed && (
             <div className="mt-12 p-5 rounded-2xl border flex items-center gap-3 text-sm justify-center text-center"
               style={{ background: T.cream, borderColor: T.border, color: T.muted }}>
               <Compass className="w-5 h-5 flex-shrink-0" style={{ color: T.terra }} />
-              <span><strong>Guiding Frameworks & Tools:</strong> {useData().frameworksUsed}</span>
+              <span><strong>Guiding Frameworks & Tools:</strong> {data.frameworksUsed}</span>
             </div>
           )}
         </div>

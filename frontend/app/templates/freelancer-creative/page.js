@@ -174,16 +174,20 @@ function payloadToData(payload) {
   const tagline = pos.buyer && pos.outcome
     ? `I help ${pos.buyer} get ${pos.outcome}${pos.fear ? `, without ${pos.fear}` : ''}.`
     : o(biz.tagline, SAMPLE.founder.tagline)
-  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => ({
-    name:        t.name,
-    price:       t.priceInr ? `₹${Number(t.priceInr).toLocaleString('en-IN')}` : (t.priceUsd ? `$${t.priceUsd}` : SAMPLE.offers[i]?.price || ''),
-    duration:    t.duration || '',
-    type:        t.tier === 'recurring' ? 'Retainer' : t.tier === 'front_door' ? 'Package' : 'Project',
-    description: t.summary || SAMPLE.offers[i]?.description || '',
-    includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
-    cta:         SAMPLE.offers[i]?.cta || 'Get Started',
-    highlight:   off.mostBought === t.tier,
-  }))
+  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => {
+    const pInr = t.prices?.INR ?? t.priceInr
+    const pUsd = t.prices?.USD ?? t.priceUsd
+    return {
+      name:        t.name,
+      price:       pInr ? `₹${Number(pInr).toLocaleString('en-IN')}` : (pUsd ? `$${pUsd}` : SAMPLE.offers[i]?.price || ''),
+      duration:    t.duration || '',
+      type:        t.tier === 'recurring' ? 'Retainer' : t.tier === 'front_door' ? 'Package' : 'Project',
+      description: t.summary || SAMPLE.offers[i]?.description || '',
+      includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
+      cta:         SAMPLE.offers[i]?.cta || 'Get Started',
+      highlight:   off.mostBought === t.tier,
+    }
+  })
   const mappedProcess = (know.process || []).filter(s => s?.title).map((s, i) => ({ step: String(i + 1).padStart(2, '0'), title: s.title, desc: s.detail || '' }))
   const mappedFaqs = (know.faqs || []).filter(f => f?.question && f?.answer).map(f => ({ q: f.question, a: f.answer }))
   const mappedTestimonials = (prf.testimonials || []).filter(t => t?.quote).map(t => ({ name: t.name || '', role: t.role || '', rating: 5, quote: t.quote, result: t.result || '' }))
@@ -211,7 +215,7 @@ function payloadToData(payload) {
       name: off.product.name,
       summary: off.product.summary || '',
       link: off.product.link || '#buy-kit',
-      price: off.product.priceInr ? `₹${Number(off.product.priceInr).toLocaleString('en-IN')}` : (off.product.priceUsd ? `$${off.product.priceUsd}` : SAMPLE.digitalProduct.price),
+      price: (off.product.prices?.INR ?? off.product.priceInr) ? `₹${Number(off.product.prices?.INR ?? off.product.priceInr).toLocaleString('en-IN')}` : ((off.product.prices?.USD ?? off.product.priceUsd) ? `$${off.product.prices?.USD ?? off.product.priceUsd}` : SAMPLE.digitalProduct.price),
     } : SAMPLE.digitalProduct,
     testimonials: mappedTestimonials.length ? mappedTestimonials : SAMPLE.testimonials,
     faqs:         mappedFaqs.length ? mappedFaqs : SAMPLE.faqs,
@@ -464,6 +468,7 @@ function ServicesSection() {
 
 // ─── Process ──────────────────────────────────────────────────────────────────
 function ProcessSection() {
+  const data = useData()
   return (
     <section className="py-24" style={{ background: T.surface }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -472,7 +477,7 @@ function ProcessSection() {
           <h2 className="text-3xl md:text-4xl font-black" style={{ color: T.text }}>Fast. Collaborative. Delivered.</h2>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
-          {useData().process.map(({ step, title, desc }, i) => (
+          {data.process.map(({ step, title, desc }, i) => (
             <div key={i} className="rounded-2xl p-7 border relative" style={{ background: T.card, borderColor: T.border }}>
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg mb-5"
@@ -492,6 +497,7 @@ function ProcessSection() {
 
 // ─── Offers ───────────────────────────────────────────────────────────────────
 function OffersSection() {
+  const data = useData()
   return (
     <section className="py-24" style={{ background: T.violetDark }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -503,7 +509,7 @@ function OffersSection() {
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
-          {useData().offers.map((o, i) => (
+          {data.offers.map((o, i) => (
             <div
               key={i}
               className={`relative rounded-2xl p-7 border flex flex-col ${o.highlight ? 'ring-2 ring-lime-400' : ''}`}
@@ -553,7 +559,7 @@ function OffersSection() {
         </div>
 
         {/* Digital Product / Asset Download */}
-        {useData().digitalProduct?.enabled && useData().digitalProduct?.name && (
+        {data.digitalProduct?.enabled && data.digitalProduct?.name && (
           <div className="mt-14 max-w-3xl mx-auto rounded-2xl p-6 md:p-8 border flex flex-col md:flex-row items-center justify-between gap-6"
             style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(163,230,53,0.3)' }}>
             <div className="flex items-start gap-4">
@@ -564,14 +570,14 @@ function OffersSection() {
                 <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: 'rgba(163,230,53,0.2)', color: T.lime }}>
                   Digital Asset
                 </span>
-                <h3 className="text-lg font-black text-white mt-1">{useData().digitalProduct.name}</h3>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: T.violetLight }}>{useData().digitalProduct.summary}</p>
+                <h3 className="text-lg font-black text-white mt-1">{data.digitalProduct.name}</h3>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: T.violetLight }}>{data.digitalProduct.summary}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0 w-full md:w-auto justify-between md:justify-end">
-              <span className="text-2xl font-black" style={{ color: T.lime }}>{useData().digitalProduct.price}</span>
+              <span className="text-2xl font-black" style={{ color: T.lime }}>{data.digitalProduct.price}</span>
               <a
-                href={useData().digitalProduct.link || '#buy-kit'}
+                href={data.digitalProduct.link || '#buy-kit'}
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-bold text-xs transition-all hover:opacity-90 whitespace-nowrap"
                 style={{ background: T.lime, color: T.black }}
               >
@@ -588,6 +594,7 @@ function OffersSection() {
 
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 function TestimonialsSection() {
+  const data = useData()
   return (
     <section className="py-24" style={{ background: T.black }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -596,7 +603,7 @@ function TestimonialsSection() {
           <h2 className="text-3xl md:text-4xl font-black" style={{ color: T.text }}>What clients say</h2>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
-          {useData().testimonials.map((t, i) => (
+          {data.testimonials.map((t, i) => (
             <div key={i} className="rounded-2xl p-7 border flex flex-col" style={{ background: T.card, borderColor: T.border }}>
               <div className="flex gap-0.5 mb-4">
                 {Array.from({ length: t.rating }).map((_, j) => (

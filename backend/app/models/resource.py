@@ -29,6 +29,22 @@ class Resource(Base):
     is_published = Column(Boolean, default=True, nullable=False)
     parent_id = Column(Integer, nullable=True, index=True)
     nav_order = Column(Integer, default=0)
+
+    # ── Added: relevance/deep-link fields (Migration f5a6b7c8d9e0) ──────────
+    # related_route: the dashboard/wizard path this playbook helps with, e.g.
+    #   "/setup-wizard", "/templates". A frontend "Need help?" panel on that
+    #   page matches its own path against this field (suffix match) to surface
+    #   the right playbook inline. NULL = not tied to a specific page.
+    related_route = Column(String(255), nullable=True, index=False)
+
+    # unlocks_after_phase: NULL = show to everyone regardless of progress.
+    # An integer means "only show once the founder has reached this phase",
+    # using the same phase numbering as GET /api/my-site/status
+    # (0=no site, 1=site built, 2=theme selected, 3=site live,
+    #  4=sales desk in use, 5=ad management started). Prevents pushing e.g.
+    # ad-campaign playbooks at someone whose site isn't live yet.
+    unlocks_after_phase = Column(Integer, nullable=True, index=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -57,6 +73,8 @@ class Resource(Base):
             "is_published": self.is_published,
             "parent_id": self.parent_id,
             "nav_order": self.nav_order,
+            "related_route": self.related_route,
+            "unlocks_after_phase": self.unlocks_after_phase,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

@@ -260,6 +260,7 @@ one-person-company/
 │   │   │   │   ├── genie_routes.py          # ✅ /draft-site + /intake + /save-wizard + /status (Phase 1)
 │   │   │   │   ├── site_build_routes.py     # ✅ POST /api/sites/build + GET /api/sites/public/{slug} (Phase 1)
 │   │   │   │   ├── fb_agent_routes.py       # ✅ POST /api/agent/fb-marketing/chat (Claude Sonnet)
+│   │   │   │   ├── enquiry_routes.py        # ✅ /api/enquiries (AI Sales Desk lead replies)
 │   │   │   │   ├── lead_routes.py           # ✅ POST /api/leads, GET list, funnel stats
 │   │   │   │   ├── subscriber_routes.py     # ✅ Newsletter subscribe (public) + admin CRUD
 │   │   │   │   ├── content_routes.py        # /api/content/offers CRUD + public offer lookup
@@ -274,6 +275,7 @@ one-person-company/
 │   │   │   ├── database.py                  # Engine, SessionLocal, Base, get_db
 │   │   │   ├── config.py                    # Settings (DB, Razorpay, Stripe, Groq, Anthropic)
 │   │   │   ├── auth.py                      # JWT helpers, password hashing
+│   │   │   ├── crypto.py                    # ✅ AES-256 Symmetric encryption & key masking (BYOK)
 │   │   │   ├── dependencies.py              # get_current_user, get_current_admin_user
 │   │   │   ├── middleware.py                # ✅ Phase 0 rewrite — exact (method,path) matching + rate limits
 │   │   │   ├── middleware_old.py            # Archived pre-Phase-0 version — do not use
@@ -294,7 +296,9 @@ one-person-company/
 │   │   │   ├── user_site_settings.py        # ✅ UserSiteSettings (per-founder wizard config, unique user_id+key)
 │   │   │   ├── founder_site.py              # ✅ FounderSite + FounderSiteSlugHistory (Phase 1)
 │   │   │   ├── page.py                      # CMS page model
-│   │   │   └── contact.py                   # ContactSubmission
+│   │   │   ├── contact.py                   # ContactSubmission
+│   │   │   ├── user_ai_credential.py        # ✅ UserAiCredential (BYOK Key storage)
+│   │   │   └── ad_management_state.py       # ✅ AdManagementState (Human-In-The-Loop tracking)
 │   │   ├── schemas/                         # Pydantic request/response schemas
 │   │   ├── services/
 │   │   │   ├── reserved_names.py            # ✅ Reserved username/slug validation (Phase 1)

@@ -223,12 +223,16 @@ function payloadToData(payload) {
   }))
   const mappedFaqs = (know.faqs || []).filter(f => f?.question && f?.answer).map(f => ({ q: f.question, a: f.answer }))
   const mappedTestimonials = (prf.testimonials || []).filter(t => t?.quote).map(t => ({ name: t.name || '', role: t.role || '', rating: 5, quote: t.quote }))
-  const mappedFees = (payload.offers?.tiers || []).filter(t => t?.name).map((t, i) => ({
-    name:   t.name,
-    price:  t.priceInr ? `₹${Number(t.priceInr).toLocaleString('en-IN')}` : (t.priceUsd ? `$${t.priceUsd}` : SAMPLE.fees[i]?.price || ''),
-    desc:   t.summary || SAMPLE.fees[i]?.desc || '',
-    detail: Array.isArray(t.deliverables) ? t.deliverables.join(', ') : (t.deliverables || SAMPLE.fees[i]?.detail || ''),
-  }))
+  const mappedFees = (payload.offers?.tiers || []).filter(t => t?.name).map((t, i) => {
+    const pInr = t.prices?.INR ?? t.priceInr
+    const pUsd = t.prices?.USD ?? t.priceUsd
+    return {
+      name:   t.name,
+      price:  pInr ? `₹${Number(pInr).toLocaleString('en-IN')}` : (pUsd ? `$${pUsd}` : SAMPLE.fees[i]?.price || ''),
+      desc:   t.summary || SAMPLE.fees[i]?.desc || '',
+      detail: Array.isArray(t.deliverables) ? t.deliverables.join(', ') : (t.deliverables || SAMPLE.fees[i]?.detail || ''),
+    }
+  })
   const specialitiesArr = Array.isArray(td.specialities) ? td.specialities.filter(Boolean).map(s => ({ icon: SAMPLE.specialities[0]?.icon || null, name: s, desc: '', color: SAMPLE.specialities[0]?.color || '' })) : null
   return {
     clinic: {
@@ -622,13 +626,14 @@ function HowItWorksSection() {
 
 // ─── Patient testimonials ─────────────────────────────────────────────────────
 function TestimonialsSection() {
+  const data = useData()
   const [active, setActive] = useState(0)
 
   const navigate = (dir) => {
-    setActive(prev => (prev + dir + useData().testimonials.length) % useData().testimonials.length)
+    setActive(prev => (prev + dir + data.testimonials.length) % data.testimonials.length)
   }
 
-  const t = useData().testimonials[active]
+  const t = data.testimonials[active]
 
   return (
     <section id="reviews" className="py-20" style={{ background: T.blueDeep }}>
@@ -637,7 +642,7 @@ function TestimonialsSection() {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#93c5fd' }}>Patient experiences</p>
             <h2 className="text-3xl md:text-4xl font-black text-white">
-              {useData().clinic.reviews} reviews · {useData().clinic.rating}★ average
+              {data.clinic.reviews} reviews · {data.clinic.rating}★ average
             </h2>
           </div>
           <div className="flex gap-2">

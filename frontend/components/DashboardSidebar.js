@@ -4,7 +4,6 @@ import Link from 'next/link'
 import {
   BarChart3,
   Sparkles,
-  Globe,
   User,
   Wallet,
   Share2,
@@ -115,39 +114,42 @@ export default function DashboardSidebar({
           </Link>
         )}
 
-        {/* 4. My Website Admin */}
+        {/* 3.5. AI Ad Management */}
         {setActiveTab ? (
           <button
             type="button"
-            onClick={() => setActiveTab('website')}
+            onClick={() => setActiveTab('ad-management')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === 'website'
-                ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
+              activeTab === 'ad-management'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-100'
                 : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Globe className={`w-4 h-4 ${activeTab === 'website' ? 'text-blue-600' : 'text-gray-400'}`} />
-              My Website Admin
+              <Zap className={`w-4 h-4 ${activeTab === 'ad-management' ? 'text-blue-200' : 'text-blue-600'}`} />
+              Ad Management
             </div>
-            <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600 font-medium">
-              {hasSite ? 'Live' : 'Draft'}
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              activeTab === 'ad-management' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'
+            }`}>
+              Meta AI
             </span>
           </button>
         ) : (
           <Link
-            href="/dashboard?tab=website"
+            href="/dashboard?tab=ad-management"
             className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-white/60 hover:text-gray-900 transition-all"
           >
             <div className="flex items-center gap-2.5">
-              <Globe className="w-4 h-4 text-blue-600" />
-              My Website Admin
+              <Zap className="w-4 h-4 text-blue-600" />
+              Ad Management
             </div>
-            <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600 font-medium">
-              {hasSite ? 'Live' : 'Draft'}
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+              Meta AI
             </span>
           </Link>
         )}
+
 
         {/* 5. Profile Settings */}
         <Link

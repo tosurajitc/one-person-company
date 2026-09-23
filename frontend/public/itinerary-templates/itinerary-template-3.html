@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northeast — Meghalaya &amp; Assam | Meridian &amp; Co.</title>
+<script>const ITINERARY_STORAGE_KEY = 'itinerary:northeast-meghalaya-assam';</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --pine:        #1b3a5c;
+    --pine-deep:   #0d1b2a;
+    --pine-soft:   #25507a;
+    --glacier:     #2e6da4;
+    --glacier-light: #6aafd4;
+    --saffron:     #e8932a;
+    --saffron-light: #f5bf6a;
+    --snow:        #f0f4f8;
+    --snow-deep:   #d4e3f0;
+    --mist:        #eef2f7;
+    --white:       #ffffff;
+    --text:        #0d1b2a;
+    --muted:       #5a7080;
+    --border:      #bdd0e0;
+    --danger:      #a13d2f;
+    --danger-bg:   #f6e4e0;
+    --display:     'Space Grotesk', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+    --sans:        'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); color: var(--text); background: var(--mist); line-height: 1.5; }
+  h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 500; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+  /* ── Top bar ─────────────────────────────────────────────────── */
+  .topbar { position: sticky; top: 0; z-index: 40; background: var(--pine); color: #fff; }
+  .topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; max-width: 960px; margin: 0 auto; flex-wrap: wrap; }
+  .brand { font-family: var(--display); font-size: 1.05rem; }
+  .brand span { color: var(--saffron-light); font-size: 0.7rem; display: block; font-family: var(--sans); letter-spacing: 0.05em; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { font-family: var(--sans); font-size: 0.8rem; font-weight: 600; border: none; border-radius: 999px; padding: 9px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-saffron  { background: var(--saffron); color: #fff; }
+  .btn-outline  { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; }
+  .btn-outline:hover { background: rgba(255,255,255,0.08); }
+  .btn-glacier  { background: var(--glacier); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .tabs { display: flex; overflow-x: auto; padding: 0 20px; background: var(--pine-soft); }
+  .tabs-inner { display: flex; gap: 4px; max-width: 960px; margin: 0 auto; width: 100%; }
+  .tab-btn { font-family: var(--sans); font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.6); background: none; border: none; padding: 12px 14px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab-btn.active { color: #fff; border-bottom-color: var(--saffron-light); }
+
+  /* ── Fact strip ──────────────────────────────────────────────── */
+  .factstrip { background: var(--snow-deep); border-bottom: 1px solid var(--border); }
+  .factstrip-inner { max-width: 960px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 22px; flex-wrap: wrap; font-size: 0.8rem; }
+  .factstrip b { font-family: var(--display); font-weight: 500; color: var(--pine); }
+
+  /* ── Content ─────────────────────────────────────────────────── */
+  .tab-panel { padding: 28px 0 60px; }
+  .tab-panel[hidden] { display: none; }
+  .section-title { font-size: 1.4rem; margin-bottom: 4px; color: var(--pine); }
+  .section-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card h3 { font-size: 1rem; color: var(--pine); margin-bottom: 12px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ── Edit mode ───────────────────────────────────────────────── */
+  .editable { outline: none; border-radius: 4px; }
+  body.edit-mode .editable { background: #f0fbf5; box-shadow: 0 0 0 1px var(--saffron-light) inset; padding: 2px 4px; cursor: text; color: var(--text) !important; }
+  body.edit-mode .editable:focus { box-shadow: 0 0 0 2px var(--saffron) inset; }
+  body:not(.edit-mode) .edit-only { display: none !important; }
+
+  /* ── Overview hero ───────────────────────────────────────────── */
+  .overview-hero {
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #0d1b2a 0%, #1b3a5c 35%, #25507a 62%, #2e6da4 100%);
+    color: #fff;
+    position: relative;
+  }
+  /* subtle topographic line overlay */
+  .overview-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 28px,
+        rgba(255,255,255,0.03) 28px,
+        rgba(255,255,255,0.03) 29px
+      );
+    pointer-events: none;
+  }
+  .hero-inner { position: relative; z-index: 1; padding: 32px 28px 24px; }
+  .hero-eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--saffron-light); margin-bottom: 8px; }
+  .overview-hero h1 { font-size: 2rem; color: #fff; margin-bottom: 6px; line-height: 1.15; }
+  .overview-hero .sub { color: rgba(255,255,255,0.6); font-size: 0.88rem; margin-bottom: 22px; }
+
+  /* Waypoint strip */
+  .waypoints { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-bottom: 24px; }
+  .wp { display: flex; align-items: center; gap: 0; }
+  .wp-pin { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 5px 12px; font-size: 0.75rem; font-weight: 600; color: #fff; white-space: nowrap; }
+  .wp-pin.highlight { background: var(--saffron); border-color: var(--saffron); }
+  .wp-arrow { font-size: 0.7rem; color: rgba(255,255,255,0.35); padding: 0 6px; }
+
+  /* Stat row */
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 14px; }
+  .stat .num { font-family: var(--display); font-size: 1.45rem; color: #fff; }
+  .stat .lbl { font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .stat .num.alt { color: var(--saffron-light); }
+
+  /* Quick actions */
+  .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ── Glance + travellers cards ───────────────────────────────── */
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 0.84rem; }
+  .kv b { color: var(--pine-deep); font-weight: 600; }
+
+  /* altitude badge on waypoint cards */
+  .alt-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--snow); border: 1px solid var(--border); border-radius: 999px; font-size: 0.68rem; font-weight: 700; color: var(--glacier); padding: 2px 9px; margin-bottom: 10px; }
+
+  /* ── Waypoint detail cards row ───────────────────────────────── */
+  .wp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 6px; }
+  .wp-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .wp-card .wp-num { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
+  .wp-card .wp-name { font-family: var(--display); font-size: 0.95rem; color: var(--pine); font-weight: 600; margin-bottom: 6px; }
+  .wp-card .wp-meta { font-size: 0.76rem; color: var(--muted); line-height: 1.5; }
+  .wp-card .wp-elev { font-size: 0.72rem; font-weight: 700; color: var(--glacier); margin-top: 6px; }
+
+  /* ── Planning notes card ─────────────────────────────────────── */
+  .notes-card { background: linear-gradient(135deg, var(--snow) 0%, var(--white) 100%); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .notes-card h3 { color: var(--pine); font-size: 0.95rem; margin-bottom: 10px; }
+  .note-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.83rem; }
+  .note-row:last-child { border-bottom: none; }
+  .note-icon { font-size: 1rem; flex-shrink: 0; width: 22px; }
+
+  /* ── Emergency ───────────────────────────────────────────────── */
+  .emergency-fab { position: fixed; bottom: 22px; right: 22px; z-index: 50; background: var(--danger); color: #fff; border: none; border-radius: 999px; padding: 14px 20px; font-family: var(--sans); font-weight: 700; font-size: 0.85rem; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 8px; }
+  dialog#emergency { border: none; border-radius: 12px; padding: 0; max-width: 480px; width: 92vw; }
+  dialog#emergency::backdrop { background: rgba(14,23,32,0.6); }
+  .em-head { background: var(--danger); color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .em-head h2 { color: #fff; font-size: 1.1rem; }
+  .em-close { background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; }
+  .em-body { padding: 18px 20px; max-height: 60vh; overflow-y: auto; }
+  .em-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem; }
+  .em-row:last-child { border-bottom: none; }
+  .em-row a { color: var(--glacier); font-weight: 600; text-decoration: none; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--pine); color: #fff; padding: 10px 20px; border-radius: 999px; font-size: 0.82rem; opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 60; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media print {
+    .topbar, .tabs, .emergency-fab, .quick-actions, .edit-only { display: none !important; }
+    .tab-panel[hidden] { display: block !important; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ TOP BAR ══════════════════════ -->
+<div class="topbar">
+  <div class="topbar-row">
+    <div class="brand">Meridian &amp; Co.<span>Traveller Itinerary</span></div>
+    <div class="actions">
+      <button class="btn btn-outline" onclick="window.print()">Download / Print</button>
+      <button class="btn btn-outline" onclick="sharePage()">Share</button>
+      <button class="btn btn-glacier" onclick="document.getElementById('emergency').showModal()">Emergency</button>
+      <button class="btn btn-saffron" id="editToggle" onclick="toggleEdit()">Edit</button>
+      <button class="btn btn-saffron edit-only" id="saveBtn" onclick="saveItinerary()" style="display:none;">Save</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tabs-inner">
+      <button class="tab-btn active" data-tab="overview">Trip Overview</button>
+      <button class="tab-btn" data-tab="checklist">Checklist</button>
+      <button class="tab-btn" data-tab="bookings">Bookings &amp; Docs</button>
+      <button class="tab-btn" data-tab="budget">Budget</button>
+      <button class="tab-btn" data-tab="days">Day-Wise Planner</button>
+      <button class="tab-btn" data-tab="stays">Stays &amp; Transport</button>
+      <button class="tab-btn" data-tab="food">Food &amp; Experiences</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ PERSISTENT FACT STRIP ══════════════════ -->
+<div class="factstrip">
+  <div class="factstrip-inner">
+    <span><b class="editable" data-field="trip.destination" contenteditable="false">Northeast — Meghalaya &amp; Assam</b></span>
+    <span class="muted"><span class="editable" data-field="trip.dates" contenteditable="false">5–13 Feb 2027</span> · <span class="editable" data-field="trip.duration" contenteditable="false">9 days</span></span>
+    <span class="muted"><span class="editable" data-field="trip.travellers" contenteditable="false">Solo</span></span>
+    <span class="muted">5 waypoints</span>
+    <span id="countdownText" class="muted" data-departure="2027-02-05">— days to departure</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════════ 1. TRIP OVERVIEW ══════════════════════ -->
+  <section id="tab-overview" class="tab-panel">
+
+    <div class="overview-hero">
+      <div class="hero-inner">
+        <div class="hero-eyebrow">9 days · 5 waypoints · Meghalaya &amp; Assam · Solo</div>
+        <h1 class="editable" data-field="trip.title" contenteditable="false">Northeast — Meghalaya &amp; Assam</h1>
+        <p class="sub">
+          <span class="editable" data-field="trip.theme" contenteditable="false">Solo — living-root bridges, rhino safari, cleanest river in Asia</span> ·
+          <span class="editable" data-field="trip.travellers2" contenteditable="false">Karan Mehta (solo traveller)</span>
+        </p>
+
+        <!-- Waypoint strip -->
+        <div class="waypoints">
+          <div class="wp"><span class="wp-pin">Guwahati</span><span class="wp-arrow">›</span></div>
+          <div class="wp"><span class="wp-pin">Kaziranga</span><span class="wp-arrow">›</span></div>
+          <div class="wp"><span class="wp-pin highlight">Shillong</span><span class="wp-arrow">›</span></div>
+          <div class="wp"><span class="wp-pin">Cherrapunji</span><span class="wp-arrow">›</span></div>
+          <div class="wp"><span class="wp-pin">Dawki</span></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-row">
+          <div class="stat"><div class="num editable" data-field="trip.budgetTotal" contenteditable="false">₹62,000</div><div class="lbl">Total planned budget (solo)</div></div>
+          <div class="stat"><div class="num editable" data-field="trip.bookingProgress" contenteditable="false">4 of 7</div><div class="lbl">Bookings confirmed</div></div>
+          <div class="stat"><div class="num alt editable" data-field="trip.highlight" contenteditable="false">Dawki</div><div class="lbl">Highlight — crystal-clear Umngot River</div></div>
+          <div class="stat"><div class="num editable" data-field="trip.weather" contenteditable="false">14–26°C</div><div class="lbl">Typical Feb weather — dry season</div></div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="btn btn-saffron" onclick="window.print()">Download PDF</button>
+          <button class="btn btn-outline" onclick="sharePage()">Share Itinerary</button>
+          <a class="btn btn-outline" href="https://wa.me/9845011223?text=Hi%2C%20question%20about%20my%20Northeast%20trip" target="_blank" rel="noopener" style="text-decoration:none;">Contact Meridian &amp; Co.</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Glance + Traveller -->
+    <div class="grid-2">
+      <div class="card">
+        <h3>Trip at a glance</h3>
+        <div class="kv">
+          <b>Route</b><span class="editable" data-field="overview.destinations" contenteditable="false">Guwahati → Kaziranga → Shillong → Cherrapunji → Dawki</span>
+          <b>Dates</b><span class="editable" data-field="overview.datesFull" contenteditable="false">5–13 February 2027</span>
+          <b>Duration</b><span class="editable" data-field="overview.durationFull" contenteditable="false">9 days, 8 nights</span>
+          <b>Trip theme</b><span class="editable" data-field="overview.themeFull" contenteditable="false">Solo — wildlife, living-root bridges, cave systems, river border</span>
+          <b>Pace</b><span class="editable" data-field="overview.pace" contenteditable="false">Moderate — some long drives; trekking days are optional</span>
+          <b>Travel Architect</b><span class="editable" data-field="overview.architect" contenteditable="false">Rhea Menon, Meridian &amp; Co.</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Solo traveller</h3>
+        <div class="kv">
+          <b>Name</b><span class="editable" data-field="overview.adults" contenteditable="false">Karan Mehta, 29</span>
+          <b>Experience</b><span class="editable" data-field="overview.fitness" contenteditable="false">Moderate hiker — has done Triund; comfortable solo</span>
+          <b>Dietary</b><span class="editable" data-field="overview.dietary" contenteditable="false">Non-vegetarian; open to all local food</span>
+          <b>Photography</b><span class="editable" data-field="overview.photo" contenteditable="false">Carries a mirrorless — schedule built around golden-hour windows at Dawki and Nohkalikai</span>
+          <b>Solo safety note</b><span class="editable" data-field="overview.solo" contenteditable="false">Share live location with Rhea each morning. Check-in window 8–9 PM daily via WhatsApp.</span>
+          <b>Emergency contact</b><span class="editable" data-field="overview.emergency" contenteditable="false">Sunita Mehta (mother), +91 98XXXXXXXX</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waypoint detail cards -->
+    <div class="card">
+      <h3>5 Waypoints</h3>
+      <div class="wp-cards">
+        <div class="wp-card">
+          <div class="wp-num">Waypoint 1</div>
+          <div class="wp-name editable" data-field="wp1.name" contenteditable="false">Guwahati</div>
+          <div class="wp-meta editable" data-field="wp1.meta" contenteditable="false">Days 1–2 · 1 night<br>Gateway to the Northeast — Kamakhya Temple, Brahmaputra riverfront, transit base</div>
+          <div class="wp-elev" style="color:var(--glacier);">● Assam</div>
+        </div>
+        <div class="wp-card">
+          <div class="wp-num">Waypoint 2</div>
+          <div class="wp-name editable" data-field="wp2.name" contenteditable="false">Kaziranga</div>
+          <div class="wp-meta editable" data-field="wp2.meta" contenteditable="false">Days 2–4 · 2 nights<br>One-horned rhino safari (morning &amp; evening), elephant ride, UNESCO World Heritage Site</div>
+          <div class="wp-elev" style="color:var(--glacier);">● Assam</div>
+        </div>
+        <div class="wp-card" style="border-color:var(--saffron);">
+          <div class="wp-num" style="color:var(--saffron);">Waypoint 3 · Highlight</div>
+          <div class="wp-name editable" data-field="wp3.name" contenteditable="false">Shillong</div>
+          <div class="wp-meta editable" data-field="wp3.meta" contenteditable="false">Days 5–6 · 2 nights<br>Scotland of the East — Umiam Lake, Ward's Lake, live music capital of India</div>
+          <div class="wp-elev" style="color:var(--glacier);">▲ 1,496 m · Meghalaya</div>
+        </div>
+        <div class="wp-card">
+          <div class="wp-num">Waypoint 4</div>
+          <div class="wp-name editable" data-field="wp4.name" contenteditable="false">Cherrapunji</div>
+          <div class="wp-meta editable" data-field="wp4.meta" contenteditable="false">Days 7–8 · 1 night<br>Double-decker living-root bridge trek, Nohkalikai Falls (highest plunge waterfall in India), Mawsmai cave</div>
+          <div class="wp-elev" style="color:var(--glacier);">▲ 1,484 m · Meghalaya</div>
+        </div>
+        <div class="wp-card">
+          <div class="wp-num">Waypoint 5</div>
+          <div class="wp-name editable" data-field="wp5.name" contenteditable="false">Dawki</div>
+          <div class="wp-meta editable" data-field="wp5.meta" contenteditable="false">Day 9 · day trip from Cherrapunji<br>Umngot River — glass-clear water, boat ride, Bangladesh border viewpoint; back to Guwahati for night flight</div>
+          <div class="wp-elev" style="color:var(--glacier);">● Meghalaya border</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Planning notes -->
+    <div class="notes-card">
+      <h3>Architect's planning notes</h3>
+      <div class="note-row"><span class="note-icon">🦏</span><span class="editable" data-field="note.safari" contenteditable="false"><b>Kaziranga safari:</b> Booked the Central Range morning jeep safari for Day 3 (best rhino sightings) and Western Range for Day 4 morning. Both slots fill 6–8 weeks ahead in Feb — confirmed and paid. Carry the booking PDF on your phone.</span></div>
+      <div class="note-row"><span class="note-icon">🌿</span><span class="editable" data-field="note.rootbridge" contenteditable="false"><b>Double-decker root bridge trek:</b> 7 km round trip, ~4 hrs, ~2,400 steps each way — mostly descending on the way in, steep climb out. Carry at least 1.5 L water. Start no later than 8 AM to avoid afternoon heat. Trekking poles recommended; available to rent in Tyrna village (₹50).</span></div>
+      <div class="note-row"><span class="note-icon">📷</span><span class="editable" data-field="note.dawki" contenteditable="false"><b>Dawki photography:</b> The Umngot is clearest in the morning before 10 AM — schedule the boat ride for 8–9 AM. The Feb dry season is the best window; water turns turbid post-monsoon. Golden hour is at 5:30 PM on the riverbank.</span></div>
+      <div class="note-row"><span class="note-icon">📶</span><span class="editable" data-field="note.connectivity" contenteditable="false"><b>Connectivity:</b> Jio and Airtel work in Guwahati, Kaziranga and Shillong. Signal drops in the Cherrapunji valleys and is near-zero at Dawki. Download Google Maps offline for the Meghalaya section before leaving Shillong.</span></div>
+      <div class="note-row"><span class="note-icon">🛂</span><span class="editable" data-field="note.permit" contenteditable="false"><b>ILP / permits:</b> No Inner Line Permit needed for Assam or Meghalaya — you need one only for Arunachal, Nagaland, Mizoram and Manipur. Carry Aadhaar for hotel check-ins; some properties in Meghalaya still ask for it.</span></div>
+      <div class="note-row"><span class="note-icon">🚗</span><span class="editable" data-field="note.transport" contenteditable="false"><b>Transport:</b> A single cab (Baba Travels, Guwahati-based) covers the full circuit — Guwahati → Kaziranga → Shillong → Cherrapunji → Dawki → Guwahati airport. Driver (Bijoy) has done this loop 80+ times. Long drive days (Kaziranga → Shillong, ~4.5 hrs) have rest stops built in.</span></div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════ 2. CHECKLIST ══════════════════════ -->
+  <section id="tab-checklist" class="tab-panel" hidden>
+    <h2 class="section-title">Pre-Trip Checklist</h2>
+    <p class="section-sub muted">Content coming soon.</p>
+  </section>
+
+  <!-- ══════════════════════ 3. BOOKINGS & DOCS ══════════════════════ -->
+  <section id="tab-bookings" class="tab-panel" hidden>
+    <h2 class="section-title">Bookings &amp; Documents</h2>
+    <p class="section-sub muted">Content coming soon.</p>
+  </section>
+
+  <!-- ══════════════════════ 4. BUDGET ══════════════════════ -->
+  <section id="tab-budget" class="tab-panel" hidden>
+    <h2 class="section-title">Budget &amp; Payments</h2>
+    <p class="section-sub muted">Content coming soon.</p>
+  </section>
+
+  <!-- ══════════════════════ 5. DAY-WISE PLANNER ══════════════════════ -->
+  <section id="tab-days" class="tab-panel" hidden>
+    <h2 class="section-title">Day-Wise Planner</h2>
+    <p class="section-sub muted">Content coming soon.</p>
+  </section>
+
+  <!-- ══════════════════════ 6. STAYS & TRANSPORT ══════════════════════ -->
+  <section id="tab-stays" class="tab-panel" hidden>
+    <h2 class="section-title">Stays &amp; Transport</h2>
+    <p class="section-sub muted">Content coming soon.</p>
+  </section>
+
+  <!-- ══════════════════════ 7. FOOD & EXPERIENCES ══════════════════════ -->
+  <section id="tab-food" class="tab-panel" hidden>
+    <h2 class="section-title">Food &amp; Experiences</h2>
+    <p class="section-sub muted">Content coming soon.</p>
+  </section>
+
+</div><!-- /container -->
+
+<!-- ══════════════════════ EMERGENCY ══════════════════════ -->
+<button class="emergency-fab" onclick="document.getElementById('emergency').showModal()">⚠ Emergency</button>
+
+<dialog id="emergency">
+  <div class="em-head">
+    <h2>Emergency &amp; Support</h2>
+    <button class="em-close" onclick="document.getElementById('emergency').close()">✕</button>
+  </div>
+  <div class="em-body">
+    <div class="em-row"><span>Travel Architect (Rhea Menon)</span><a href="tel:+919845011223" class="editable" contenteditable="false" data-field="em.architect">+91 98450 11223</a></div>
+    <div class="em-row"><span>Support hours</span><span class="editable" contenteditable="false" data-field="em.hours">7 AM–10 PM IST, every day of your trip</span></div>
+    <div class="em-row"><span>Driver</span><span class="editable" contenteditable="false" data-field="em.driver">Bijoy Das (Baba Travels), +91 94XXXXXXXX — white Innova Crysta</span></div>
+    <div class="em-row"><span>Local police</span><span>100</span></div>
+    <div class="em-row"><span>Ambulance</span><span>108</span></div>
+    <div class="em-row"><span>Tourist helpline (Assam)</span><span class="editable" contenteditable="false" data-field="em.tourist">1800-345-3504 (toll-free)</span></div>
+    <div class="em-row"><span>Nearest hospital (Guwahati)</span><span class="editable" contenteditable="false" data-field="em.hospital">GNRC Hospital, Dispur — Map link</span></div>
+    <div class="em-row"><span>Nearest hospital (Shillong)</span><span class="editable" contenteditable="false" data-field="em.hospital2">Bethany Hospital, Laitumkhrah — Map link</span></div>
+    <div class="em-row"><span>Insurance helpline</span><span class="editable" contenteditable="false" data-field="em.insurance">ICICI Lombard, 1800-XXX-XXXX</span></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+  // ── Tab switching ──────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-panel').forEach(p => p.hidden = p.id !== 'tab-' + tab);
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  // ── Edit mode ──────────────────────────────────────────────────
+  function toggleEdit() {
+    const on = document.body.classList.toggle('edit-mode');
+    document.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', on ? 'true' : 'false'));
+    document.getElementById('editToggle').textContent = on ? 'Done' : 'Edit';
+    document.getElementById('saveBtn').style.display = on ? 'inline-flex' : 'none';
+  }
+
+  // ── Save / load (localStorage) ─────────────────────────────────
+  function setDeep(obj, path, value) {
+    const keys = path.split('.'); let o = obj;
+    for (let i = 0; i < keys.length - 1; i++) { o[keys[i]] = o[keys[i]] || {}; o = o[keys[i]]; }
+    o[keys[keys.length - 1]] = value;
+  }
+  function getDeep(obj, path) { return path.split('.').reduce((o, k) => (o || {})[k], obj); }
+
+  function saveItinerary() {
+    const data = {};
+    document.querySelectorAll('[data-field]').forEach(el => {
+      setDeep(data, el.dataset.field, el.type === 'checkbox' ? el.checked : el.innerText);
+    });
+    try {
+      localStorage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(data));
+      showToast('Saved to this browser');
+    } catch (e) { showToast('Could not save — storage unavailable'); }
+  }
+
+  function loadItinerary() {
+    let raw; try { raw = localStorage.getItem(ITINERARY_STORAGE_KEY); } catch (e) { return; }
+    if (!raw) return;
+    let data; try { data = JSON.parse(raw); } catch (e) { return; }
+    document.querySelectorAll('[data-field]').forEach(el => {
+      const value = getDeep(data, el.dataset.field);
+      if (value === undefined) return;
+      if (el.type === 'checkbox') el.checked = !!value; else el.innerText = value;
+    });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // ── Countdown ──────────────────────────────────────────────────
+  function refreshCountdown() {
+    const el = document.getElementById('countdownText');
+    const dep = new Date(el.dataset.departure);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diff = Math.ceil((dep - today) / 86400000);
+    if (diff > 1) el.textContent = diff + ' days to departure';
+    else if (diff === 1) el.textContent = 'Departing tomorrow';
+    else if (diff === 0) el.textContent = 'Departing today';
+    else el.textContent = 'Trip in progress or completed';
+  }
+
+  // ── Share ──────────────────────────────────────────────────────
+  function sharePage() {
+    if (navigator.share) {
+      navigator.share({ title: document.title, url: window.location.href }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(window.location.href);
+      showToast('Link copied');
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────
+  loadItinerary();
+  refreshCountdown();
+</script>
+
+</body>
+</html>

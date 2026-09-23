@@ -98,9 +98,11 @@ one-person-company/
 │   │   │       ├── page_routes.py           # /api/pages (CMS pages)
 │   │   │       ├── settings_routes.py       # /api/settings/public + admin CRUD + setup wizard
 │   │   │       ├── contact_routes.py        # /api/contact
-│   │   │       └── fb_agent_routes.py       # POST /api/agent/fb-marketing/chat (Claude Sonnet)
+│   │   │       ├── fb_agent_routes.py       # POST /api/agent/fb-marketing/chat (Claude Sonnet)
+│   │   │       └── enquiry_routes.py        # /api/enquiries (AI Sales Desk)
 │   │   ├── core/
 │   │   │   ├── auth.py                      # JWT helpers, password hashing
+│   │   │   ├── crypto.py                    # AES-256 Symmetric encryption & key masking (BYOK)
 │   │   │   ├── config.py                    # Settings (DB, Razorpay, Stripe, Groq, Anthropic)
 │   │   │   ├── database.py                  # Engine, SessionLocal, Base, get_db
 │   │   │   ├── dependencies.py              # get_current_user, get_current_admin_user
@@ -121,7 +123,9 @@ one-person-company/
 │   │   │   ├── site_settings.py             # SiteSetting (JSONB key-value store)
 │   │   │   ├── user_site_settings.py        # UserSiteSettings (per-founder wizard config)
 │   │   │   ├── page.py                      # CMS Page model
-│   │   │   └── contact.py                   # ContactSubmission
+│   │   │   ├── contact.py                   # ContactSubmission
+│   │   │   ├── user_ai_credential.py        # UserAiCredential (BYOK Key storage)
+│   │   │   └── ad_management_state.py       # AdManagementState (Human-In-The-Loop tracking)
 │   │   ├── schemas/
 │   │   │   ├── contact_schemas.py
 │   │   │   └── user_schemas.py

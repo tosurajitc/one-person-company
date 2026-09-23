@@ -182,18 +182,22 @@ function payloadToData(payload) {
 
   const mappedOffers = (off.tiers || [])
     .filter(t => t?.name)
-    .map((t, i) => ({
-      name:        t.name,
-      price:       t.priceInr ? `₹${Number(t.priceInr).toLocaleString('en-IN')}` : (t.priceUsd ? `$${t.priceUsd}` : SAMPLE.offers[i]?.price || ''),
-      duration:    t.duration || '',
-      type:        t.tier === 'recurring' ? 'Ongoing' : t.tier === 'front_door' ? 'One-time' : 'Project',
-      description: t.summary || SAMPLE.offers[i]?.description || '',
-      includes:    typeof t.deliverables === 'string'
-        ? t.deliverables.split('\n').filter(Boolean)
-        : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
-      cta:         i === 0 ? 'Book a Call' : i === 1 ? 'Get Started' : 'Apply',
-      highlight:   off.mostBought === t.tier,
-    }))
+    .map((t, i) => {
+      const pInr = t.prices?.INR ?? t.priceInr
+      const pUsd = t.prices?.USD ?? t.priceUsd
+      return {
+        name:        t.name,
+        price:       pInr ? `₹${Number(pInr).toLocaleString('en-IN')}` : (pUsd ? `$${pUsd}` : SAMPLE.offers[i]?.price || ''),
+        duration:    t.duration || '',
+        type:        t.tier === 'recurring' ? 'Ongoing' : t.tier === 'front_door' ? 'One-time' : 'Project',
+        description: t.summary || SAMPLE.offers[i]?.description || '',
+        includes:    typeof t.deliverables === 'string'
+          ? t.deliverables.split('\n').filter(Boolean)
+          : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
+        cta:         i === 0 ? 'Book a Call' : i === 1 ? 'Get Started' : 'Apply',
+        highlight:   off.mostBought === t.tier,
+      }
+    })
 
   const mappedProcess = (know.process || [])
     .filter(s => s?.title)
@@ -212,8 +216,8 @@ function payloadToData(payload) {
     .map(t => ({ name: t.name || '', role: t.role || '', rating: 5, quote: t.quote }))
 
   const mappedCaseStudies = (prf.caseStudies || [])
-    .filter(c => c?.client || c?.result)
-    .map(c => ({ client: c.client || '', result: c.result || '', detail: c.whatYouDid || '', sector: '' }))
+    .filter(c => c?.client || c?.result || c?.detail || c?.whatYouDid)
+    .map(c => ({ client: c.client || '', result: c.result || '', detail: c.detail || c.whatYouDid || '', sector: c.sector || '' }))
 
   const credentials = a(prf.credentials, SAMPLE.founder.credentials)
 
@@ -252,6 +256,7 @@ function payloadToData(payload) {
       included: a(know.included, SAMPLE.scope.included),
       notIncluded: a(know.notIncluded, SAMPLE.scope.notIncluded),
     },
+    invitation: fd.invitation || '',
   }
 }
 
@@ -633,7 +638,7 @@ function InvitationSection() {
     <section style={{ background: T.ink }} className="py-24" id="book">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <PenTool className="w-6 h-6 mx-auto mb-6" style={{ color: T.red }} />
-        <h2 className="text-3xl md:text-4xl mb-5 text-white" style={{ fontFamily: SERIF }}>Ready to scale with clarity?</h2>
+        <h2 className="text-3xl md:text-4xl mb-5 text-white" style={{ fontFamily: SERIF }}>{D.invitation || 'Ready to scale with clarity?'}</h2>
         <p className="text-base mb-2" style={{ color: 'rgba(255,255,255,0.6)' }}>I take on a maximum of 5 retainer clients at any time.</p>
         <p className="text-sm font-semibold mb-10" style={{ color: T.redLight }}>3 spots remaining this quarter</p>
         <a href={f.calLink} className="inline-flex items-center gap-2 px-8 py-4 rounded font-semibold text-base transition-all hover:opacity-90" style={{ background: T.red, color: '#fff' }}>

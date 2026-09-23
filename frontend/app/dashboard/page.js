@@ -12,6 +12,7 @@ import {
   BookOpen, DoorOpen, Award, Wallet, Share2, AlertCircle,
 } from 'lucide-react'
 import SalesDeskSection from '../../components/SalesDeskSection'
+import AdManagementSection from '../../components/AdManagementSection'
 import DashboardSidebar from '../../components/DashboardSidebar'
 
 // ─── My Website panel ────────────────────────────────────────────────────────
@@ -293,6 +294,13 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* VIEW 1.5: AI Ad Management */}
+            {activeTab === 'ad-management' && (
+              <div className="space-y-6">
+                <AdManagementSection token={token} />
+              </div>
+            )}
+
             {/* VIEW 2: My Website */}
             {activeTab === 'website' && (
               <div className="space-y-6">
@@ -318,7 +326,21 @@ export default function DashboardPage() {
                       <Bot className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div className="text-indigo-950 font-semibold text-xs">AI Usage (Consumed)</div>
-                    <div className="text-[11px] text-indigo-600 mt-0.5">{(user?.ai_tokens_used || 0).toLocaleString()} tokens (@ ₹0.15/1k)</div>
+                    <div className="text-[11px] text-indigo-600 mt-0.5">
+                      {(user?.ai_tokens_used || 0).toLocaleString()} tokens total
+                    </div>
+                    {(user?.ai_refine_tokens_used > 0) && (
+                      <div className="mt-2 pt-2 border-t border-indigo-100 space-y-0.5">
+                        <div className="flex justify-between text-[10px] text-indigo-500">
+                          <span>Website generation</span>
+                          <span>{((user?.ai_tokens_used || 0) - (user?.ai_refine_tokens_used || 0)).toLocaleString()} tk</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-indigo-500">
+                          <span>Answer refinement</span>
+                          <span>{(user?.ai_refine_tokens_used || 0).toLocaleString()} tk</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">

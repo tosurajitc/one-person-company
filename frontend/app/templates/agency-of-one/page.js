@@ -175,20 +175,24 @@ function payloadToData(payload) {
   const tagline = pos.buyer && pos.outcome
     ? `I help ${pos.buyer} get ${pos.outcome}${pos.fear ? `, without ${pos.fear}` : ''}.`
     : o(biz.tagline, SAMPLE.founder.tagline)
-  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => ({
-    name:        t.name,
-    price:       t.priceInr ? `₹${Number(t.priceInr).toLocaleString('en-IN')}` : (t.priceUsd ? `$${t.priceUsd}` : SAMPLE.offers[i]?.price || ''),
-    duration:    t.duration || '',
-    type:        t.tier === 'recurring' ? 'Ongoing' : t.tier === 'front_door' ? 'One-time' : 'Project',
-    description: t.summary || SAMPLE.offers[i]?.description || '',
-    includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
-    cta:         SAMPLE.offers[i]?.cta || 'Get Started',
-    highlight:   off.mostBought === t.tier,
-  }))
+  const mappedOffers = (off.tiers || []).filter(t => t?.name).map((t, i) => {
+    const pInr = t.prices?.INR ?? t.priceInr
+    const pUsd = t.prices?.USD ?? t.priceUsd
+    return {
+      name:        t.name,
+      price:       pInr ? `₹${Number(pInr).toLocaleString('en-IN')}` : (pUsd ? `$${pUsd}` : SAMPLE.offers[i]?.price || ''),
+      duration:    t.duration || '',
+      type:        t.tier === 'recurring' ? 'Ongoing' : t.tier === 'front_door' ? 'One-time' : 'Project',
+      description: t.summary || SAMPLE.offers[i]?.description || '',
+      includes:    typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.offers[i]?.includes || []),
+      cta:         SAMPLE.offers[i]?.cta || 'Get Started',
+      highlight:   off.mostBought === t.tier,
+    }
+  })
   const mappedProcess = (know.process || []).filter(s => s?.title).map((s, i) => ({ step: String(i + 1).padStart(2, '0'), title: s.title, desc: s.detail || '' }))
   const mappedFaqs = (know.faqs || []).filter(f => f?.question && f?.answer).map(f => ({ q: f.question, a: f.answer }))
   const mappedTestimonials = (prf.testimonials || []).filter(t => t?.quote).map(t => ({ name: t.name || '', role: t.role || '', rating: 5, quote: t.quote }))
-  const mappedCaseStudies = (prf.caseStudies || []).filter(c => c?.client || c?.result).map(c => ({ client: c.client || '', result: c.result || '', detail: c.whatYouDid || '', sector: '' }))
+  const mappedCaseStudies = (prf.caseStudies || []).filter(c => c?.client || c?.result || c?.detail || c?.whatYouDid).map(c => ({ client: c.client || '', result: c.result || '', detail: c.detail || c.whatYouDid || '', sector: c.sector || '' }))
   return {
     founder: {
       name:        o(owner.name, SAMPLE.founder.name),
@@ -376,6 +380,7 @@ function HeroSection() {
 
 // ─── Deliverables ladder ──────────────────────────────────────────────────────
 function DeliverablesSection() {
+  const data = useData()
   return (
     <section id="deliverables" className="py-24" style={{ background: T.bg }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -389,7 +394,7 @@ function DeliverablesSection() {
           </p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {useData().deliverables.map(({ icon: Icon, title, desc }, i) => (
+          {data.deliverables.map(({ icon: Icon, title, desc }, i) => (
             <div key={i} className="rounded-2xl p-7 border group hover:border-cyan-400 transition-colors" style={{ background: T.card, borderColor: T.border }}>
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center mb-5"
@@ -404,7 +409,7 @@ function DeliverablesSection() {
         </div>
 
         {/* Fit Criteria: For Who & Not For */}
-        {useData().fitCriteria && (
+        {data.fitCriteria && (
           <div className="mt-14 grid md:grid-cols-2 gap-6">
             <div className="p-6 rounded-2xl border" style={{ background: T.card, borderColor: T.border }}>
               <h3 className="font-bold text-base mb-4 flex items-center gap-2" style={{ color: T.text }}>
@@ -412,7 +417,7 @@ function DeliverablesSection() {
                 Who this is built for
               </h3>
               <ul className="space-y-3">
-                {useData().fitCriteria.forWho.map((item, idx) => (
+                {data.fitCriteria.forWho.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5 text-sm" style={{ color: T.muted }}>
                     <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: T.cyan }} />
                     <span>{item}</span>
@@ -426,7 +431,7 @@ function DeliverablesSection() {
                 Who this is NOT for
               </h3>
               <ul className="space-y-3">
-                {useData().fitCriteria.notFor.map((item, idx) => (
+                {data.fitCriteria.notFor.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2.5 text-sm" style={{ color: T.muted }}>
                     <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
                     <span>{item}</span>

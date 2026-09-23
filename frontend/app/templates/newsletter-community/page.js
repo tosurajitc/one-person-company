@@ -232,15 +232,19 @@ function payloadToData(payload) {
   const owner = biz.owner || {}
   const o = (v, fb) => (v && String(v).trim() ? v : fb)
   const a = (v, fb) => (Array.isArray(v) && v.filter(Boolean).length ? v.filter(Boolean) : fb)
-  const mappedTiers = (off.tiers || []).filter(t => t?.name).map((t, i) => ({
-    name:        t.name,
-    price:       t.priceInr ? `₹${Number(t.priceInr).toLocaleString('en-IN')}` : (t.priceUsd ? `$${t.priceUsd}` : SAMPLE.tiers[i]?.price || ''),
-    period:      t.tier === 'recurring' ? '/month' : '',
-    description: t.summary || SAMPLE.tiers[i]?.description || '',
-    perks:       typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.tiers[i]?.perks || []),
-    cta:         SAMPLE.tiers[i]?.cta || 'Subscribe',
-    highlight:   off.mostBought === t.tier,
-  }))
+  const mappedTiers = (off.tiers || []).filter(t => t?.name).map((t, i) => {
+    const pInr = t.prices?.INR ?? t.priceInr
+    const pUsd = t.prices?.USD ?? t.priceUsd
+    return {
+      name:        t.name,
+      price:       pInr ? `₹${Number(pInr).toLocaleString('en-IN')}` : (pUsd ? `$${pUsd}` : SAMPLE.tiers[i]?.price || ''),
+      period:      t.tier === 'recurring' ? '/month' : '',
+      description: t.summary || SAMPLE.tiers[i]?.description || '',
+      perks:       typeof t.deliverables === 'string' ? t.deliverables.split('\n').filter(Boolean) : Array.isArray(t.deliverables) ? t.deliverables.filter(Boolean) : (SAMPLE.tiers[i]?.perks || []),
+      cta:         SAMPLE.tiers[i]?.cta || 'Subscribe',
+      highlight:   off.mostBought === t.tier,
+    }
+  })
   const mappedFaqs = (know.faqs || []).filter(f => f?.question && f?.answer).map(f => ({ q: f.question, a: f.answer }))
   const mappedTestimonials = (prf.testimonials || []).filter(t => t?.quote).map(t => ({ name: t.name || '', role: t.role || '', rating: 5, quote: t.quote }))
   const social = ch.social || {}

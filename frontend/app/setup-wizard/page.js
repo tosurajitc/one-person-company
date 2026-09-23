@@ -30,7 +30,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import AdminGenieChatDrawer from '../../components/AdminGenieChatDrawer'
-
+import { TEMPLATE_MANIFESTS } from '@/lib/template-manifests'
 // ─────────────────────────────────────────────
 // Config — change these for your platform
 // ─────────────────────────────────────────────
@@ -55,6 +55,20 @@ export const TEMPLATE_CATALOGUE = [
       { slug: 'coach-mentor',        name: 'Coach / Mentor',              accent: '#c2693e', status: 'live',         extraFields: [] },
       { slug: 'freelancer-creative', name: 'Freelancer / Creative',       accent: '#6d28d9', status: 'live',         extraFields: [] },
       { slug: 'agency-of-one',       name: 'Agency-of-One',               accent: '#334155', status: 'live',         extraFields: [] },
+    ],
+  },
+  {
+    id: 'experiences-travel',
+    section: 'Experiences & Travel',
+    icon: 'MapPin',
+    templates: [
+      {
+        slug: 'travel-host',
+        name: 'Travel Creator & Tour Organiser',
+        accent: '#0B4F55',
+        status: 'live',
+        extraFields: TEMPLATE_MANIFESTS['travel-host'].wizardFields,
+      },
     ],
   },
   {
@@ -588,12 +602,7 @@ function Step1({ onAiDraft, aiState }) {
                   { value: 'global', label: 'Outside India', hint: 'Prices in $' },
                   { value: 'both', label: 'Both', hint: 'Separate ₹ and $ prices' },
                 ]} columns={3} />}
-            {langPrefilled
-              ? <ConfirmedChip label="Website language" value={langLabel} onEdit={() => prefilledPaths.delete('start.language')} />
-              : <Select path="start.language" label="Website language" options={[
-                  { value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' },
-                  { value: 'bn', label: 'Bengali' }, { value: 'en-hi', label: 'English + Hindi' },
-                ]} />}
+
           </div>
         </div>
       ) : (
@@ -610,34 +619,10 @@ function Step1({ onAiDraft, aiState }) {
               ]}
               columns={3}
             />
-            <Select
-              path="start.language"
-              label="Website language"
-              options={[
-                { value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' },
-                { value: 'bn', label: 'Bengali' }, { value: 'en-hi', label: 'English + Hindi' },
-              ]}
-            />
           </div>
         </>
       )}
 
-      <div className="rounded-xl border border-dashed border-blue-300 bg-blue-50/40 p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-        <div className="text-sm text-gray-700">
-          <p className="font-medium text-gray-900">Re-draft with AI</p>
-          <p className="text-xs text-gray-500">Updates positioning, offers and FAQs from your description. Prices and facts stay yours.</p>
-        </div>
-        <button
-          type="button"
-          onClick={onAiDraft}
-          disabled={!data.start.description.trim() || aiState.status === 'loading'}
-          className="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-        >
-          {aiState.status === 'loading'
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Drafting…</>
-            : <><Sparkles className="w-4 h-4 mr-2" />Draft with AI</>}
-        </button>
-      </div>
       {aiState.status === 'done' && <p className="text-sm text-green-700">Draft added. Review each step, especially prices, before you build.</p>}
       {aiState.status === 'error' && <Warning>{aiState.message}</Warning>}
     </div>
@@ -1640,17 +1625,39 @@ function buildSitePayload(d) {
         ...(currencies.includes('INR') ? { INR: num(t.priceInr) } : {}),
         ...(currencies.includes('USD') ? { USD: num(t.priceUsd) } : {}),
       },
+      priceInr: num(t.priceInr),
+      priceUsd: num(t.priceUsd),
       highlight: d.offers.mostBought === t.tier,
     }))
 
   const n = d.positioning
   const sentence = `I help ${n.buyer} who struggle with ${n.problem} to get ${n.outcome}${n.timeframe ? ` within ${n.timeframe}` : ''}${n.fear ? `, without ${n.fear}` : ''}.`
 
+  const CATEGORY_DEFAULT_TEMPLATES = {
+    'service-based': { section: 'service-based', slug: 'consultant-advisor' },
+    'knowledge-content': { section: 'knowledge-content', slug: 'course-creator' },
+    'local-trade': { section: 'local-trade', slug: 'local-service-pro' },
+    'product-commerce': { section: 'product-commerce', slug: 'digital-product-seller' },
+    'hybrid-platform': { section: 'hybrid-platform', slug: 'community-led' },
+    'consulting': { section: 'service-based', slug: 'consultant-advisor' },
+    'coaching': { section: 'service-based', slug: 'coach-mentor' },
+    'freelance': { section: 'service-based', slug: 'freelancer-creative' },
+    'agency-of-one': { section: 'service-based', slug: 'agency-of-one' },
+    'creator': { section: 'knowledge-content', slug: 'course-creator' },
+    'author': { section: 'knowledge-content', slug: 'author-speaker' },
+    'local': { section: 'local-trade', slug: 'local-service-pro' },
+    'clinic': { section: 'local-trade', slug: 'clinic-practitioner' },
+    'experiences-travel': { section: 'experiences-travel', slug: 'travel-host' },
+  }
+  const defaultMapping = CATEGORY_DEFAULT_TEMPLATES[d.start?.businessType] || { section: 'service-based', slug: 'consultant-advisor' }
+  const resolvedTemplateSlug = d.template?.slug || defaultMapping.slug
+  const resolvedTemplateSection = d.template?.sectionId || defaultMapping.section
+
   return {
     schemaVersion: SCHEMA_VERSION,
     template: TEMPLATE_ID,
-    templateSlug: d.template?.slug || null,
-    templateSection: d.template?.sectionId || null,
+    templateSlug: resolvedTemplateSlug,
+    templateSection: resolvedTemplateSection,
     createdAt: new Date().toISOString(),
 
     site: {
@@ -1717,7 +1724,15 @@ function buildSitePayload(d) {
       clientsServed: num(d.proof.clientsServed),
       credentials: clean(d.proof.credentials),
       results: d.proof.results.filter(r => r.number && r.label),
-      caseStudies: d.proof.caseStudies.filter(c => c.client || c.result),
+      caseStudies: d.proof.caseStudies
+        .filter(c => c.client || c.result || c.whatYouDid || c.detail)
+        .map(c => ({
+          client: c.client || '',
+          result: c.result || '',
+          detail: c.detail || c.whatYouDid || '',
+          whatYouDid: c.whatYouDid || c.detail || '',
+          sector: c.sector || '',
+        })),
       testimonials: d.proof.testimonials.filter(t => t.name && t.quote),
     },
 

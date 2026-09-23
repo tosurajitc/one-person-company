@@ -17,6 +17,8 @@ from .user_site_settings import UserSiteSettings
 from .agent_session import AgentSession, AgentSessionMessage, SessionStatus, AgentSessionMessageRole
 from .founder_site import FounderSite, FounderSiteSlugHistory
 from .enquiry import Enquiry, EnquiryStatus
+from .user_ai_credential import UserAiCredential, AiProviderType
+from .ad_management_state import AdManagementState, StepVerificationStatus
 
 __all__ = [
     "User", "UserRole", "OAuthProvider",
@@ -42,4 +44,8 @@ __all__ = [
     "FounderSiteSlugHistory",
     "Enquiry",
     "EnquiryStatus",
+    "UserAiCredential",
+    "AiProviderType",
+    "AdManagementState",
+    "StepVerificationStatus",
 ]

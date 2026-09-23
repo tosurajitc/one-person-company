@@ -14,7 +14,7 @@ import { useSiteConfig } from '../hooks/useSiteConfig'
 const SUPPRESS_HEADER_PREFIXES = ['/admin', '/templates']
 
 function isFounderSitePath(pathname) {
-  if (SUPPRESS_HEADER_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) return true
+  if (SUPPRESS_HEADER_PREFIXES.some(p => pathname.startsWith(p + '/'))) return true
   const PLATFORM_ROUTES = new Set([
     'dashboard', 'profile', 'settings', 'platform', 'setup-wizard',
     'login', 'signout', 'pricing', 'resources', 'community',

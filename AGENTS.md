@@ -69,7 +69,7 @@ These are not in sync. A user can be authenticated in-app but the middleware won
 ### `next.config.js` has hardcoded legacy redirects
 Old paths like `/platform/ai-genie`, `/platform/website-builder` redirect to the real current routes. The live platform directories are `ai-website-builder/`, `content-studio/`, `offers-payments/` — do not add pages at the old names.
 
-### Alembic has 17 applied migrations
+### Alembic has applied migrations
 `alembic.ini` is fully configured. Migration scripts are in `alembic/versions/` — always run `alembic upgrade head` from `backend/` before starting the server. If you add a new model, import it in `alembic/env.py` before running `--autogenerate`.
 
 Current migration chain (oldest → newest):
@@ -89,6 +89,11 @@ Current migration chain (oldest → newest):
 14. `g2h3i4j5k6l7` — add `template_slug` + `template_section` columns to user_site_settings + composite index (Phase 2 / Template system)
 15. `b7c8d9e0f1a2` — add `ai_generations_count` + `ai_generation_credits` columns to users (Phase 2 / AI credit tracking)
 16. `h3i4j5k6l7m8` — merge heads: `b7c8d9e0f1a2`, `e3f4a5b6c7d8`, `g2h3i4j5k6l7` (bookkeeping only — no DDL)
+17. `i4j5k6l7m8n9` — add `ai_tokens_used` to users
+18. `j5k6l7m8n9o0` — add `referral_code` to users
+19. `k6l7m8n9o0p1` — add `wallet_balance` and `wallet_consumed` to users
+20. `l7m8n9o0p1q2` — add `enquiries` table for AI Sales Desk
+21. `ea6387773f80` — add `user_ai_credentials` and `ad_management_states` tables
 
 > ⚠️ Migration 12 (`e3f4a5b6c7d8`) adds a unique constraint on `user_site_settings(user_id, key)`. Before running it on a DB that had the old wizard, de-duplicate any rows with the same `(user_id, key)` first.
 
@@ -99,6 +104,14 @@ Current migration chain (oldest → newest):
 - `site_build_routes.py` — `POST /api/sites/build` (Phase 1 — requires login, validates slug via `reserved_names.py`, creates/updates `founder_sites` row, syncs offers, returns preview URL); **`GET /api/sites/public/{slug}`** (Phase 1 — returns published site payload including `templateSlug`; no auth required)
 - `fb_agent_routes.py` — `POST /api/agent/fb-marketing/chat`: Facebook Marketing specialist via Anthropic Claude Sonnet
 - `agent_session_routes.py` — live specialist session lifecycle: start / heartbeat / stop / message / get
+- `enquiry_routes.py` — `GET /api/enquiries/mine`, `POST /api/enquiries`, `POST /api/enquiries/{id}/regenerate-draft`, `POST /api/enquiries/{id}/approve-and-send`
+
+### Ad Management Suite & BYOK AI Engine (Phase 3)
+- `core/crypto.py` — AES-256 Fernet symmetric encryption & key masking for securing sensitive BYOK credentials at rest.
+- `models/user_ai_credential.py` — `UserAiCredential` model storing encrypted custom API keys (`groq`, `anthropic`, `openai`, `openrouter`).
+- `models/ad_management_state.py` — `AdManagementState` tracking 100% human-in-the-loop verification status (`DRAFT` → `VERIFIED` → `APPLIED`) across all 4 tiers (Audit, Tracking/CAPI, Creatives, Diagnostics/Rules).
+- `frontend/components/AdManagementSection.js` — Ad management dashboard view with dynamic industry selection, tooltips, funnel visualizer, and step navigation.
+- `frontend/components/AiKeyConfigModal.js` — BYOK key configuration modal integrated across Ad Management & AI Sales Desk.
 
 ### New service files added (Phase 1)
 - `services/reserved_names.py` — single source of truth for reserved usernames and site slugs; used by registration, `content_routes.py`, and `site_build_routes.py`. Call `is_available(name, db=db, check_site_slug=True)` — returns `(True, None)` or `(False, reason)`.

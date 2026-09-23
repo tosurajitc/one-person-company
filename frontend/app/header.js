@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, FileText, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown, LayoutDashboard, LayoutTemplate, ExternalLink, Wallet, Share2 } from 'lucide-react'
+import { Menu, X, Brain, Sparkles, Zap, ArrowRight, Search, ChevronDown, Globe, MessageSquare, PenTool, Users, BarChart3, Shield, Settings, LogOut, User, Bell, Crown, LayoutDashboard, LayoutTemplate, ExternalLink, Wallet, Share2 } from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
 
 // Founder site slugs match /[a-z0-9][a-z0-9-]* with no sub-path,
@@ -12,11 +12,11 @@ import { useSiteConfig } from '../hooks/useSiteConfig'
 // own nav renders cleanly at the top of the page.
 // Routes that have their own full-page shell (AdminShell, founder site nav, etc.)
 // and must NOT render the platform header/footer.
-const SUPPRESS_HEADER_PREFIXES = ['/admin', '/templates/']
+const SUPPRESS_HEADER_PREFIXES = ['/admin', '/templates']
 
 function isFounderSitePath(pathname) {
   // Admin routes have their own AdminShell header
-  if (SUPPRESS_HEADER_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) return true
+  if (SUPPRESS_HEADER_PREFIXES.some(p => pathname.startsWith(p + '/'))) return true
   // Founder site slugs: single lowercase segment, not a known platform route
   const PLATFORM_ROUTES = new Set([
     'dashboard', 'profile', 'settings', 'platform', 'setup-wizard',
@@ -190,30 +190,12 @@ export default function Header() {
                         </div>
                       </div>
                     </Link>
-                    <Link href="/platform/offers-payments" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                      <div className="flex items-center">
-                        <FileText className="w-5 h-5 mr-3 text-purple-500" />
-                        <div>
-                          <div className="font-medium">Referral Programme</div>
-                          <div className="text-xs text-gray-500">Earn 20% lifetime commission on referrals</div>
-                        </div>
-                      </div>
-                    </Link>
                     <Link href="/platform/content-studio" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                       <div className="flex items-center">
                         <PenTool className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="font-medium">Digital Workforce</div>
                           <div className="text-xs text-gray-500">AI-generated copy, posts & emails</div>
-                        </div>
-                      </div>
-                    </Link>
-                    <Link href="/dashboard" className="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                      <div className="flex items-center">
-                        <BarChart3 className="w-5 h-5 mr-3 text-red-500" />
-                        <div>
-                          <div className="font-medium">Business Analytics</div>
-                          <div className="text-xs text-gray-500">Revenue, visitors & customer insights</div>
                         </div>
                       </div>
                     </Link>
@@ -607,13 +589,6 @@ export default function Header() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     AI Website Builder
-                  </Link>
-                  <Link
-                    href="/platform/offers-payments"
-                    className="block py-2 pl-2 text-gray-600 hover:text-blue-600 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Referral Programme
                   </Link>
                   <Link
                     href="/platform/content-studio"

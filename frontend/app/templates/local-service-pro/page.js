@@ -502,15 +502,16 @@ function HowItWorksSection() {
 
 // ─── Testimonials with locality label ────────────────────────────────────────
 function ReviewsSection() {
+  const data = useData()
   const [active, setActive] = useState(0)
   const [direction, setDirection] = useState(1)
 
   const navigate = (dir) => {
     setDirection(dir)
-    setActive(prev => (prev + dir + useData().testimonials.length) % useData().testimonials.length)
+    setActive(prev => (prev + dir + data.testimonials.length) % data.testimonials.length)
   }
 
-  const t = useData().testimonials[active]
+  const t = data.testimonials[active]
 
   return (
     <section id="reviews" className="py-20" style={{ background: T.forestDark }}>
@@ -519,7 +520,7 @@ function ReviewsSection() {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: T.saffron }}>What customers say</p>
             <h2 className="text-3xl md:text-4xl font-black text-white">
-              {useData().business.reviews} reviews · {useData().business.rating}★ average
+              {data.business.reviews} reviews · {data.business.rating}★ average
             </h2>
           </div>
           {/* Nav arrows */}

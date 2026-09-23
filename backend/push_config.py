@@ -30,14 +30,13 @@ rows = {
     "valueProps": [
         {"title": "Your Genie Builds It",       "description": "Describe your business in plain English. Your AI Genie generates your website, copy, and offer pages automatically.",             "highlight": "vs. DIY Page Builders"},
         {"title": "Sells While You Sleep",      "description": "AI-powered sales flows, lead capture, and follow-up sequences that convert visitors into paying customers — hands-free.",          "highlight": "vs. Manual Follow-up"},
-        {"title": "Runs Your Support",          "description": "A trained AI handles customer questions, bookings, and FAQs so you never lose a lead to slow response times.",                    "highlight": "vs. Hiring Staff"},
-        {"title": "One Dashboard, Everything",  "description": "Manage your website, offers, content, community, and analytics from a single clean admin — no switching tools.",                  "highlight": "vs. 10 Disconnected Apps"},
+        {"title": "Runs Your Marketing Campaign", "description": "AI-driven ad campaigns, content creation, and automated outreach that find and attract clients on autopilot.",            "highlight": "vs. Hiring Agencies"},
+        {"title": "One Dashboard, Everything",    "description": "Use the Admin to build and manage your website, and your Dashboard to track sales, run marketing, and grow your business.",   "highlight": "vs. 10 Disconnected Apps"},
     ],
     "features": [
         {"title": "AI Website Builder",    "description": "Describe your business and your Genie builds a complete, branded website — no design skills needed", "preview": "Live site in under 10 minutes",       "link": "/platform/ai-website-builder", "status": "Available"},
-        {"title": "Offers & Payments",     "description": "Create service packages, digital products, and payment links in minutes — sell anything solo",           "preview": "Connect your payment gateway",       "link": "/platform/offers-payments",   "status": "Available"},
-        {"title": "Founder Community",     "description": "Connect with fellow OPC founders, share wins, get feedback, and find collaborators",                    "preview": "Private, moderated founder network", "link": "/community",                  "status": "Coming Soon"},
         {"title": "Digital Workforce",     "description": "Generate blog posts, social captions, email sequences, and pitch decks with one prompt",                "preview": "Publish across all channels",        "link": "/platform/content-studio",    "status": "Available"},
+        {"title": "Templates",             "description": "Browse 16 ready-made, high-converting website templates built for solo founders",                     "preview": "Browse 16 ready-made templates",     "link": "/templates",                  "status": "Available"},
     ],
     "testimonials": [
         {"name": "Priya Sharma",  "role": "Independent Consultant", "content": "I launched my consulting website and started getting client enquiries within 48 hours. The AI Genie wrote better copy than I ever could have on my own.", "rating": 5},

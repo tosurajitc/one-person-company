@@ -79,7 +79,10 @@ export const WIZARD_SCHEMA = {
     clientsServed: '',
     credentials: [''],
     results: [],
-    caseStudies: [],
+    caseStudies: [
+      { client: '', result: '', whatYouDid: '', detail: '', sector: '' },
+      { client: '', result: '', whatYouDid: '', detail: '', sector: '' },
+    ],
     testimonials: [],
   },
 
@@ -172,6 +175,13 @@ export const WIZARD_SCHEMA = {
     notifyEmail: '',
     analyticsId: '',
   },
+
+  template: {
+    sectionId: '',
+    slug: '',
+  },
+
+  template_data: {},
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

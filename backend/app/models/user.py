@@ -55,6 +55,8 @@ class User(Base):
     ai_generations_count = Column(Integer, default=0, nullable=False)
     ai_generation_credits = Column(Integer, default=0, nullable=False)
     ai_tokens_used = Column(Integer, default=0, nullable=False)
+    # Tokens consumed specifically by /api/genie/refine-answer calls
+    ai_refine_tokens_used = Column(Integer, default=0, nullable=False)
 
     # User Wallet
     wallet_balance = Column(Numeric(10, 2), default=0.0, nullable=False)
@@ -92,6 +94,7 @@ class User(Base):
             "ai_generations_count": self.ai_generations_count or 0,
             "ai_generation_credits": self.ai_generation_credits or 0,
             "ai_tokens_used": self.ai_tokens_used or 0,
+            "ai_refine_tokens_used": self.ai_refine_tokens_used or 0,
             "wallet_balance": float(self.wallet_balance or 0.0),
             "wallet_consumed": float(self.wallet_consumed or 0.0),
             "referral_code": self.referral_code,
