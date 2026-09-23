@@ -780,7 +780,7 @@ function TemplateFooter() {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function PhysicalArtisanTemplate({ data }) {
+export default function EducationMigrationTemplate({ data }) {
   const value = payloadToData(data)
   return (
     <DataCtx.Provider value={value}>

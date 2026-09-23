@@ -16,6 +16,9 @@
  * server-side (in _apply_programmatic_defaults in genie_routes.py) so the
  * website is always complete even when the LLM leaves fields blank.
  *
+ * THEME: bottle green (#053728 / #0a4836) + light green (#a7f3c0 / #d9f5e4 / #f2faf5) + orange buttons.
+ * LAYOUT: full-width (like the home page). Sidebar + 2-column question grid on wide screens.
+ *
  * API CONTRACT
  *   POST /api/genie/intake     — generate prefill from user answers
  *   POST /api/genie/save-wizard — save completed state directly (skips wizard)
@@ -35,6 +38,11 @@ const SCHEMA_VERSION = '2.0'
 const ANSWERS_STORAGE_KEY = 'genie_intake_answers_v2'
 const PREFILL_KEY = 'genie_prefill'
 const CONFIRM_KEY = 'genie_needs_confirmation'
+
+// Shared theme class strings
+const BTN_ORANGE = 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-md shadow-orange-500/30'
+const BTN_GREEN = 'bg-[#0a4836] hover:bg-[#053728] text-white'
+const CARD = 'bg-white rounded-2xl border border-[#c9f2d8]'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Questions (drawn from the book's positioning, pricing and proof chapters)
@@ -278,7 +286,7 @@ const createEmptyIntake = () => ({
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-const inputCls = 'w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500'
+const inputCls = 'w-full px-3.5 py-2.5 bg-white border border-[#c9f2d8] rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0f6b4f] focus:border-[#0f6b4f]'
 
 function getIn(obj, path) {
   return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj)
@@ -436,12 +444,12 @@ function Collapsible({ title, count, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   if (!count) return null
   return (
-    <div className="rounded-xl border border-gray-200 overflow-hidden">
+    <div className="rounded-xl border border-[#c9f2d8] overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 text-sm font-semibold text-gray-800"
+        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-[#f2faf5] text-sm font-semibold text-[#06352a]"
       >
         <span>{title}</span>
         <span className="flex items-center gap-2 text-gray-500 font-normal text-xs">
@@ -449,7 +457,7 @@ function Collapsible({ title, count, children, defaultOpen = false }) {
           {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </span>
       </button>
-      {open && <div className="divide-y divide-gray-100 border-t border-gray-100 bg-gray-50">{children}</div>}
+      {open && <div className="divide-y divide-[#d9f5e4] border-t border-[#d9f5e4] bg-[#f2faf5]">{children}</div>}
     </div>
   )
 }
@@ -494,7 +502,7 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
       <button
         type="button"
         onClick={onMobileToggle}
-        className="lg:hidden fixed bottom-6 right-6 z-50 w-12 h-12 bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center"
+        className={`lg:hidden fixed bottom-6 right-6 z-50 w-12 h-12 ${BTN_ORANGE} rounded-full flex items-center justify-center`}
         aria-label="Toggle question menu"
       >
         {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -510,9 +518,9 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
         className={[
           'bg-white z-40 transition-transform duration-300',
           /* desktop — sticky inline column */
-          'lg:static lg:translate-y-0 lg:translate-x-0 lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden lg:flex lg:flex-col',
+          'lg:static lg:translate-y-0 lg:translate-x-0 lg:rounded-2xl lg:border lg:border-[#c9f2d8] lg:shadow-sm lg:overflow-hidden lg:flex lg:flex-col lg:max-h-[calc(100vh-8rem)]',
           /* mobile — slide-up sheet */
-          'fixed bottom-0 left-0 right-0 rounded-t-2xl shadow-2xl px-4 pt-3 pb-6',
+          'fixed bottom-0 left-0 right-0 rounded-t-2xl shadow-2xl px-4 pt-3 pb-6 max-h-[80vh] overflow-y-auto lg:overflow-visible lg:px-0 lg:pt-0 lg:pb-0',
           mobileOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0',
         ].join(' ')}
       >
@@ -522,13 +530,13 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
         </div>
 
         {/* header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 shrink-0">
-          <span className="text-sm font-semibold text-gray-800">Your intake</span>
-          <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[#d9f5e4] shrink-0">
+          <span className="text-sm font-semibold text-[#06352a]">Your intake</span>
+          <span className="text-xs font-semibold text-[#0a4836] bg-[#d9f5e4] px-2 py-0.5 rounded-full">
             {answeredKeys.size}/{QUESTIONS.length}
           </span>
         </div>
-        <p className="lg:hidden text-xs font-semibold text-gray-700 mb-3">Jump to a section</p>
+        <p className="lg:hidden text-xs font-semibold text-gray-700 px-4 pt-3">Jump to a section</p>
 
         {/* scrollable nav list */}
         <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
@@ -536,10 +544,10 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
             const isActive = activeId === sec.id
             const answered = sec.key ? answeredKeys.has(sec.key) : false
             const dot = answered
-              ? 'bg-green-500 text-white'
+              ? 'bg-[#0f6b4f] text-white'
               : sec.required
               ? 'bg-red-100 text-red-600 ring-1 ring-red-300'
-              : 'bg-gray-100 text-gray-500'
+              : 'bg-[#d9f5e4] text-[#0a4836]'
             return (
               <button
                 key={sec.id}
@@ -551,8 +559,8 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
                 className={[
                   'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors text-sm',
                   isActive
-                    ? 'bg-primary-600 text-white font-medium'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                    ? 'bg-[#0a4836] text-white font-medium'
+                    : 'text-gray-600 hover:bg-[#f2faf5] hover:text-[#06352a]',
                 ].join(' ')}
               >
                 {/* number / status dot */}
@@ -571,9 +579,9 @@ function SideNav({ activeId, onNavigate, mobileOpen, onMobileToggle, answeredKey
         </nav>
 
         {/* footer hint */}
-        <div className="px-4 py-3 border-t border-gray-100 shrink-0">
+        <div className="px-4 py-3 border-t border-[#d9f5e4] shrink-0">
           <p className="text-[11px] text-gray-500 leading-relaxed">
-            Answer all required questions, then click <strong className="text-gray-700">Draft my website</strong>.
+            Answer all required questions, then click <strong className="text-[#06352a]">Draft my website</strong>.
           </p>
         </div>
       </aside>
@@ -908,7 +916,7 @@ function GenieIntakeWidget() {
               }),
             })
             if (!verifyRes.ok) throw new Error('Payment verification failed.')
-            
+
             // Refresh status
             const statusRes = await fetch('/api/genie/status', { headers: { Authorization: `Bearer ${token}` } })
             const updated = await statusRes.json()
@@ -951,7 +959,7 @@ function GenieIntakeWidget() {
 
   if (result) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-8">
+      <div className={`${CARD} shadow-sm p-5 sm:p-8`}>
         <ReviewPanel
           result={result}
           onSaveAndContinue={handleSaveAndGoToDashboard}
@@ -964,38 +972,35 @@ function GenieIntakeWidget() {
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-12 gap-8">
-      {/* ── Sticky sidebar (desktop) ── */}
-      <div className="hidden lg:block lg:col-span-3 self-start sticky top-24">
-        <div>
-          <SideNav
-            activeId={activeSection}
-            onNavigate={scrollToSection}
-            mobileOpen={mobileNavOpen}
-            onMobileToggle={() => setMobileNavOpen(o => !o)}
-            answeredKeys={answeredKeys}
-          />
-        </div>
+    <div className="lg:grid lg:grid-cols-12 gap-6 xl:gap-8">
+      {/* ── Section navigator — sticky sidebar on desktop, floating button + sheet on mobile ── */}
+      <div className="lg:col-span-3 2xl:col-span-2 lg:self-start lg:sticky lg:top-28">
+        <SideNav
+          activeId={activeSection}
+          onNavigate={scrollToSection}
+          mobileOpen={mobileNavOpen}
+          onMobileToggle={() => setMobileNavOpen(o => !o)}
+          answeredKeys={answeredKeys}
+        />
       </div>
 
-      {/* ── Main content ── */}
-      <div className="lg:col-span-9">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-8">
-      {/* Mobile FAB is rendered inside SideNav */}
+      {/* ── Main content — fills the rest of the width ── */}
+      <div className="lg:col-span-9 2xl:col-span-10 min-w-0">
+      <div className={`${CARD} shadow-sm p-5 sm:p-8`}>
       <form onSubmit={handleGenerate} className="space-y-6">
         {/* Quota Banner */}
         {quotaInfo?.has_saved_draft && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+          <div className="p-4 bg-[#f2faf5] border border-[#a7f3c0] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
             <div>
-              <p className="font-semibold text-blue-950">You have a saved AI website draft.</p>
-              <p className="text-xs text-blue-800 mt-0.5">
+              <p className="font-semibold text-[#06352a]">You have a saved AI website draft.</p>
+              <p className="text-xs text-[#0a4836] mt-0.5">
                 Your website is ready to edit. Generating a brand-new AI draft costs ₹99.
               </p>
             </div>
             <button
               type="button"
               onClick={handleUseSavedDraft}
-              className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap shadow-sm"
+              className={`inline-flex items-center justify-center px-4 py-2 ${BTN_GREEN} rounded-lg text-xs font-semibold whitespace-nowrap shadow-sm`}
             >
               Go to my website &rarr;
             </button>
@@ -1008,19 +1013,19 @@ function GenieIntakeWidget() {
             <span>{answeredCount} of {QUESTIONS.length} questions answered</span>
             <span>{requiredQs.length} required</span>
           </div>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-1.5 bg-primary-600 rounded-full transition-all" style={{ width: `${(answeredCount / QUESTIONS.length) * 100}%` }} />
+          <div className="h-1.5 bg-[#d9f5e4] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gradient-to-r from-[#0a4836] to-[#0f6b4f] rounded-full transition-all" style={{ width: `${(answeredCount / QUESTIONS.length) * 100}%` }} />
           </div>
         </div>
 
         {/* Basics */}
-        <fieldset id="section-basics" className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4 scroll-mt-28">
-          <legend className="w-full text-sm font-semibold text-gray-900 pb-3 mb-1 border-b border-gray-100 flex items-center gap-2.5">
-            <span className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center"><User className="w-3.5 h-3.5 text-primary-600" /></span>
+        <fieldset id="section-basics" className={`${CARD} p-5 space-y-4 scroll-mt-28`}>
+          <legend className="w-full text-sm font-semibold text-[#06352a] pb-3 mb-1 border-b border-[#d9f5e4] flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-full bg-[#d9f5e4] flex items-center justify-center"><User className="w-3.5 h-3.5 text-[#0a4836]" /></span>
             The basics
             <span className="ml-auto text-[10px] font-medium text-gray-400">Used on your website</span>
           </legend>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             <input className={inputCls} aria-label="Your name" placeholder="Your name *" value={intake.basics.ownerName} onChange={e => update('basics.ownerName', e.target.value)} />
             <input className={inputCls} aria-label="Business name" placeholder="Business name (if you have one)" value={intake.basics.brandName} onChange={e => update('basics.brandName', e.target.value)} />
             <input className={inputCls} aria-label="Business email" type="email" placeholder="Business email *" value={intake.basics.email} onChange={e => update('basics.email', e.target.value)} />
@@ -1032,7 +1037,7 @@ function GenieIntakeWidget() {
           <div className="space-y-4 pt-2">
             <div>
               <p className="text-xs font-semibold text-gray-700 mb-2">1. Select your business model category</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" role="radiogroup">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2" role="radiogroup">
                 {BUSINESS_TYPES.map(b => {
                   const active = intake.start.businessType === b.value
                   return (
@@ -1047,11 +1052,11 @@ function GenieIntakeWidget() {
                         update('template.sectionId', defaultTpl.section)
                         update('template.slug', defaultTpl.slug)
                       }}
-                      className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        active ? 'border-primary-600 bg-primary-50 ring-1 ring-primary-600' : 'border-gray-200 bg-white hover:border-gray-300'
+                      className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#0f6b4f] ${
+                        active ? 'border-[#0a4836] bg-[#f2faf5] ring-1 ring-[#0a4836]' : 'border-[#c9f2d8] bg-white hover:border-[#0f6b4f]'
                       }`}
                     >
-                      <span className={`block font-medium ${active ? 'text-primary-800' : 'text-gray-900'}`}>{b.label}</span>
+                      <span className={`block font-medium ${active ? 'text-[#053728]' : 'text-gray-900'}`}>{b.label}</span>
                       {b.hint && <span className="block text-xs text-gray-500 mt-0.5">{b.hint}</span>}
                     </button>
                   )
@@ -1066,7 +1071,7 @@ function GenieIntakeWidget() {
                 const currentSection = TEMPLATE_CATALOGUE.find(s => s.id === (intake.template?.sectionId || intake.start.businessType)) || TEMPLATE_CATALOGUE[0]
                 const templates = currentSection.templates || []
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
                     {templates.map(t => {
                       const isSelected = (intake.template?.slug || 'consultant-advisor') === t.slug
                       return (
@@ -1079,8 +1084,8 @@ function GenieIntakeWidget() {
                           }}
                           className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                             isSelected
-                              ? 'border-primary-600 bg-primary-50/70 ring-2 ring-primary-500 shadow-sm'
-                              : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                              ? 'border-[#0a4836] bg-[#f2faf5] ring-2 ring-[#0f6b4f] shadow-sm'
+                              : 'border-[#c9f2d8] bg-white hover:border-[#0f6b4f] hover:bg-[#f2faf5]'
                           }`}
                         >
                           <div
@@ -1088,12 +1093,12 @@ function GenieIntakeWidget() {
                             style={{ backgroundColor: t.accent || '#1e3a5f' }}
                           />
                           <div className="min-w-0 flex-1">
-                            <p className={`text-xs font-semibold truncate ${isSelected ? 'text-primary-900' : 'text-gray-900'}`}>
+                            <p className={`text-xs font-semibold truncate ${isSelected ? 'text-[#053728]' : 'text-gray-900'}`}>
                               {t.name}
                             </p>
                             <span className="text-[10px] text-gray-500 capitalize">{t.status === 'live' ? 'Live template' : 'Preview'}</span>
                           </div>
-                          {isSelected && <CheckCircle className="w-4 h-4 text-primary-600 shrink-0" />}
+                          {isSelected && <CheckCircle className="w-4 h-4 text-[#0a4836] shrink-0" />}
                         </button>
                       )
                     })}
@@ -1124,8 +1129,8 @@ function GenieIntakeWidget() {
           </div>
         </fieldset>
 
-        {/* Questions */}
-        <ol className="space-y-4">
+        {/* Questions — two columns on wide screens so the page is used edge to edge */}
+        <ol className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
           {QUESTIONS.map((q, i) => {
             const value = intake.answers?.[q.key] || ''
             const trimmed = value.trim()
@@ -1140,25 +1145,25 @@ function GenieIntakeWidget() {
                 key={q.key}
                 id={`section-q-${q.key}`}
                 className={`bg-white rounded-2xl border p-5 space-y-3 scroll-mt-28 transition-shadow ${
-                  answered ? 'border-green-200 shadow-sm' : incomplete && trimmed ? 'border-amber-300' : 'border-gray-200 hover:border-gray-300'
+                  answered ? 'border-[#0f6b4f]/40 shadow-sm' : incomplete && trimmed ? 'border-amber-300' : 'border-[#c9f2d8] hover:border-[#0f6b4f]/50'
                 }`}
               >
                 {/* Question header */}
                 <label htmlFor={`q-${q.key}`} className="block cursor-pointer">
                   <div className="flex items-start gap-3">
                     <span className={`shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center mt-0.5 transition-colors ${
-                      answered ? 'bg-green-500' : 'bg-primary-600'
+                      answered ? 'bg-[#0f6b4f]' : 'bg-[#0a4836]'
                     }`}>
                       {answered ? '✓' : i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 leading-snug">
+                      <p className="text-sm font-semibold text-[#06352a] leading-snug">
                         {q.title}
                         <span className="ml-1.5 text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full align-middle">required</span>
                       </p>
                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">{q.help}</p>
                     </div>
-                    {answered && <span className="shrink-0 text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full mt-1">Done</span>}
+                    {answered && <span className="shrink-0 text-[10px] font-semibold text-[#0a4836] bg-[#d9f5e4] px-2 py-0.5 rounded-full mt-1">Done</span>}
                   </div>
                 </label>
 
@@ -1187,10 +1192,10 @@ function GenieIntakeWidget() {
                               }
                               update(`answers.${q.key}`, next)
                             }}
-                            className={`text-xs rounded-lg px-3 py-1.5 border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+                            className={`text-xs rounded-lg px-3 py-1.5 border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#0f6b4f] ${
                               active
-                                ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400 hover:text-primary-700 hover:bg-primary-50'
+                                ? 'bg-[#0a4836] text-white border-[#0a4836] shadow-sm'
+                                : 'bg-white text-gray-700 border-[#c9f2d8] hover:border-[#0f6b4f] hover:text-[#0a4836] hover:bg-[#f2faf5]'
                             }`}
                           >
                             {active ? '✓ ' : '+ '}{opt.label}
@@ -1221,12 +1226,12 @@ function GenieIntakeWidget() {
                         type="button"
                         onClick={() => handleRefineWithAI(q)}
                         disabled={rs === 'loading'}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400 ${
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-orange-400 ${
                           rs === 'done'
-                            ? 'bg-green-50 text-green-700 border-green-200'
+                            ? 'bg-[#d9f5e4] text-[#053728] border-[#a7f3c0]'
                             : rs === 'loading'
-                            ? 'bg-violet-50 text-violet-400 border-violet-200 cursor-not-allowed'
-                            : 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300'
+                            ? 'bg-orange-50 text-orange-400 border-orange-200 cursor-not-allowed'
+                            : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:border-orange-300'
                         }`}
                       >
                         {rs === 'loading' ? (
@@ -1251,7 +1256,7 @@ function GenieIntakeWidget() {
                 })()}
 
                 {/* ── Footer: fills label + validation message ── */}
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1 border-t border-gray-100">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1 border-t border-[#d9f5e4]">
                   <span className="text-gray-400 flex items-center gap-1">
                     <span className="text-gray-300">→</span> Fills: {q.fills}
                   </span>
@@ -1268,16 +1273,16 @@ function GenieIntakeWidget() {
             )
           })}
 
-          {/* Social media links */}
-          <li id="section-extras" className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4 scroll-mt-28">
+          {/* Social media links — spans both columns */}
+          <li id="section-extras" className={`${CARD} p-5 space-y-4 scroll-mt-28 xl:col-span-2`}>
             <div className="flex items-center gap-2.5">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold flex items-center justify-center">{QUESTIONS.length + 1}</span>
+              <span className="shrink-0 w-6 h-6 rounded-full bg-[#0a4836] text-white text-xs font-bold flex items-center justify-center">{QUESTIONS.length + 1}</span>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Your social media profiles <span className="ml-1 text-xs font-normal text-gray-400">optional</span></p>
+                <p className="text-sm font-semibold text-[#06352a]">Your social media profiles <span className="ml-1 text-xs font-normal text-gray-400">optional</span></p>
                 <p className="text-xs text-gray-500 mt-0.5">These appear in your website footer and help Genie set the right contact channels.</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {[
                 { key: 'facebook',  placeholder: 'https://facebook.com/yourpage',    icon: 'f', label: 'Facebook',  color: '#1877F2' },
                 { key: 'youtube',   placeholder: 'https://youtube.com/@yourchannel', icon: '▶', label: 'YouTube',   color: '#FF0000' },
@@ -1317,7 +1322,7 @@ function GenieIntakeWidget() {
                   type="button"
                   onClick={handlePayForAiCredit}
                   disabled={paying}
-                  className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs rounded-lg shadow-sm"
+                  className={`inline-flex items-center px-4 py-2 ${BTN_ORANGE} font-semibold text-xs rounded-lg`}
                 >
                   {paying ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
                   Get 1 New AI Draft for ₹99
@@ -1336,11 +1341,11 @@ function GenieIntakeWidget() {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2 border-t border-[#d9f5e4]">
           <button
             type="submit"
             disabled={!canSubmit || paying}
-            className="inline-flex items-center justify-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`inline-flex items-center justify-center px-8 py-3.5 ${BTN_ORANGE} rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none`}
           >
             {loading
               ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Genie is drafting your site…</>
@@ -1362,6 +1367,7 @@ function GenieIntakeWidget() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Review panel — what Genie drafted, what to check, what only the user can add
+// Two columns on wide screens: left = positioning + offers, right = details + checks.
 // ─────────────────────────────────────────────────────────────────────────────
 function ReviewPanel({ result, onSaveAndContinue, saving, onEdit, onStartOver }) {
   const { prefill: p, needsConfirmation, removed, followUps, saved } = result
@@ -1390,11 +1396,11 @@ function ReviewPanel({ result, onSaveAndContinue, saving, onEdit, onStartOver })
   return (
     <div className="space-y-5">
       {/* Summary */}
-      <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-sm">
-        <CheckCircle className="w-5 h-5 mt-0.5 shrink-0 text-green-600" />
+      <div className="flex items-start gap-3 p-4 bg-[#f2faf5] border border-[#a7f3c0] rounded-xl text-sm">
+        <CheckCircle className="w-5 h-5 mt-0.5 shrink-0 text-[#0f6b4f]" />
         <div>
-          <p className="font-semibold text-green-900">Genie drafted your website. Review it below, then click <strong>Save &amp; go to my website</strong>.</p>
-          <p className="text-xs text-green-800 mt-0.5">
+          <p className="font-semibold text-[#06352a]">Genie drafted your website. Review it below, then click <strong>Save &amp; go to my website</strong>.</p>
+          <p className="text-xs text-[#0a4836] mt-0.5">
             {saved ? 'Draft saved to your account. You can edit every field from your dashboard.' : <>Draft kept on this device only. <a href="/login" className="underline">Log in</a> to save it to your account.</>}
           </p>
         </div>
@@ -1402,147 +1408,154 @@ function ReviewPanel({ result, onSaveAndContinue, saving, onEdit, onStartOver })
 
       {/* Follow-up questions */}
       {followUps.length > 0 && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm">
-          <p className="font-semibold text-blue-900 flex items-center gap-2 mb-2"><HelpCircle className="w-4 h-4" />Genie has a few questions to sharpen your site</p>
-          <ul className="list-disc ml-5 space-y-1 text-blue-900">
+        <div className="p-4 bg-[#f2faf5] border border-[#c9f2d8] rounded-xl text-sm">
+          <p className="font-semibold text-[#06352a] flex items-center gap-2 mb-2"><HelpCircle className="w-4 h-4" />Genie has a few questions to sharpen your site</p>
+          <ul className="list-disc ml-5 space-y-1 text-[#053728]">
             {followUps.map((q, i) => <li key={i}>{q}</li>)}
           </ul>
-          <button type="button" onClick={onEdit} className="mt-3 text-xs font-medium text-blue-700 underline">Add details to my answers</button>
+          <button type="button" onClick={onEdit} className="mt-3 text-xs font-medium text-[#0a4836] underline">Add details to my answers</button>
         </div>
       )}
 
-      {/* Positioning */}
-      <section className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-900">
-          Who your website is for
-          {['positioning.buyer', 'positioning.problem', 'positioning.outcome'].some(flagged) && <CheckBadge />}
-        </h3>
-        <p className="rounded-lg bg-gray-900 text-white px-4 py-3 text-base leading-relaxed">
-          I help {pos.buyer || '___'} who struggle with {pos.problem || '___'} to get {pos.outcome || '___'}
-          {pos.timeframe ? ` within ${pos.timeframe}` : ''}{pos.fear ? `, without ${pos.fear}` : ''}.
-        </p>
-        {(forWho.length > 0 || notFor.length > 0) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            {forWho.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">For you if…</p>
-                <ul className="space-y-1 text-gray-800">{forWho.map((s, i) => <li key={i} className="flex gap-2"><CheckCircle className="w-3.5 h-3.5 text-green-600 mt-0.5 shrink-0" />{s}</li>)}</ul>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        {/* ── Left column ── */}
+        <div className="space-y-5">
+          {/* Positioning */}
+          <section className={`${CARD} p-4 space-y-3`}>
+            <h3 className="text-sm font-semibold text-[#06352a]">
+              Who your website is for
+              {['positioning.buyer', 'positioning.problem', 'positioning.outcome'].some(flagged) && <CheckBadge />}
+            </h3>
+            <p className="rounded-lg bg-gradient-to-br from-[#021610] to-[#0a4836] text-white px-4 py-3 text-base leading-relaxed">
+              I help {pos.buyer || '___'} who struggle with {pos.problem || '___'} to get {pos.outcome || '___'}
+              {pos.timeframe ? ` within ${pos.timeframe}` : ''}{pos.fear ? `, without ${pos.fear}` : ''}.
+            </p>
+            {(forWho.length > 0 || notFor.length > 0) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                {forWho.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1">For you if…</p>
+                    <ul className="space-y-1 text-gray-800">{forWho.map((s, i) => <li key={i} className="flex gap-2"><CheckCircle className="w-3.5 h-3.5 text-[#0f6b4f] mt-0.5 shrink-0" />{s}</li>)}</ul>
+                  </div>
+                )}
+                {notFor.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1">Not for you if…</p>
+                    <ul className="space-y-1 text-gray-800">{notFor.map((s, i) => <li key={i} className="flex gap-2"><span className="text-gray-400 shrink-0">✕</span>{s}</li>)}</ul>
+                  </div>
+                )}
               </div>
             )}
-            {notFor.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">Not for you if…</p>
-                <ul className="space-y-1 text-gray-800">{notFor.map((s, i) => <li key={i} className="flex gap-2"><span className="text-gray-400 shrink-0">✕</span>{s}</li>)}</ul>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+          </section>
 
-      {/* Offers */}
-      <section className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-900">Your offers {flagged('offers') && <CheckBadge />}</h3>
-        {tiers.length === 0 ? (
-          <p className="text-sm text-gray-500">Genie couldn't build offers from your answers. You'll add them in step 4 of the wizard.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(getIn(p, 'offers.tiers') || []).map((t, i) => {
-              if (!t || !t.name) return null
-              const highlight = getIn(p, 'offers.mostBought') === t.tier
-              const shownPrice = price(t)
-              return (
-                <div key={i} className={`rounded-lg p-3 border ${highlight ? 'border-primary-500 ring-1 ring-primary-500' : 'border-gray-200'} bg-gray-50`}>
-                  <p className="text-xs text-gray-500">{tierTitle[i] || `Tier ${i + 1}`}</p>
-                  <p className="text-sm font-semibold text-gray-900 mt-0.5">{t.name}</p>
-                  {t.summary && <p className="text-xs text-gray-600 mt-1">{t.summary}</p>}
-                  <p className={`text-sm mt-2 ${shownPrice ? 'text-gray-900 font-medium' : 'text-red-600'}`}>
-                    {shownPrice || 'Price needed'}
-                  </p>
+          {/* Offers */}
+          <section className={`${CARD} p-4 space-y-3`}>
+            <h3 className="text-sm font-semibold text-[#06352a]">Your offers {flagged('offers') && <CheckBadge />}</h3>
+            {tiers.length === 0 ? (
+              <p className="text-sm text-gray-500">Genie couldn't build offers from your answers. You'll add them in step 4 of the wizard.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {(getIn(p, 'offers.tiers') || []).map((t, i) => {
+                  if (!t || !t.name) return null
+                  const highlight = getIn(p, 'offers.mostBought') === t.tier
+                  const shownPrice = price(t)
+                  return (
+                    <div key={i} className={`rounded-lg p-3 border ${highlight ? 'border-orange-500 ring-1 ring-orange-500' : 'border-[#c9f2d8]'} bg-[#f2faf5]`}>
+                      <p className="text-xs text-gray-500">{tierTitle[i] || `Tier ${i + 1}`}</p>
+                      <p className="text-sm font-semibold text-[#06352a] mt-0.5">{t.name}</p>
+                      {t.summary && <p className="text-xs text-gray-600 mt-1">{t.summary}</p>}
+                      <p className={`text-sm mt-2 ${shownPrice ? 'text-[#053728] font-medium' : 'text-red-600'}`}>
+                        {shownPrice || 'Price needed'}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Only you can add */}
+          {youItems.length > 0 && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm font-semibold text-red-800 mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />Only you can add these
+              </p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {youItems.map(item => (
+                  <li key={item.label} className="flex items-center gap-2 text-xs text-red-800 bg-red-100 rounded-lg px-3 py-2">
+                    <span className="font-medium">{item.label}</span>
+                    <span className="ml-auto text-red-500 font-semibold whitespace-nowrap">Step {item.step}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* ── Right column ── */}
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Collapsible title="Why you (credentials & case studies)" count={credentials.length + caseStudies.length + testimonials.length}>
+              {credentials.map((c, i) => <p key={`c${i}`} className="px-4 py-2.5 text-sm text-gray-800">{c}</p>)}
+              {caseStudies.map((c, i) => (
+                <div key={`s${i}`} className="px-4 py-3 text-sm">
+                  <p className="font-medium text-gray-900">{c.client}</p>
+                  {c.result && <p className="text-gray-700">{c.result}</p>}
                 </div>
-              )
-            })}
+              ))}
+              {testimonials.map((t, i) => (
+                <div key={`t${i}`} className="px-4 py-3 text-sm">
+                  <p className="text-gray-800">“{t.quote}”</p>
+                  <p className="text-xs text-gray-500 mt-1">{t.name}{t.role ? `, ${t.role}` : ''}</p>
+                </div>
+              ))}
+            </Collapsible>
+            <Collapsible title="How working with you goes" count={process.length}>
+              {process.map((s, i) => (
+                <div key={i} className="px-4 py-2.5 text-sm"><span className="font-medium text-gray-900">{i + 1}. {s.title}</span>{s.detail && <span className="text-gray-600">: {s.detail}</span>}</div>
+              ))}
+            </Collapsible>
+            <Collapsible title="FAQs" count={faqs.length}>
+              {faqs.map((f, i) => (
+                <div key={i} className="px-4 py-3 text-sm">
+                  <p className="font-medium text-gray-900">{f.question}</p>
+                  <p className="text-gray-700 mt-0.5">{f.answer}</p>
+                </div>
+              ))}
+            </Collapsible>
           </div>
-        )}
-      </section>
 
-      {/* Collections */}
-      <div className="space-y-2">
-        <Collapsible title="Why you (credentials & case studies)" count={credentials.length + caseStudies.length + testimonials.length}>
-          {credentials.map((c, i) => <p key={`c${i}`} className="px-4 py-2.5 text-sm text-gray-800">{c}</p>)}
-          {caseStudies.map((c, i) => (
-            <div key={`s${i}`} className="px-4 py-3 text-sm">
-              <p className="font-medium text-gray-900">{c.client}</p>
-              {c.result && <p className="text-gray-700">{c.result}</p>}
+          {/* Check these */}
+          {(checkLabels.length > 0 || removed.length > 0) && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900">
+              <p className="font-semibold flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4" />Please check these in the wizard</p>
+              {checkLabels.length > 0 && (
+                <p className="mb-2">Genie inferred: {checkLabels.join(', ')}. They're marked for review.</p>
+              )}
+              {removed.length > 0 && (
+                <>
+                  <p className="mb-1">Genie suggested these, but they weren't in your answers, so we removed them:</p>
+                  <ul className="list-disc ml-5 space-y-0.5">{removed.map(r => <li key={r.path}>{r.label}</li>)}</ul>
+                </>
+              )}
             </div>
-          ))}
-          {testimonials.map((t, i) => (
-            <div key={`t${i}`} className="px-4 py-3 text-sm">
-              <p className="text-gray-800">“{t.quote}”</p>
-              <p className="text-xs text-gray-500 mt-1">{t.name}{t.role ? `, ${t.role}` : ''}</p>
-            </div>
-          ))}
-        </Collapsible>
-        <Collapsible title="How working with you goes" count={process.length}>
-          {process.map((s, i) => (
-            <div key={i} className="px-4 py-2.5 text-sm"><span className="font-medium text-gray-900">{i + 1}. {s.title}</span>{s.detail && <span className="text-gray-600">: {s.detail}</span>}</div>
-          ))}
-        </Collapsible>
-        <Collapsible title="FAQs" count={faqs.length}>
-          {faqs.map((f, i) => (
-            <div key={i} className="px-4 py-3 text-sm">
-              <p className="font-medium text-gray-900">{f.question}</p>
-              <p className="text-gray-700 mt-0.5">{f.answer}</p>
-            </div>
-          ))}
-        </Collapsible>
+          )}
+        </div>
       </div>
 
-      {/* Check these */}
-      {(checkLabels.length > 0 || removed.length > 0) && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900">
-          <p className="font-semibold flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4" />Please check these in the wizard</p>
-          {checkLabels.length > 0 && (
-            <p className="mb-2">Genie inferred: {checkLabels.join(', ')}. They're marked for review.</p>
-          )}
-          {removed.length > 0 && (
-            <>
-              <p className="mb-1">Genie suggested these, but they weren't in your answers, so we removed them:</p>
-              <ul className="list-disc ml-5 space-y-0.5">{removed.map(r => <li key={r.path}>{r.label}</li>)}</ul>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Only you can add */}
-      {youItems.length > 0 && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-          <p className="text-sm font-semibold text-red-800 mb-3 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />Only you can add these
-          </p>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {youItems.map(item => (
-              <li key={item.label} className="flex items-center gap-2 text-xs text-red-800 bg-red-100 rounded-lg px-3 py-2">
-                <span className="font-medium">{item.label}</span>
-                <span className="ml-auto text-red-500 font-semibold whitespace-nowrap">Step {item.step}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-gray-200">
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[#d9f5e4]">
         <button
           type="button"
           onClick={onSaveAndContinue}
           disabled={saving}
-          className="inline-flex items-center justify-center px-8 py-3.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-colors flex-1"
+          className={`inline-flex items-center justify-center px-8 py-3.5 ${BTN_ORANGE} disabled:opacity-60 disabled:cursor-not-allowed rounded-xl font-bold text-sm transition-all flex-1`}
         >
           {saving
             ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving your website…</>
             : <>Save &amp; go to my website<ArrowRight className="w-4 h-4 ml-2" /></>}
         </button>
-        <button type="button" onClick={onEdit} disabled={saving} className="inline-flex items-center justify-center px-6 py-3.5 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-50 disabled:opacity-50">
+        <button type="button" onClick={onEdit} disabled={saving} className="inline-flex items-center justify-center px-6 py-3.5 bg-white border border-[#0a4836] text-[#0a4836] rounded-xl font-medium text-sm hover:bg-[#f2faf5] disabled:opacity-50">
           Edit my answers
         </button>
         <button type="button" onClick={onStartOver} disabled={saving} className="inline-flex items-center justify-center px-4 py-3.5 text-gray-500 hover:text-red-600 text-sm disabled:opacity-50">
@@ -1576,32 +1589,33 @@ export default function AIWebsiteBuilderPage() {
   if (!authChecked) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Top banner */}
-      <div className="bg-blue-600 text-white text-center py-3 px-4 text-sm font-medium">
-        Answer a few questions about your business. Our AI drafts your positioning, offers and pages.
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page header */}
-        <div className="mb-6">
-          <div className="inline-flex items-center px-3 py-1.5 bg-primary-50 border border-primary-100 rounded-full text-xs font-medium mb-3 text-primary-700">
+    <div className="min-h-screen w-full bg-gradient-to-b from-[#f2faf5] to-white pt-16 lg:pt-20">
+      {/* Full-width hero band — same bottle-green gradient as the home page */}
+      <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#021610] via-[#053728] to-[#0a4836]">
+        <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#a7f3c0] opacity-10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-[#a7f3c0] opacity-10 blur-3xl" />
+        <div className="relative w-full px-4 sm:px-6 lg:px-10 2xl:px-16 py-12 lg:py-16 text-center">
+          <div className="inline-flex items-center px-4 py-1.5 bg-[#a7f3c0]/10 border border-[#a7f3c0]/30 rounded-full text-xs font-medium mb-4 text-[#a7f3c0]">
             <Sparkles className="w-3.5 h-3.5 mr-1.5" />
             {feature.status || 'Available'}
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 leading-tight">
+          <h1 className="text-3xl md:text-5xl font-black text-white mb-4 leading-tight">
             {feature.title || 'AI Website Builder'}
           </h1>
-          <p className="text-sm text-gray-600 max-w-xl leading-relaxed">
-            Takes about 10 minutes. Keep your price list and LinkedIn link handy.
+          <p className="text-base md:text-lg text-emerald-50/80 max-w-2xl mx-auto leading-relaxed">
+            Answer a few questions about your business. Our AI drafts your positioning, offers and pages.
+            Takes about 10 minutes — keep your price list and LinkedIn link handy.
           </p>
         </div>
+      </section>
 
+      {/* Full-width content area */}
+      <main className="w-full px-4 sm:px-6 lg:px-10 2xl:px-16 py-8 lg:py-10">
         <GenieIntakeWidget />
-        <p className="text-center text-xs text-gray-400 mt-4 pb-8">
+        <p className="text-center text-xs text-gray-500 mt-6 pb-8">
           Your answers are saved on this device as you type. Genie never invents prices, numbers or testimonials.
         </p>
-      </div>
+      </main>
     </div>
   )
 }

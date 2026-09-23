@@ -610,18 +610,12 @@ function SiteNav({ payload }) {
 // Template registry — slug → dynamic import
 // ─────────────────────────────────────────────────────────────────────────────
 const TEMPLATE_COMPONENTS = {
-  'consultant-advisor':     lazy(() => import('../templates/consultant-advisor/page')),
-  'coach-mentor':           lazy(() => import('../templates/coach-mentor/page')),
-  'freelancer-creative':    lazy(() => import('../templates/freelancer-creative/page')),
-  'agency-of-one':          lazy(() => import('../templates/agency-of-one/page')),
-  'course-creator':         lazy(() => import('../templates/course-creator/page')),
-  'author-speaker':         lazy(() => import('../templates/author-speaker/page')),
-  'newsletter-community':   lazy(() => import('../templates/newsletter-community/page')),
-  'local-service-pro':      lazy(() => import('../templates/local-service-pro/page')),
-  'clinic-practitioner':    lazy(() => import('../templates/clinic-practitioner/page')),
-  'physical-artisan':       lazy(() => import('../templates/physical-artisan/page')),
-  'digital-product-seller': lazy(() => import('../templates/digital-product-seller/page')),
   'tutor-training':         lazy(() => import('../templates/tutor-training/page')),
+  'trip-architect':         lazy(() => import('../templates/trip-architect/page')),
+  'education-migration':    lazy(() => import('../templates/education-migration/page')),
+  'civil-architect-consultant': lazy(() => import('../templates/civil-architect-consultant/page')),
+  'consultant-advisor':     lazy(() => import('../templates/consultant-advisor/page')),
+  'home-interior-vastu':    lazy(() => import('../templates/home-interior-vastu/page')),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

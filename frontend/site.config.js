@@ -301,12 +301,11 @@ const siteConfig = {
     platform: [
       { name: 'AI Website Builder', href: '/platform/ai-website-builder' },
       { name: 'Referral Programme', href: '/platform/offers-payments' },
-      { name: 'Digital Workforce',  href: '/platform/content-studio' },
+      { name: 'AI Genie',           href: '/platform/ai-genie' },
       { name: 'Analytics',          href: '/dashboard' },
       { name: 'Community',          href: '/community' },
     ],
     resources: [
-      { name: 'Playbooks',   href: '/resources' },
       { name: 'Blog',        href: '/blog' },
       { name: 'Case Studies', href: '/case-studies' },
       { name: 'Help Center', href: '/help' },
@@ -353,7 +352,7 @@ const siteConfig = {
       { title: 'Build', before: 'One month with a developer', after: 'One prompt, live in minutes' },
       { title: 'Sell', before: 'Stitching together checkout tools', after: 'Offer page + payments in a day' },
       { title: 'Run', before: 'Answering DMs at midnight', after: 'AI Genie handles enquiries 24/7' },
-      { title: 'Grow', before: 'Guessing what\'s working', after: 'Founder analytics + playbooks' },
+      { title: 'Grow', before: 'Guessing what\'s working', after: 'Founder analytics + insights' },
     ],
     comparison_table: {
       competitors: ['OPC Genie', 'Graphy', 'Kajabi', 'Skool'],

@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import AdminGenieChatDrawer from '../../components/AdminGenieChatDrawer'
 import { TEMPLATE_MANIFESTS } from '@/lib/template-manifests'
+import { CIVIL_ARCH_WIZARD_FIELDS } from '@/lib/civil-arch-schema'
 // ─────────────────────────────────────────────
 // Config — change these for your platform
 // ─────────────────────────────────────────────
@@ -55,6 +56,8 @@ export const TEMPLATE_CATALOGUE = [
       { slug: 'coach-mentor',        name: 'Coach / Mentor',              accent: '#c2693e', status: 'live',         extraFields: [] },
       { slug: 'freelancer-creative', name: 'Freelancer / Creative',       accent: '#6d28d9', status: 'live',         extraFields: [] },
       { slug: 'agency-of-one',       name: 'Agency-of-One',               accent: '#334155', status: 'live',         extraFields: [] },
+      { slug: 'civil-architect-consultant', name: 'Civil / Architectural Consultant',
+        accent: '#0F4C81', status: 'live', extraFields: CIVIL_ARCH_WIZARD_FIELDS },
     ],
   },
   {
@@ -1648,6 +1651,7 @@ function buildSitePayload(d) {
     'local': { section: 'local-trade', slug: 'local-service-pro' },
     'clinic': { section: 'local-trade', slug: 'clinic-practitioner' },
     'experiences-travel': { section: 'experiences-travel', slug: 'travel-host' },
+    'civil-architect': { section: 'service-based', slug: 'civil-architect-consultant' },
   }
   const defaultMapping = CATEGORY_DEFAULT_TEMPLATES[d.start?.businessType] || { section: 'service-based', slug: 'consultant-advisor' }
   const resolvedTemplateSlug = d.template?.slug || defaultMapping.slug

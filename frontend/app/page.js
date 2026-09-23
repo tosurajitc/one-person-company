@@ -1,99 +1,208 @@
 'use client'
 
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, createContext, useContext } from 'react'
 import Link from 'next/link'
-import { Brain, BookOpen, Users, Award, Building, ChevronRight, Play, Star, ArrowRight, Code, Zap, Target, TrendingUp, MessageSquare, Lightbulb, Shield, Globe, CheckCircle, Sparkles, Rocket, Database, PenTool, LayoutTemplate } from 'lucide-react'
+import {
+  Globe, Sparkles, LayoutTemplate, CreditCard, Users, MessageSquare,
+  ArrowRight, ArrowUp, Play, Star, CheckCircle, ChevronDown, Rocket, Zap,
+  TrendingUp, Brain, Code, Lightbulb, Shield, Target, ImageIcon,
+} from 'lucide-react'
 import { useSiteConfig } from '../hooks/useSiteConfig'
-
+import HeroGlowBackground from '../components/HeroGlowBackground'
 // Context so all sub-components can access the (possibly API-loaded) config
 const SiteConfigCtx = createContext(null)
 const useCfg = () => useContext(SiteConfigCtx)
 
-// Custom CSS animations and styles component
+// ─────────────────────────────────────────────
+// Theme — Bottle Green + Light Green + Orange
+// Edit the :root variables to re-theme the whole page.
+// ─────────────────────────────────────────────
 function CustomStyles() {
   return (
     <style jsx global>{`
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-      
-      * {
-        font-family: 'Inter', sans-serif;
+
+      :root {
+        --bottle-950: #021610;
+        --bottle-900: #06352a;
+        --bottle-800: #053728;
+        --bottle-700: #0a4836;
+        --leaf-300: #a7f3c0;
+        --leaf-200: #c9f2d8;
+        --leaf-100: #d9f5e4;
+        --leaf-50: #f2faf5;
+        --orange-500: #f97316;
+        --orange-600: #ea580c;
       }
-      
-      .card-hover {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      * { font-family: 'Inter', sans-serif; }
+
+      .bg-bottle-gradient { background: linear-gradient(135deg, var(--bottle-950) 0%, var(--bottle-800) 55%, var(--bottle-700) 100%); }
+      .bg-bottle-gradient-deep { background: linear-gradient(160deg, var(--bottle-950) 0%, var(--bottle-900) 60%, var(--bottle-800) 100%); }
+      .bg-leaf-soft { background: linear-gradient(180deg, var(--leaf-50) 0%, #ffffff 100%); }
+
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
       }
-      
-      .card-hover:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.1);
-      }
-      
-      .text-accent {
-        color: #2563eb;
-      }
-      
+
+      .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+      .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px -12px rgba(6, 53, 42, 0.25); }
+
+      .text-accent { color: var(--bottle-700); }
+      .text-leaf { color: var(--leaf-300); }
+
       .btn-primary {
-        background: #2563eb;
+        background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
         transition: all 0.2s ease;
+        box-shadow: 0 10px 25px -8px rgba(249, 115, 22, 0.55);
       }
-      
-      .btn-primary:hover {
-        background: #1d4ed8;
-        transform: translateY(-1px);
+      .btn-primary:hover { background: linear-gradient(135deg, #fb923c, var(--orange-500)); transform: translateY(-1px); }
+
+      .btn-ghost { border: 1px solid rgba(167, 243, 192, 0.45); color: #ffffff; transition: all 0.2s ease; }
+      .btn-ghost:hover { background: rgba(167, 243, 192, 0.12); border-color: var(--leaf-300); }
+
+      .btn-primary:focus-visible, .btn-ghost:focus-visible, .tab-pill:focus-visible, .faq-btn:focus-visible {
+        outline: 2px solid var(--leaf-300);
+        outline-offset: 3px;
       }
+
+      /* Scrolling marquee (trusted-by + "tools" strips) */
+      .marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+      .marquee-track { display: flex; gap: 1rem; width: max-content; animation: marquee 38s linear infinite; }
+      .marquee-track.reverse { animation-direction: reverse; animation-duration: 46s; }
+      .marquee:hover .marquee-track { animation-play-state: paused; }
+      @keyframes marquee { to { transform: translateX(calc(-50% - 0.5rem)); } }
+      @media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; } }
     `}</style>
   )
 }
 
-// Modern Hero Section with advanced styling
+// Placeholder for product screenshots. Pass `image` (e.g. '/images/home/website-builder.png') to replace it.
+function MockPanel({ label, image, dark = false }) {
+  return (
+    <div className={`relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-xl ${dark ? 'border-[#a7f3c0]/20 bg-[#021610]' : 'border-[#c9f2d8] bg-white'}`}>
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt={label} className="absolute inset-0 w-full h-full object-cover" />
+      ) : (
+        <>
+          <div className={`flex items-center gap-1.5 px-4 py-3 border-b ${dark ? 'border-[#a7f3c0]/15' : 'border-[#d9f5e4]'}`}>
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#a7f3c0]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#0a4836]" />
+          </div>
+          <div className="p-5 space-y-3">
+            <div className={`h-4 w-2/5 rounded ${dark ? 'bg-[#a7f3c0]/30' : 'bg-[#0a4836]/80'}`} />
+            <div className={`h-3 w-4/5 rounded ${dark ? 'bg-white/10' : 'bg-[#d9f5e4]'}`} />
+            <div className={`h-3 w-3/5 rounded ${dark ? 'bg-white/10' : 'bg-[#d9f5e4]'}`} />
+            <div className="grid grid-cols-3 gap-3 pt-2">
+              <div className={`h-16 rounded-xl ${dark ? 'bg-white/10' : 'bg-[#f2faf5] border border-[#d9f5e4]'}`} />
+              <div className={`h-16 rounded-xl ${dark ? 'bg-white/10' : 'bg-[#f2faf5] border border-[#d9f5e4]'}`} />
+              <div className="h-16 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 opacity-90" />
+            </div>
+          </div>
+          <div className="absolute left-4 bottom-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/30 text-white/90 text-[11px] font-medium">
+            <ImageIcon className="w-3.5 h-3.5" /> {label} screenshot placeholder
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// 1. Hero — headline, CTAs, stat strip, Genie prompt card
+// ─────────────────────────────────────────────
+const GENIE_PROMPTS = [
+  'Write ad copy for my new coaching offer',
+  'Which visa route suits a freelancer?',
+  'What ITR form do I file as a consultant?',
+  'Plan the interiors of my home studio',
+]
+
 function HeroSection() {
   const siteConfig = useCfg()
+  const hero = siteConfig.hero
+  const stats = (siteConfig.stats || []).slice(0, 4)
+  const hw = hero.highlightWord
+
   return (
     <>
       <CustomStyles />
-      <section className="relative min-h-screen bg-white overflow-hidden flex items-center border-b border-gray-100">
-        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center px-5 py-2 bg-primary-50 border border-primary-100 rounded-full text-sm font-medium mb-8 text-primary-700">
-              <Sparkles className="w-4 h-4 mr-2" />
-              {siteConfig.hero.badge}
+      <section className="relative bg-bottle-gradient overflow-hidden">
+        <HeroGlowBackground />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20 text-center">
+          <div className="inline-flex items-center px-5 py-2 bg-[#a7f3c0]/10 border border-[#a7f3c0]/30 rounded-full text-sm font-medium mb-8 text-[#a7f3c0]">
+            <Sparkles className="w-4 h-4 mr-2" />
+            {hero.badge}
+          </div>
+
+          <h1 className="text-4xl md:text-6xl font-black text-white mb-6 leading-tight">{hero.headline}</h1>
+
+          <p className="text-lg md:text-2xl text-emerald-50/80 mb-10 max-w-3xl mx-auto leading-relaxed">
+            {hw
+              ? hero.subheadline.split(hw).map((part, i, arr) =>
+                  i < arr.length - 1
+                    ? <span key={i}>{part}<span className="text-leaf font-semibold">{hw}</span></span>
+                    : <span key={i}>{part}</span>
+                )
+              : hero.subheadline}
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
+            <Link href={hero.cta.primary.href || '/setup-wizard'} className="btn-primary text-white px-10 py-4 rounded-xl font-bold text-lg flex items-center justify-center group">
+              {hero.cta.primary.text}
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <a
+              href={hero.cta.secondary.href || 'https://www.youtube.com'}
+              target={hero.cta.secondary.href?.startsWith('http') ? '_blank' : undefined}
+              rel={hero.cta.secondary.href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+              className="btn-ghost px-10 py-4 rounded-xl font-bold text-lg flex items-center justify-center"
+            >
+              <Play className="w-5 h-5 mr-2" />
+              {hero.cta.secondary.text}
+            </a>
+          </div>
+
+          {/* Stat strip with dividers */}
+          {stats.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-y-6 mb-16">
+              {stats.map((stat, i) => (
+                <div key={i} className="flex items-center">
+                  <div className="px-8 text-center">
+                    <div className="text-3xl md:text-4xl font-black text-white">{stat.number}</div>
+                    <div className="text-sm text-emerald-100/70 mt-1">{stat.label}</div>
+                  </div>
+                  {i < stats.length - 1 && <span className="hidden sm:block h-10 w-px bg-[#a7f3c0]/25" />}
+                </div>
+              ))}
             </div>
-            
-            <h1 className="text-4xl md:text-6xl font-black text-gray-900 mb-8 leading-tight">
-              {siteConfig.hero.headline}
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-500 mb-12 max-w-4xl mx-auto leading-relaxed">
-              {siteConfig.hero.subheadline.split(siteConfig.hero.highlightWord).map((part, i, arr) =>
-                i < arr.length - 1
-                  ? <span key={i}>{part}<span className="text-primary-600 font-semibold">{siteConfig.hero.highlightWord}</span></span>
-                  : <span key={i}>{part}</span>
-              )}
+          )}
+
+          {/* Genie prompt card */}
+          <div className="glass-effect border border-[#a7f3c0]/25 rounded-3xl p-6 sm:p-8 text-left max-w-3xl mx-auto shadow-2xl">
+            <p className="text-sm font-semibold text-[#a7f3c0] flex items-center gap-2 mb-1">
+              <Sparkles className="w-4 h-4" /> Shukto — your co-founder on call
             </p>
-            
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Link
-                href={siteConfig.hero.cta.primary.href || '/setup-wizard'}
-                className="btn-primary text-white px-10 py-4 rounded-xl font-bold text-lg flex items-center justify-center group"
-              >
-                {siteConfig.hero.cta.primary.text}
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              {/* Watch in Action — opens YouTube URL set by admin, falls back to a YouTube search */}
-              <a
-                href={siteConfig.hero.cta.secondary.href || 'https://www.youtube.com'}
-                target={siteConfig.hero.cta.secondary.href?.startsWith('http') ? '_blank' : undefined}
-                rel={siteConfig.hero.cta.secondary.href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="text-gray-700 px-10 py-4 rounded-xl font-bold text-lg flex items-center justify-center border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <Play className="w-5 h-5 mr-2" />
-                {siteConfig.hero.cta.secondary.text}
-              </a>
+            <p className="text-emerald-50/70 text-sm mb-5">Specialists for marketing, legal, tax, migration, education, interiors and travel. Your first minute is free.</p>
+
+            <Link href="/platform/ai-genie" className="flex items-center justify-between bg-white rounded-2xl pl-5 pr-2 py-2 group">
+              <span className="text-gray-400 text-sm sm:text-base">Ask anything about your business…</span>
+              <span className="btn-primary w-10 h-10 rounded-xl flex items-center justify-center text-white">
+                <ArrowUp className="w-5 h-5" />
+              </span>
+            </Link>
+
+            <div className="flex flex-wrap gap-2 mt-5">
+              {GENIE_PROMPTS.map((p) => (
+                <Link key={p} href="/platform/ai-genie" className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-emerald-50 bg-white/5 hover:bg-[#a7f3c0]/15 border border-[#a7f3c0]/25 rounded-full px-4 py-2 transition-colors">
+                  <Sparkles className="w-3.5 h-3.5 text-[#a7f3c0]" /> {p}
+                </Link>
+              ))}
             </div>
-
-
           </div>
         </div>
       </section>
@@ -101,170 +210,313 @@ function HeroSection() {
   )
 }
 
-// Enhanced Value Propositions Section
-function ValuePropsSection() {
+// ─────────────────────────────────────────────
+// 2. Trusted-by marquee
+// ─────────────────────────────────────────────
+function TrustedMarquee() {
   const siteConfig = useCfg()
-  // Icons cycle for the value prop cards
-  const vpIcons = [Brain, Code, Lightbulb, Globe, Shield, Zap, Target, TrendingUp]
-  const vpColors = [
-    'bg-primary-600', 'bg-primary-600',
-    'bg-primary-600', 'bg-primary-600',
-    'bg-primary-600', 'bg-primary-600',
-  ]
-  const valueProps = (siteConfig.valueProps || []).map((vp, i) => ({
-    ...vp,
-    icon: vpIcons[i % vpIcons.length],
-    color: vpColors[i % vpColors.length],
-  }))
-  const wd = siteConfig.whyDifferent || {}
-  const wdTitle = wd.title || "Why We're Different"
-  const wdSubtitle = wd.subtitle || "Other tools just give you features. OPC Genie gives you a business. Here's what makes us different."
+    const names = ['Teachers', 'Consultants', 'Experts', 'Architects', 'Coaches']
+  if (names.length === 0) return null
+
+  // Repeat the names until one group is far wider than any screen
+  const repeats = Math.ceil(16 / names.length)
+  const group = Array.from({ length: repeats }, () => names).flat()
 
   return (
-    <section className="py-32 bg-gray-50 relative overflow-hidden">
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6">
-            {wdTitle.replace("Different", "").trim()} <span className="text-accent">Different</span>
-          </h2>
-          <p className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-            {wdSubtitle}
-          </p>
-        </div>
+    <section className="bg-white border-b border-[#d9f5e4] py-16 overflow-hidden">
+      <p className="text-center text-sm text-gray-500 mb-10 px-4">Built for the people who run it alone</p>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 mt-32">
-          {valueProps.map((prop, index) => {
-            const Icon = prop.icon
-            return (
-              <div key={index} className="card-hover group relative bg-white rounded-2xl p-8 border border-gray-200">
-                <div className="relative">
-                  <div className="flex items-center mb-6">
-                    <div className={`${prop.color} rounded-xl p-3 mr-4`}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">{prop.title}</h3>
-                  <p className="text-gray-500 mb-5 leading-relaxed">{prop.description}</p>
-                  <div className="bg-gray-100 text-gray-600 text-sm px-4 py-1.5 rounded-full font-medium inline-block">
-                    {prop.highlight}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mb-16 mt-24">
-              {siteConfig.stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-gray-700 mb-2">{stat.number}</div>
-                  <div className="text-gray-400 text-sm">{stat.label}</div>
+      <div className="tb-marquee">
+        <div className="tb-track">
+          {[0, 1].map((g) => (
+            <div key={g} className="tb-group" aria-hidden={g === 1}>
+              {group.map((n, i) => (
+                <div key={i} className="tb-item">
+                  <span className={`tb-word ${i % 2 ? 'tb-outline' : 'tb-solid'}`}>{n}</span>
+                  <span className="tb-link" />
                 </div>
               ))}
             </div>
+          ))}
+        </div>
+      </div>
 
+      <div className="tb-rule mt-10" />
 
-            {/* Social Proof */}
-            <div className="text-center">
-              <p className="text-sm text-gray-400 mb-6">Trusted by professionals at</p>
-              <div className="flex justify-center items-center space-x-8 opacity-60">
-                {siteConfig.trustedBy.map((company, index) => (
-                  <div key={index} className="px-6 py-2 rounded-lg text-gray-600 font-medium border border-gray-200 bg-white">
-                    {company}
-                  </div>
-                ))}
-              </div>
+      <style jsx global>{`
+        .tb-marquee {
+          width: 100%;
+          overflow: hidden;
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+        }
+        .tb-track {
+          display: flex;
+          width: max-content;
+          animation: tb-scroll 60s linear infinite;
+        }
+        .tb-marquee:hover .tb-track { animation-play-state: paused; }
+        .tb-group { display: flex; align-items: center; flex-shrink: 0; min-width: 100vw; }
+        .tb-item { display: flex; align-items: center; flex-shrink: 0; }
+
+        .tb-word {
+          font-size: clamp(2.25rem, 5vw, 4rem);
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          line-height: 1.1;
+          white-space: nowrap;
+          transition: color 0.3s ease;
+        }
+        .tb-solid { color: #06352a; }
+        .tb-outline { color: transparent; -webkit-text-stroke: 1.5px #0a4836; }
+        .tb-item:hover .tb-outline { color: #0a4836; }
+
+        /* thin connector with a glowing node, like a synapse */
+        .tb-link {
+          position: relative;
+          flex-shrink: 0;
+          width: 6rem;
+          height: 1px;
+          margin: 0 1.25rem;
+          background: linear-gradient(90deg, transparent, rgba(10, 72, 54, 0.4), transparent);
+        }
+        .tb-link::after {
+          content: '';
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 9px;
+          height: 9px;
+          transform: translate(-50%, -50%);
+          border-radius: 9999px;
+          background: #a7f3c0;
+          box-shadow: 0 0 0 4px rgba(167, 243, 192, 0.35), 0 0 18px rgba(10, 72, 54, 0.35);
+        }
+
+        /* hairline with a light running along it */
+        .tb-rule { position: relative; height: 1px; background: #c9f2d8; overflow: hidden; }
+        .tb-rule::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 30%;
+          background: linear-gradient(90deg, transparent, #0a4836, transparent);
+          animation: tb-run 6s ease-in-out infinite;
+        }
+
+        @keyframes tb-scroll { to { transform: translateX(-50%); } }
+        @keyframes tb-run { from { left: -30%; } to { left: 100%; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .tb-track, .tb-rule::after { animation: none; }
+        }
+      `}</style>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────
+// 3. All-in-one — tabbed product areas
+// ─────────────────────────────────────────────
+const PRODUCT_TABS = [
+  {
+    id: 'website', label: 'Website Builder', icon: Globe, href: '/platform/ai-website-builder',
+    title: 'Answer a few questions. Get a live website.',
+    body: 'Tell the Genie about your business, confirm the details in the setup wizard, pick a look, and your site goes live at your own address.',
+    points: ['Home, offers, about, work, FAQ and contact pages, all generated', 'Prices, names and testimonials come only from you, never invented', 'Change any detail later and the live site updates'],
+  },
+  {
+    id: 'genie', label: 'AI Genie', icon: Sparkles, href: '/platform/ai-genie',
+    title: 'Seven specialists, on call by the minute.',
+    body: 'Marketing, legal, tax, migration, higher education, interiors and travel. Pick a Genie, describe the job, and get a finished draft.',
+    points: ['First minute free on every session', 'Voice or text, attach a file for context', 'Ad copy, contracts, tax answers and trip plans in minutes'],
+  },
+  {
+    id: 'templates', label: 'Templates', icon: LayoutTemplate, href: '/templates',
+    title: 'A look built for your kind of business.',
+    body: 'Browse ready-made founder sites for consultants, coaches, creators, local services and more, and preview them with sample data first.',
+    points: ['Templates for service, knowledge, local and product businesses', 'Live previews before you commit', 'Your content stays put if you switch later'],
+  },
+  {
+    id: 'offers', label: 'Offers & Payments', icon: CreditCard, href: '/platform/offers-payments',
+    title: 'Package what you know. Get paid.',
+    body: 'Turn your services, courses and coaching into priced offers with their own pages, and collect payment through Razorpay or Stripe.',
+    points: ['Tiered offers with clear deliverables', 'Rupee and dollar pricing', 'Checkout built into every offer page'],
+  },
+  {
+    id: 'community', label: 'Community', icon: Users, href: '/dashboard/community',
+    title: 'A paid space for your audience.',
+    body: 'Open a members-only community with threads, events and free or paid joining, all under your own name.',
+    points: ['Free or paid membership', 'Threads, replies and events', 'You control the rules and who gets in'],
+  },
+  {
+    id: 'enquiries', label: 'Sales Desk', icon: MessageSquare, href: '/contact',
+    title: 'Never leave an enquiry waiting.',
+    body: 'Enquiries land in one inbox and the Genie drafts a reply from your real offers. You review it before anything is sent.',
+    points: ['Replies drafted from your actual offers', 'You approve every message', 'Follow-ups tracked so nothing slips'],
+  },
+]
+
+function ProductTabs() {
+  const [active, setActive] = useState(PRODUCT_TABS[0].id)
+  const tab = PRODUCT_TABS.find(t => t.id === active)
+  const Icon = tab.icon
+
+  return (
+    <section className="py-28 bg-leaf-soft">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <h2 className="text-4xl md:text-5xl font-black text-[#06352a] mb-5">
+            Everything a one-person company needs. <span className="text-accent">Nothing it doesn&apos;t.</span>
+          </h2>
+          <p className="text-lg text-gray-600">Six tools, one login. Pick one to see what it does.</p>
+        </div>
+
+        <div role="tablist" aria-label="Platform features" className="flex gap-2 overflow-x-auto sm:flex-wrap sm:justify-center pb-3 mb-10">
+          {PRODUCT_TABS.map((t) => {
+            const TabIcon = t.icon
+            const isActive = t.id === active
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActive(t.id)}
+                className={`tab-pill shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border transition-all ${
+                  isActive ? 'bg-[#0a4836] text-white border-[#0a4836] shadow-md' : 'bg-white text-[#0a4836] border-[#c9f2d8] hover:border-[#0a4836]'
+                }`}
+              >
+                <TabIcon className="w-4 h-4" /> {t.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div role="tabpanel" className="grid lg:grid-cols-2 gap-10 items-center bg-white border border-[#c9f2d8] rounded-3xl p-6 sm:p-10 shadow-sm">
+          <div>
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#053728] to-[#0a4836] flex items-center justify-center mb-5">
+              <Icon className="w-6 h-6 text-[#a7f3c0]" />
             </div>
-
-
-
-
-
-
+            <h3 className="text-2xl sm:text-3xl font-black text-[#06352a] mb-3">{tab.title}</h3>
+            <p className="text-gray-600 mb-6 leading-relaxed">{tab.body}</p>
+            <ul className="space-y-3 mb-8">
+              {tab.points.map((p) => (
+                <li key={p} className="flex items-start gap-3 text-gray-700">
+                  <CheckCircle className="w-5 h-5 text-[#0a4836] mt-0.5 shrink-0" /> <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <Link href={tab.href} className="btn-primary inline-flex items-center text-white px-7 py-3 rounded-xl font-bold">
+              Explore {tab.label} <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          </div>
+          <MockPanel label={tab.label} />
+        </div>
       </div>
     </section>
   )
 }
 
-// Enhanced Platform Features Showcase
-function FeaturesShowcase() {
-  const siteConfig = useCfg()
-  const featureIconsMap = {
-    'AI Website Builder': Globe,
-    'Digital Workforce': PenTool,
-    'Templates': LayoutTemplate,
-  }
-  const featureIcons = [Globe, PenTool, LayoutTemplate, BookOpen, MessageSquare, Code]
-  const featureColors = [
-    'bg-primary-600', 'bg-primary-600',
-    'bg-primary-600', 'bg-primary-600',
-    'bg-primary-600', 'bg-primary-600',
-  ]
-  const ecosystemSection = siteConfig.ecosystemSection || {}
-  const ecosystemTitle = ecosystemSection.title || 'Everything You Need to Launch'
-  const ecosystemSubtitle = ecosystemSection.subtitle || 'One platform to build, brand, sell, and run your one-person company'
-  const features = (siteConfig.features || []).map((f, i) => ({
-    ...f,
-    icon: featureIconsMap[f.title] || featureIcons[i % featureIcons.length],
-    color: featureColors[i % featureColors.length],
-  }))
+// ─────────────────────────────────────────────
+// 4. "Many tools walk in, one company walks out"
+// ─────────────────────────────────────────────
+const TOOL_ROW_A = ['a website builder', 'a copywriter', 'a payment gateway', 'a page designer', 'a course platform', 'a booking calendar']
+const TOOL_ROW_B = ['an ad specialist', 'a tax advisor', 'a legal advisor', 'an invoicing tool', 'a community app', 'a CRM spreadsheet']
 
+function ToolsSection() {
+  const row = (items, reverse) => (
+    <div className="marquee">
+      <div className={`marquee-track ${reverse ? 'reverse' : ''}`}>
+        {[...items, ...items].map((t, i) => (
+          <div key={i} className="px-6 py-3 rounded-full bg-white/5 border border-[#a7f3c0]/25 text-emerald-50 whitespace-nowrap">{t}</div>
+        ))}
+      </div>
+    </div>
+  )
   return (
-    <section className="py-32 bg-gray-900 relative overflow-hidden">
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          <h2 className="text-5xl md:text-6xl font-black text-white mb-6">
-            {ecosystemTitle} <span className="text-primary-400">Ecosystem</span>
+    <section className="py-28 bg-bottle-gradient-deep overflow-hidden">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 className="text-4xl md:text-5xl font-black text-white mb-5">
+          A dozen tools walk in. <span className="text-leaf">One company walks out.</span>
+        </h2>
+        <p className="text-lg md:text-xl text-emerald-50/75 mb-14">Stop stitching subscriptions together. Run the whole business from one place, under your name.</p>
+      </div>
+
+      <div className="space-y-4">
+        {row(TOOL_ROW_A, false)}
+        {row(TOOL_ROW_B, true)}
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 mt-14">
+        <div className="glass-effect border border-[#a7f3c0]/30 rounded-3xl p-8 text-center">
+          <p className="text-2xl font-black text-white mb-5">…and out comes</p>
+          <div className="flex flex-wrap justify-center gap-3 mb-6">
+            {['a consulting practice', 'a coaching business', 'a paid community', 'a course academy', 'a local service brand'].map(x => (
+              <span key={x} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#a7f3c0]/10 border border-[#a7f3c0]/30 text-[#a7f3c0] text-sm font-semibold">
+                <CheckCircle className="w-4 h-4" /> {x}
+              </span>
+            ))}
+          </div>
+          <p className="text-emerald-50/80 font-medium">One dashboard &nbsp;•&nbsp; One brand &nbsp;•&nbsp; One place the money lands</p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────
+// 5. Build · Sell · Run · Grow deep dive (alternating rows)
+// ─────────────────────────────────────────────
+const PILLARS = [
+  {
+    icon: Rocket, title: 'Build', tagline: 'From idea to a live site in a single sitting.',
+    points: ['Genie asks the right questions and fills in the wizard', 'Copy written for you, checked so it never invents prices or claims', 'Pick a theme and preview it with your own content'],
+  },
+  {
+    icon: CreditCard, title: 'Sell', tagline: 'Turn what you know into offers people can buy.',
+    points: ['Tiered offers with their own landing pages', 'Razorpay for India, Stripe for the world', 'Free trials and paid communities on the same checkout'],
+  },
+  {
+    icon: Zap, title: 'Run', tagline: 'Let the busywork happen while you do the real work.',
+    points: ['Enquiries collected in one inbox', 'Reply drafts you approve before they go out', 'Specialist Genies for legal, tax, marketing and more'],
+  },
+  {
+    icon: TrendingUp, title: 'Grow', tagline: 'Keep customers coming back and bring new ones in.',
+    points: ['Ad copy, video scripts and content calendars from the marketing Genie', 'Communities and events for your best customers', 'Analytics and insights for each stage of your business'],
+  },
+]
+
+function PillarsSection() {
+  return (
+    <section className="py-28 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <h2 className="text-4xl md:text-5xl font-black text-[#06352a] mb-5">
+            Inside Shukto
           </h2>
-          <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
-            {ecosystemSubtitle}
-          </p>
+          <p className="text-lg text-gray-600">A closer look at how one person builds, sells, runs and grows a real company.</p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mt-32">
-          {features.map((feature, index) => {
-            const Icon = feature.icon
-            const isAvailable = feature.status === 'Available' || feature.status === 'Live Demo'
-            
+        <div className="space-y-24">
+          {PILLARS.map((p, i) => {
+            const Icon = p.icon
             return (
-              <div key={index} className="card-hover group relative glass-effect rounded-3xl p-8 border border-white border-opacity-20">
-                {/* Status Badge */}
-                <div className="absolute top-6 right-6">
-                  <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                    isAvailable 
-                      ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500 border-opacity-30' 
-                      : 'bg-yellow-500 bg-opacity-20 text-yellow-400 border border-yellow-500 border-opacity-30'
-                  }`}>
-                    {feature.status}
-                  </span>
-                </div>
-
-                <div className="flex items-center mb-6">
-                  <div className={`${feature.color} rounded-xl p-3 mr-4`}>
-                    <Icon className="w-6 h-6 text-white" />
+              <div key={p.title} className={`grid lg:grid-cols-2 gap-12 items-center ${i % 2 === 1 ? 'lg:[&>*:first-child]:order-2' : ''}`}>
+                <div>
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#d9f5e4] text-[#0a4836] text-sm font-bold mb-5">
+                    <Icon className="w-4 h-4" /> {p.title}
                   </div>
-                  <h3 className="text-2xl font-bold text-white">{feature.title}</h3>
+                  <h3 className="text-3xl md:text-4xl font-black text-[#06352a] mb-6">{p.tagline}</h3>
+                  <ul className="space-y-4">
+                    {p.points.map((pt) => (
+                      <li key={pt} className="flex items-start gap-3 text-gray-700 text-lg">
+                        <CheckCircle className="w-5 h-5 text-orange-500 mt-1 shrink-0" /> <span>{pt}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                
-                <p className="text-gray-300 mb-4 leading-relaxed">{feature.description}</p>
-                <p className="text-sm text-blue-400 mb-8 font-medium">{feature.preview}</p>
-                
-                {isAvailable ? (
-                  <Link href={feature.link} className="inline-flex items-center text-white bg-white bg-opacity-10 hover:bg-opacity-20 px-6 py-3 rounded-xl font-medium transition-all border border-white border-opacity-20">
-                    {feature.status === 'Live Demo' ? 'Try Now' : 'Learn More'}
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                  </Link>
-                ) : feature.link ? (
-                  <Link href={feature.link} className="inline-flex items-center text-gray-400 hover:text-gray-200 px-6 py-3 rounded-xl font-medium border border-gray-600 hover:border-gray-400 transition-all">
-                    Coming Soon <ChevronRight className="w-4 h-4 ml-2" />
-                  </Link>
-                ) : (
-                  <button className="inline-flex items-center text-gray-400 cursor-not-allowed px-6 py-3 rounded-xl font-medium border border-gray-600">
-                    Coming Soon <ChevronRight className="w-4 h-4 ml-2" />
-                  </button>
-                )}
+                <MockPanel label={p.title} />
               </div>
             )
           })}
@@ -274,47 +526,83 @@ function FeaturesShowcase() {
   )
 }
 
-// Enhanced Social Proof Section
-function SocialProofSection() {
+// ─────────────────────────────────────────────
+// 6. Why we're different (config-driven value props)
+// ─────────────────────────────────────────────
+function ValuePropsSection() {
   const siteConfig = useCfg()
-  const tColors = ['bg-primary-600', 'bg-primary-600', 'bg-primary-600', 'bg-primary-600']
-  const testimonials = (siteConfig.testimonials || []).map((t, i) => ({
-    ...t,
-    color: tColors[i % tColors.length],
-  }))
-  const socialProofSection = siteConfig.socialProofSection || {}
-  const spTitle = socialProofSection.title || 'Trusted by'
-  const spHighlight = socialProofSection.highlight || 'AI Professionals'
-  const spSubtitle = socialProofSection.subtitle || "Join thousands who've accelerated their AI careers"
+  const vpIcons = [Brain, Code, Lightbulb, Globe, Shield, Zap, Target, TrendingUp]
+  const valueProps = (siteConfig.valueProps || []).map((vp, i) => ({ ...vp, icon: vpIcons[i % vpIcons.length] }))
+  if (valueProps.length === 0) return null
+  const wd = siteConfig.whyDifferent || {}
+  const wdTitle = wd.title || "Why We're Different"
+  const wdSubtitle = wd.subtitle || "Other tools just give you features. Shukto gives you a business."
 
   return (
-    <section className="py-32 bg-white border-t border-gray-100 relative overflow-hidden">
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6">
+    <section className="py-28 bg-leaf-soft">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-black text-[#06352a] mb-5">
+            {wdTitle.replace('Different', '').trim()} <span className="text-accent">Different</span>
+          </h2>
+          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">{wdSubtitle}</p>
+        </div>
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {valueProps.map((prop, index) => {
+            const Icon = prop.icon
+            return (
+              <div key={index} className="card-hover bg-white rounded-2xl p-8 border border-[#c9f2d8]">
+                <div className="bg-gradient-to-br from-[#053728] to-[#0a4836] rounded-xl p-3 w-fit mb-6 shadow-md">
+                  <Icon className="w-6 h-6 text-[#a7f3c0]" />
+                </div>
+                <h3 className="text-xl font-bold text-[#06352a] mb-3">{prop.title}</h3>
+                <p className="text-gray-500 mb-5 leading-relaxed">{prop.description}</p>
+                <div className="bg-[#d9f5e4] text-[#0a4836] text-sm px-4 py-1.5 rounded-full font-semibold inline-block">{prop.highlight}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────
+// 7. Testimonials (config-driven)
+// ─────────────────────────────────────────────
+function SocialProofSection() {
+  const siteConfig = useCfg()
+  const testimonials = siteConfig.testimonials || []
+  const sp = siteConfig.socialProofSection || {}
+  const spTitle = sp.title || 'Trusted by'
+  const spHighlight = sp.highlight || 'Solo Founders'
+  const spSubtitle = sp.subtitle || 'Real people running real one-person companies'
+  if (testimonials.length === 0) return null
+
+  return (
+    <section className="py-28 bg-white border-t border-[#d9f5e4]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-black text-[#06352a] mb-5">
             {spTitle} <span className="text-accent">{spHighlight}</span>
           </h2>
-          <p className="text-xl md:text-2xl text-gray-600 leading-relaxed">{spSubtitle}</p>
+          <p className="text-lg md:text-xl text-gray-600">{spSubtitle}</p>
         </div>
-
-        <div className="grid md:grid-cols-3 gap-8 mt-32">
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="card-hover bg-white rounded-2xl p-8 border border-gray-200 relative overflow-hidden">
-              <div className={`absolute top-0 left-0 w-full h-1 ${testimonial.color}`}></div>
-              
+        <div className="grid md:grid-cols-3 gap-8">
+          {testimonials.map((t, index) => (
+            <div key={index} className="card-hover bg-[#f2faf5] rounded-2xl p-8 border border-[#c9f2d8] relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#053728] via-[#0a4836] to-[#a7f3c0]" />
               <div className="flex items-center mb-6">
-                {[...Array(testimonial.rating)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                ))}
+                {[...Array(t.rating || 5)].map((_, i) => <Star key={i} className="w-5 h-5 text-orange-500 fill-current" />)}
               </div>
-              <p className="text-gray-700 mb-8 text-lg leading-relaxed italic">"{testimonial.content}"</p>
+              <p className="text-gray-700 mb-8 text-lg leading-relaxed italic">&ldquo;{t.content}&rdquo;</p>
               <div className="flex items-center">
-                <div className={`w-12 h-12 ${testimonial.color} rounded-full flex items-center justify-center mr-4`}>
-                  <span className="text-white font-bold text-lg">{testimonial.name.split(' ').map(n => n[0]).join('')}</span>
+                <div className="w-12 h-12 bg-gradient-to-br from-[#053728] to-[#0a4836] rounded-full flex items-center justify-center mr-4">
+                  <span className="text-[#a7f3c0] font-bold text-lg">{t.name.split(' ').map(n => n[0]).join('')}</span>
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900 text-lg">{testimonial.name}</p>
-                  <p className="text-gray-600">{testimonial.role}</p>
+                  <p className="font-bold text-[#06352a] text-lg">{t.name}</p>
+                  <p className="text-gray-600">{t.role}</p>
                 </div>
               </div>
             </div>
@@ -325,38 +613,75 @@ function SocialProofSection() {
   )
 }
 
-// Enhanced CTA Section
+// ─────────────────────────────────────────────
+// 8. FAQ accordion
+// ─────────────────────────────────────────────
+const DEFAULT_FAQS = [
+  { q: 'Do I need to know anything technical?', a: 'No. You answer questions in plain language, confirm the details, and the platform builds the site. Hosting, payments and updates are handled for you.' },
+  { q: 'How fast can I be live?', a: 'Most people finish the Genie questions and the setup wizard in a single sitting, then pick a theme and publish.' },
+  { q: 'Will the AI make up prices or testimonials?', a: 'No. Design and layout are built in code, and the AI only writes copy. Prices, numbers, testimonials and credentials come from what you enter.' },
+  { q: 'Can the Genies replace my lawyer or accountant?', a: 'They are guidance, not a substitute. Use them to understand your options and prepare drafts, and check important legal, tax or immigration decisions with a licensed professional.' },
+  { q: 'How do I get paid?', a: 'Offers use the built-in checkout with Razorpay for Indian rupees and Stripe for international payments.' },
+  { q: 'What does it cost to try the Genies?', a: 'The first minute of every Genie session is free. After that, sessions are billed per minute, and you can stop at any time.' },
+]
+
+function FaqSection() {
+  const siteConfig = useCfg()
+  const faqs = siteConfig.faqs && siteConfig.faqs.length ? siteConfig.faqs : DEFAULT_FAQS
+  const [open, setOpen] = useState(0)
+
+  return (
+    <section className="py-28 bg-leaf-soft">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-4xl md:text-5xl font-black text-[#06352a] text-center mb-12">Questions, answered</h2>
+        <div className="space-y-3">
+          {faqs.map((f, i) => {
+            const isOpen = open === i
+            return (
+              <div key={i} className="bg-white border border-[#c9f2d8] rounded-2xl overflow-hidden">
+                <button
+                  className="faq-btn w-full flex items-center justify-between gap-4 text-left px-6 py-5"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpen(isOpen ? -1 : i)}
+                >
+                  <span className="font-bold text-[#06352a] text-lg">{f.q}</span>
+                  <ChevronDown className={`w-5 h-5 text-[#0a4836] shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isOpen && <p className="px-6 pb-6 text-gray-600 leading-relaxed">{f.a}</p>}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────
+// 9. Closing CTA
+// ─────────────────────────────────────────────
 function CTASection() {
   const siteConfig = useCfg()
   return (
-    <section className="py-32 bg-gray-900 relative overflow-hidden">
-      <div className="relative max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-        <h2 className="text-5xl md:text-6xl font-black text-white mb-8 leading-tight">
-          {siteConfig.cta.headline}
-        </h2>
-        <p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed">
-          {siteConfig.cta.subheadline}
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12 mt-32">
-          <Link
-            href={siteConfig.cta.primary.href || '/setup-wizard'}
-            className="btn-primary text-white px-12 py-6 rounded-2xl font-bold text-xl shadow-2xl"
-          >
+    <section className="py-28 bg-bottle-gradient relative overflow-hidden">
+      <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[36rem] h-[36rem] rounded-full bg-[#a7f3c0] opacity-10 blur-3xl" />
+      <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+        <h2 className="text-4xl md:text-6xl font-black text-white mb-6 leading-tight">{siteConfig.cta.headline}</h2>
+        <p className="text-lg md:text-2xl text-emerald-50/80 mb-10 leading-relaxed">{siteConfig.cta.subheadline}</p>
+
+        <div className="flex flex-col sm:flex-row gap-5 justify-center mb-10">
+          <Link href={siteConfig.cta.primary.href || '/setup-wizard'} className="btn-primary text-white px-12 py-5 rounded-2xl font-bold text-xl">
             {siteConfig.cta.primary.text}
           </Link>
-          <Link
-            href={siteConfig.cta.secondary.href || '/contact'}
-            className="glass-effect text-white px-12 py-6 rounded-2xl font-bold text-xl hover:bg-white hover:bg-opacity-20 transition-all border border-white border-opacity-30"
-          >
+          <Link href={siteConfig.cta.secondary.href || '/contact'} className="btn-ghost glass-effect px-12 py-5 rounded-2xl font-bold text-xl">
             {siteConfig.cta.secondary.text}
           </Link>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-gray-400">
-          {siteConfig.cta.badges.map((badge, i) => (
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-emerald-100/80">
+          {(siteConfig.cta.badges || []).map((badge, i) => (
             <div key={i} className="flex items-center">
-              <CheckCircle className="w-5 h-5 mr-2 text-green-400" />
+              <CheckCircle className="w-5 h-5 mr-2 text-[#a7f3c0]" />
               <span>{badge}</span>
             </div>
           ))}
@@ -373,9 +698,13 @@ export default function HomePage() {
     <SiteConfigCtx.Provider value={siteConfig}>
       <div className="min-h-screen bg-white overflow-hidden">
         <HeroSection />
+        <TrustedMarquee />
+        <ProductTabs />
+        <ToolsSection />
+        <PillarsSection />
         <ValuePropsSection />
-        <FeaturesShowcase />
         <SocialProofSection />
+        <FaqSection />
         <CTASection />
       </div>
     </SiteConfigCtx.Provider>

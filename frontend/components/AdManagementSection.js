@@ -860,8 +860,8 @@ export default function AdManagementSection({ token }) {
       // Store the brief JSON so content-studio can render the attachment chip
       localStorage.setItem('fb_handoff_brief', JSON.stringify(briefData))
 
-      // Hard-navigate so the content-studio page mounts fresh with the URL params
-      window.location.assign(`/platform/content-studio?agent=facebook-marketing&session_id=${session.session_id}&handoff=1`)
+      // Hard-navigate so the ai-genie page mounts fresh with the URL params
+      window.location.assign(`/platform/ai-genie?agent=facebook-marketing&session_id=${session.session_id}&handoff=1`)
     } catch (err) {
       console.error('Handoff failed:', err)
       showNotification('⚠️ Could not start specialist session. Please try again.')

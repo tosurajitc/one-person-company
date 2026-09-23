@@ -54,7 +54,7 @@ function MarketingPageContent() {
       { title: "Build", before: "One month with a developer", after: "One prompt, live in minutes" },
       { title: "Sell", before: "Stitching together checkout tools", after: "Offer page + payments in a day" },
       { title: "Run", before: "Answering DMs at midnight", after: "AI Genie handles enquiries 24/7" },
-      { title: "Grow", before: "Guessing what's working", after: "Founder analytics + playbooks" },
+      { title: "Grow", before: "Guessing what's working", after: "Founder analytics + insights" },
     ],
     comparison_table: {
       competitors: ["OPC Genie", "Graphy", "Kajabi", "Skool"],
