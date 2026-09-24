@@ -25,7 +25,7 @@ from app.models.community import (  # noqa: F401, E402
     CommunityThread, CommunityPost, CommunityMember,
     CommunityEvent, CommunitySettings,
 )
-
+from app.models.consult_request import ConsultRequest  # noqa: F401, E402
 # Renamed models
 from app.models.offer import Offer  # noqa: F401, E402
 from app.models.content_asset import ContentAsset  # noqa: F401, E402

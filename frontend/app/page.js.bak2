@@ -80,12 +80,12 @@ function CustomStyles() {
 }
 
 // Placeholder for product screenshots. Pass `image` (e.g. '/images/home/website-builder.png') to replace it.
-function MockPanel({ label, image, dark = false, origin = 'right' }) {
+function MockPanel({ label, image, dark = false }) {
   return (
-    <div className={`relative w-full ${image ? '' : 'aspect-[16/10]'} rounded-2xl overflow-hidden border shadow-xl cursor-zoom-in transition-transform duration-300 ease-out motion-reduce:transition-none ${origin === 'left' ? 'origin-left' : 'origin-right'} md:[@media(hover:hover)]:hover:scale-[2] md:[@media(hover:hover)]:hover:z-30 md:[@media(hover:hover)]:hover:shadow-2xl ${dark ? 'border-[#a7f3c0]/20 bg-[#021610]' : 'border-[#c9f2d8] bg-white'}`}>
+    <div className={`relative w-full aspect-[16/10] rounded-2xl overflow-hidden border shadow-xl ${dark ? 'border-[#a7f3c0]/20 bg-[#021610]' : 'border-[#c9f2d8] bg-white'}`}>
       {image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt={label} className="block w-full h-auto" />
+        <img src={image} alt={label} className="absolute inset-0 w-full h-full object-cover" />
       ) : (
         <>
           <div className={`flex items-center gap-1.5 px-4 py-3 border-b ${dark ? 'border-[#a7f3c0]/15' : 'border-[#d9f5e4]'}`}>
@@ -516,7 +516,7 @@ function PillarsSection() {
                     ))}
                   </ul>
                 </div>
-                <MockPanel label={p.title} image={p.image} origin={i % 2 === 1 ? 'left' : 'right'} />
+                <MockPanel label={p.title} image={p.image} />
               </div>
             )
           })}

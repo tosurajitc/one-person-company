@@ -1,7 +1,17 @@
 'use client'
 
+/**
+ * Wallet & Funds
+ * ------------------------------------------------------------------
+ * THEME (matches /platform/ai-website-builder, /dashboard, /profile, referral):
+ *   bottle green  #021610 / #053728 / #0a4836 / #0f6b4f
+ *   light green   #a7f3c0 / #c9f2d8 / #d9f5e4 / #f2faf5
+ *   orange        primary action buttons only
+ *
+ * Payment, verification and balance-loading logic are unchanged.
+ */
+
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Wallet,
@@ -12,18 +22,13 @@ import {
   AlertCircle,
   RefreshCw,
   Sparkles,
-  ShieldCheck,
-  History,
-  Zap,
-  IndianRupee,
-  Lock,
-  ChevronRight,
-  User,
-  Bell,
-  Shield,
 } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import DashboardSidebar from '../../../components/DashboardSidebar'
+
+// ─── Shared theme class strings ──────────────────────────────────────────────
+const BTN_ORANGE = 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-md shadow-orange-500/30'
+const CARD = 'bg-white rounded-2xl border border-[#c9f2d8] shadow-sm'
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -38,6 +43,9 @@ function loadRazorpayScript() {
 }
 
 const PRESET_AMOUNTS = [99, 199, 499, 999, 1999]
+
+const formatInr = (n) =>
+  n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export default function WalletPage() {
   const { user, token } = useAuth()
@@ -69,9 +77,7 @@ export default function WalletPage() {
       }
 
       const res = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers: { Authorization: `Bearer ${authToken}` },
       })
       if (res.ok) {
         const data = await res.json()
@@ -101,8 +107,7 @@ export default function WalletPage() {
   }
 
   const handleCustomChange = (e) => {
-    const val = e.target.value
-    setCustomAmount(val)
+    setCustomAmount(e.target.value)
     setIsCustom(true)
     setErrorMsg('')
   }
@@ -167,7 +172,7 @@ export default function WalletPage() {
           email: userData?.email || user?.email || '',
         },
         theme: {
-          color: '#3b82f6',
+          color: '#0a4836', // bottle green to match the platform theme
         },
         handler: async function (response) {
           try {
@@ -190,10 +195,7 @@ export default function WalletPage() {
               throw new Error(verifyData.detail || 'Payment verification failed.')
             }
 
-            setSuccessMsg(
-              `₹${effectiveAmount.toFixed(2)} added successfully to your wallet!`
-            )
-            // Reload user data / balances
+            setSuccessMsg(`₹${effectiveAmount.toFixed(2)} added successfully to your wallet!`)
             await fetchUserData()
           } catch (verErr) {
             setErrorMsg(verErr.message || 'Payment verification error.')
@@ -220,24 +222,32 @@ export default function WalletPage() {
     }
   }
 
-  const profileName = userData?.full_name || user?.full_name || 'Founder'
-  const initials = profileName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || 'OP'
+  const payDisabled = isLoading || isNaN(effectiveAmount) || effectiveAmount < 99
 
   return (
-    <div className="min-h-screen bg-white pt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mb-8 pb-6 border-b border-gray-100">
-          <h1 className="text-2xl font-black text-gray-900">Wallet & Funds</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Manage your prepaid balance, recharge funds, and track AI usage</p>
-        </div>
+    <div className="min-h-screen w-full bg-gradient-to-b from-[#f2faf5] to-white pt-16 lg:pt-20">
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Sticky Left Dashboard Menu */}
+      {/* ── Full-width hero band ── */}
+      <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#021610] via-[#053728] to-[#0a4836]">
+        <div className="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#a7f3c0] opacity-10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-[#a7f3c0] opacity-10 blur-3xl" />
+        <div className="relative w-full px-4 sm:px-6 lg:px-10 2xl:px-16 py-10 lg:py-12">
+          <div className="inline-flex items-center px-4 py-1.5 bg-[#a7f3c0]/10 border border-[#a7f3c0]/30 rounded-full text-xs font-medium mb-3 text-[#a7f3c0]">
+            <Wallet className="w-3.5 h-3.5 mr-1.5" />
+            Prepaid balance
+          </div>
+          <h1 className="text-3xl md:text-4xl font-black text-white leading-tight">Wallet &amp; Funds</h1>
+          <p className="text-sm md:text-base text-emerald-50/80 mt-2 max-w-2xl leading-relaxed">
+            Recharge your balance, and track what your AI tools have used.
+          </p>
+        </div>
+      </section>
+
+      {/* ── Full-width workspace ── */}
+      <main className="w-full px-4 sm:px-6 lg:px-10 2xl:px-16 py-8 lg:py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
+
+          {/* Left navigation */}
           <DashboardSidebar
             activeTab="wallet"
             hasSite={!!userData?.site?.subdomain}
@@ -245,122 +255,116 @@ export default function WalletPage() {
             user={userData || user}
           />
 
-          {/* Right Main Content */}
-          <div className="lg:col-span-9 space-y-6">
-            {/* Balance Overview Cards */}
+          {/* Right content */}
+          <div className="lg:col-span-9 min-w-0 space-y-6">
+
+            {/* Balance cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Available Balance Card */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50 rounded-full -mr-10 -mt-10 pointer-events-none" />
-                <div className="flex items-center justify-between mb-4 relative z-10">
-                  <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600">
-                    <Wallet className="w-6 h-6" />
+              {/* Available balance: the one dark, emphasised card */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#021610] via-[#053728] to-[#0a4836] p-6 text-white shadow-sm">
+                <div className="pointer-events-none absolute -top-16 -right-12 w-56 h-56 rounded-full bg-[#a7f3c0] opacity-10 blur-3xl" />
+                <div className="relative flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 bg-[#a7f3c0]/15 border border-[#a7f3c0]/30 rounded-xl flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-[#a7f3c0]" />
                   </div>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Active Balance
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#a7f3c0]/10 border border-[#a7f3c0]/30 text-[#a7f3c0]">
+                    Active balance
                   </span>
                 </div>
-                <div className="relative z-10">
-                  <p className="text-sm font-medium text-gray-500">Available Balance</p>
-                  <div className="text-3xl font-black text-gray-900 mt-1 flex items-baseline">
+                <div className="relative">
+                  <p className="text-sm font-medium text-emerald-50/80">Available balance</p>
+                  <div className="text-3xl font-black mt-1 flex items-baseline">
                     <span className="text-2xl font-bold mr-1">₹</span>
                     {isFetchingStats ? (
-                      <span className="animate-pulse text-gray-300">...</span>
+                      <span className="animate-pulse text-emerald-200/50">…</span>
                     ) : (
-                      walletBalance.toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })
+                      formatInr(walletBalance)
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-2 flex items-center">
-                    <Sparkles className="w-3.5 h-3.5 text-primary-500 mr-1" />
+                  <p className="text-xs text-emerald-50/70 mt-2 flex items-center">
+                    <Sparkles className="w-3.5 h-3.5 text-[#a7f3c0] mr-1.5 shrink-0" />
                     Instantly usable across all AI tools and workspace features
                   </p>
                 </div>
               </div>
 
-              {/* Consumed Fund Card */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-full -mr-10 -mt-10 pointer-events-none" />
-                <div className="flex items-center justify-between mb-4 relative z-10">
-                  <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
-                    <TrendingDown className="w-6 h-6" />
+              {/* Consumed */}
+              <div className={`${CARD} p-6`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 bg-[#d9f5e4] rounded-xl flex items-center justify-center">
+                    <TrendingDown className="w-5 h-5 text-[#0a4836]" />
                   </div>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                    Lifetime Usage
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#f2faf5] border border-[#c9f2d8] text-[#0a4836]">
+                    Lifetime usage
                   </span>
                 </div>
-                <div className="relative z-10">
-                  <p className="text-sm font-medium text-gray-500">Consumed Fund</p>
-                  <div className="text-3xl font-black text-gray-900 mt-1 flex items-baseline">
-                    <span className="text-2xl font-bold mr-1">₹</span>
-                    {isFetchingStats ? (
-                      <span className="animate-pulse text-gray-300">...</span>
-                    ) : (
-                      walletConsumed.toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Total funds consumed for services, AI drafts, and automations
-                  </p>
+                <p className="text-sm font-medium text-gray-500">Consumed fund</p>
+                <div className="text-3xl font-black text-[#053728] mt-1 flex items-baseline">
+                  <span className="text-2xl font-bold mr-1">₹</span>
+                  {isFetchingStats ? (
+                    <span className="animate-pulse text-gray-300">…</span>
+                  ) : (
+                    formatInr(walletConsumed)
+                  )}
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Total funds consumed for services, AI drafts, and automations
+                </p>
               </div>
             </div>
 
             {/* Notifications */}
             {errorMsg && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3.5 rounded-xl text-sm flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3.5 rounded-xl text-sm flex items-start gap-3" role="alert">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">Transaction Error</p>
+                  <p className="font-semibold">Payment did not go through</p>
                   <p className="text-red-600 text-xs mt-0.5">{errorMsg}</p>
                 </div>
               </div>
             )}
 
             {successMsg && (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3.5 rounded-xl text-sm flex items-start space-x-3">
-                <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-[#f2faf5] border border-[#a7f3c0] text-[#053728] px-4 py-3.5 rounded-xl text-sm flex items-start gap-3" role="status">
+                <CheckCircle className="w-5 h-5 text-[#0f6b4f] shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold">Payment Successful!</p>
-                  <p className="text-emerald-700 text-xs mt-0.5">{successMsg}</p>
+                  <p className="font-semibold">Payment successful</p>
+                  <p className="text-[#0a4836] text-xs mt-0.5">{successMsg}</p>
                 </div>
               </div>
             )}
 
-            {/* Add Fund / Top Up Card */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-sm space-y-6">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 flex items-center">
-                  <ArrowUpRight className="w-5 h-5 mr-2 text-primary-600" />
-                  Add Funds to Wallet
+            {/* Add funds */}
+            <div className={`${CARD} p-6 sm:p-8 space-y-6`}>
+              <div className="pb-4 border-b border-[#d9f5e4]">
+                <h3 className="text-lg font-bold text-[#06352a] flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-full bg-[#d9f5e4] flex items-center justify-center">
+                    <ArrowUpRight className="w-4 h-4 text-[#0a4836]" />
+                  </span>
+                  Add funds to wallet
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Choose a preset amount or enter whatever amount you want. Minimum recharge is <strong>₹99/-</strong>.
+                <p className="text-sm text-gray-500 mt-1.5">
+                  Choose a preset amount or enter your own. Minimum recharge is <strong className="text-[#06352a]">₹99</strong>.
                 </p>
               </div>
 
-              {/* Quick Preset Buttons */}
+              {/* Presets */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
-                  Select Quick Amount
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <p className="text-xs font-semibold text-gray-700 mb-3">Select a quick amount</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3" role="radiogroup" aria-label="Quick amounts">
                   {PRESET_AMOUNTS.map((val) => {
                     const isSelected = !isCustom && parseFloat(amount) === val
                     return (
                       <button
                         key={val}
                         type="button"
+                        role="radio"
+                        aria-checked={isSelected}
                         onClick={() => handleSelectPreset(val)}
-                        className={`py-3 px-4 rounded-xl text-center font-bold text-sm transition-all border ${
+                        className={`py-3 px-4 rounded-xl text-center font-bold text-sm transition-colors border focus:outline-none focus:ring-2 focus:ring-[#0f6b4f] ${
                           isSelected
-                            ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-500/20 ring-2 ring-primary-500/30'
-                            : 'bg-white text-gray-800 border-gray-200 hover:border-primary-400 hover:bg-gray-50'
+                            ? 'bg-[#0a4836] text-white border-[#0a4836] shadow-sm'
+                            : 'bg-white text-gray-800 border-[#c9f2d8] hover:border-[#0f6b4f] hover:bg-[#f2faf5]'
                         }`}
                       >
                         ₹{val}
@@ -370,115 +374,88 @@ export default function WalletPage() {
                 </div>
               </div>
 
-              {/* Custom Amount Field */}
+              {/* Custom amount */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                  Or Enter Custom Amount (Minimum ₹99)
+                <label htmlFor="custom-amount" className="block text-xs font-semibold text-gray-700 mb-2">
+                  Or enter a custom amount (minimum ₹99)
                 </label>
-                <div className="relative rounded-xl shadow-sm max-w-md">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 font-bold text-lg">
+                <div className="relative max-w-md">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#0a4836] font-bold text-lg">
                     ₹
                   </div>
                   <input
+                    id="custom-amount"
                     type="number"
                     min="99"
                     step="1"
-                    placeholder="Enter amount (e.g. 250, 500, 5000)"
+                    placeholder="e.g. 250, 500, 5000"
                     value={customAmount}
                     onChange={handleCustomChange}
-                    className={`block w-full rounded-xl pl-10 pr-4 py-3 text-base text-gray-900 placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all ${
+                    className={`block w-full rounded-xl pl-10 pr-4 py-3 text-base text-gray-900 placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-[#0f6b4f] transition-colors ${
                       isCustom
-                        ? 'border-primary-500 ring-2 ring-primary-500/20 bg-blue-50/20 font-semibold'
-                        : 'border-gray-300 bg-white'
+                        ? 'border-[#0a4836] ring-1 ring-[#0a4836] bg-[#f2faf5] font-semibold'
+                        : 'border-[#c9f2d8] bg-white'
                     }`}
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  You can enter any amount greater than or equal to ₹99/-.
-                </p>
+                <p className="text-xs text-gray-500 mt-2">Any amount of ₹99 or more works.</p>
               </div>
 
-              {/* Payment Summary Box */}
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              {/* Payment summary */}
+              <div className="bg-[#f2faf5] rounded-xl p-5 border border-[#c9f2d8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
-                    Amount to Pay
+                  <p className="text-xs text-gray-600 font-semibold">Amount to pay</p>
+                  <p className="text-2xl font-black text-[#053728] mt-0.5">
+                    ₹{isNaN(effectiveAmount) || effectiveAmount <= 0 ? '0.00' : formatInr(effectiveAmount)}
                   </p>
-                  <p className="text-2xl font-black text-gray-900 mt-0.5">
-                    ₹
-                    {isNaN(effectiveAmount) || effectiveAmount <= 0
-                      ? '0.00'
-                      : effectiveAmount.toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    No hidden taxes • Instant 1:1 wallet credit
-                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">No hidden taxes • Instant 1:1 wallet credit</p>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleAddFund}
-                  disabled={isLoading || isNaN(effectiveAmount) || effectiveAmount < 99}
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base cursor-pointer"
+                  disabled={payDisabled}
+                  className={`w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 ${BTN_ORANGE} rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none`}
                 >
                   {isLoading ? (
                     <>
-                      <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                      Connecting Razorpay...
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Connecting to Razorpay…
                     </>
                   ) : (
                     <>
-                      <CreditCard className="w-5 h-5 mr-2" />
-                      Proceed to Pay with Razorpay
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pay with Razorpay
                     </>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* How Wallet Works Info */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <h4 className="text-base font-bold text-gray-900 mb-4">
-                How your OPC Genie Wallet works
+            {/* How the wallet works */}
+            <div className={`${CARD} p-6`}>
+              <h4 className="text-base font-bold text-[#06352a] mb-4 pb-3 border-b border-[#d9f5e4]">
+                How your OPC Genie wallet works
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm mb-3">
-                    1
-                  </div>
-                  <h5 className="font-semibold text-gray-900 text-sm mb-1">Add Any Fund</h5>
-                  <p className="text-xs text-gray-600">
-                    Recharge starting from ₹99 with UPI, NetBanking, Debit/Credit cards via Razorpay.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm mb-3">
-                    2
-                  </div>
-                  <h5 className="font-semibold text-gray-900 text-sm mb-1">Instant Activation</h5>
-                  <p className="text-xs text-gray-600">
-                    Your balance is updated in real-time as soon as the Razorpay checkout completes.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-sm mb-3">
-                    3
-                  </div>
-                  <h5 className="font-semibold text-gray-900 text-sm mb-1">Track & Spend</h5>
-                  <p className="text-xs text-gray-600">
-                    Monitor consumed funds and remaining balance directly on this dashboard anytime.
-                  </p>
-                </div>
-              </div>
+              <ol className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { title: 'Add any amount', text: 'Recharge from ₹99 with UPI, net banking, or debit and credit cards via Razorpay.' },
+                  { title: 'Instant activation', text: 'Your balance updates as soon as the Razorpay checkout completes.' },
+                  { title: 'Track and spend', text: 'See consumed funds and your remaining balance on this page anytime.' },
+                ].map((s, i) => (
+                  <li key={s.title} className="p-4 rounded-xl bg-[#f2faf5] border border-[#c9f2d8]">
+                    <div className="w-7 h-7 rounded-full bg-[#0a4836] text-white flex items-center justify-center font-bold text-xs mb-3">
+                      {i + 1}
+                    </div>
+                    <h5 className="font-semibold text-[#06352a] text-sm mb-1">{s.title}</h5>
+                    <p className="text-xs text-gray-600 leading-relaxed">{s.text}</p>
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

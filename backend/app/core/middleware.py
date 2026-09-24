@@ -121,6 +121,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         ("POST", "/api/public-tutor/{slug}/bookings"),
         ("POST", "/api/trip-architect/requests"),
         ("GET", "/api/trip-architect/share/{token}"),
+        ("POST", "/api/study-consult/submit"),
     ]
 
     # Prefixes that require an admin. Matched on whole path segments.
@@ -139,6 +140,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         ("POST", "/api/genie/draft-site", 10, 600),
         ("POST", "/api/contact", 5, 600),
         ("POST", "/api/enquiries/submit", 10, 600),
+        ("POST", "/api/study-consult/submit", 10, 600),
         ("POST", "/api/leads", 10, 600),
         ("POST", "/api/subscribers", 5, 600),
         ("POST", "/api/auth/login", 10, 600),
